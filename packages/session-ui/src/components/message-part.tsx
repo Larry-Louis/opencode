@@ -1763,11 +1763,34 @@ PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
     () => props.message.role === "assistant" && typeof (props.message as AssistantMessage).time.completed !== "number",
   )
   const text = () => readPartText(data.store.part_text_accum_delta, part())
+  // Blue Topaz：思维链折叠。流式中默认展开，完成后自动收起；手动点击优先
+  const [userCollapsed, setUserCollapsed] = createSignal<boolean | null>(null)
+  const expanded = () => (userCollapsed() === null ? streaming() : !userCollapsed())
 
   return (
     <Show when={text()}>
-      <div data-component="reasoning-part" data-timeline-part-id={part().id}>
-        <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+      <div
+        data-component="reasoning-part"
+        data-timeline-part-id={part().id}
+        classList={{ "bt-open": expanded(), "bt-closed": !expanded() }}
+      >
+        <button
+          type="button"
+          class="bt-r-toggle"
+          aria-expanded={expanded() ? "true" : "false"}
+          onClick={(e) => {
+            e.stopPropagation()
+            setUserCollapsed(!expanded())
+          }}
+        >
+          <span class="bt-label">思维链</span>
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <use href="#opencode-icon-chevron-down" />
+          </svg>
+        </button>
+        <div class="bt-r-body">
+          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+        </div>
       </div>
     </Show>
   )
@@ -2094,6 +2117,10 @@ ToolRegistry.register({
       return `$ ${cmd}${out ? "\n\n" + out : ""}`
     })
     const [copied, setCopied] = createSignal(false)
+    const previewText = () => {
+      const c = (props.input.command ?? "").replace(/\s+/g, " ").trim()
+      return c.slice(0, 40) + (c.length > 40 ? "…" : "")
+    }
 
     const handleCopy = async () => {
       const content = text()
@@ -2108,6 +2135,8 @@ ToolRegistry.register({
       <BasicTool
         {...props}
         icon="console"
+        kind="shell"
+        preview={previewText()}
         allowOpenWhilePending
         trigger={(open) => (
           <div data-slot="basic-tool-tool-info-structured">
@@ -2205,6 +2234,7 @@ ToolRegistry.register({
         <BasicTool
           {...props}
           icon="code-lines"
+          kind="edit"
           defer={props.deferContent !== false}
           trigger={
             <div data-component="edit-trigger">
@@ -2272,6 +2302,7 @@ ToolRegistry.register({
         <BasicTool
           {...props}
           icon="code-lines"
+          kind="edit"
           defer={props.deferContent !== false}
           trigger={
             <div data-component="write-trigger">

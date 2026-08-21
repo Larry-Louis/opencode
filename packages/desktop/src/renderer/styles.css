@@ -1,0 +1,264 @@
+/* ============================================================
+ * Blue Topaz for OpenCode Desktop —— 原生主题层
+ * 移植自 F:\AI\agent\opencode-theme（CDP 注入版的源码化实现）
+ * 调色板来源：Obsidian Blue Topaz 主题
+ *
+ * 结构：
+ *   1. token 色板（dark/light 双套，同 hue 家族）
+ *   2. Markdown 排版（彩虹标题/行内代码/代码块单框/引用）
+ *   3. 思维链折叠（胶囊+底色，配合 message-part.tsx 原生信号）
+ *   4. 工具胶囊（Shell 绿 / 编辑·写入 蓝 / 其余紫）+ Shell 预览
+ * ============================================================ */
+
+/* ---------- 1a. Dark: BT 暗色核心 ---------- */
+html[data-color-scheme="dark"][data-theme] {
+  --v2-background-bg-base: #202020;
+  --v2-background-bg-deep: #151515;
+  --v2-background-bg-layer-01: #1b1b1b;
+  --v2-background-bg-layer-02: #232323;
+  --v2-background-bg-layer-03: #2b2b2b;
+  --v2-background-bg-layer-04: #333333;
+  --v2-text-text-base: #c6c6c6;
+  --v2-text-text-muted: #8a8a8a;
+  --v2-text-text-faint: #797979;
+  --v2-text-text-accent: hsl(208 64% 55%);
+  --v2-icon-icon-accent: hsl(208 64% 55%);
+  --v2-border-border-muted: rgba(52, 52, 52, 0.6);
+  --v2-border-border-base: #343434;
+  --v2-border-border-strong: #444444;
+  --text-strong: #e0e0e0;
+  --border-weaker-base: rgba(52, 52, 52, 0.6);
+  --border-weak-base: #343434;
+}
+
+html[data-color-scheme="dark"][data-theme] ::selection {
+  background: rgba(59, 118, 113, 0.38);
+}
+
+/* ---------- 1b. Light: BT 亮色核心 ---------- */
+html[data-color-scheme="light"][data-theme] {
+  --v2-background-bg-base: #ffffff;
+  --v2-background-bg-deep: #f3f3f3;
+  --v2-background-bg-layer-01: #fcfcfc;
+  --v2-background-bg-layer-02: #efefef;
+  --v2-background-bg-layer-03: #e9e9e9;
+  --v2-background-bg-layer-04: #dddddd;
+  --v2-text-text-base: #0e0e0e;
+  --v2-text-text-muted: #7f7f7f;
+  --v2-text-text-faint: #7f7f7f;
+  --v2-text-text-accent: hsl(207 77% 42%);
+  --v2-icon-icon-accent: hsl(207 77% 46%);
+  --v2-border-border-muted: rgba(221, 221, 221, 0.7);
+  --v2-border-border-base: #dddddd;
+  --v2-border-border-strong: #c9c9c9;
+  --text-strong: #000000;
+  --border-weaker-base: rgba(221, 221, 221, 0.7);
+  --border-weak-base: #dddddd;
+}
+
+html[data-color-scheme="light"][data-theme] ::selection {
+  background: rgba(169, 209, 200, 0.45);
+}
+
+/* ---------- 2a. 彩虹标题（BT 招牌） ---------- */
+[data-component="markdown"] h1 { color: hsl(78 62% 47%); }
+[data-component="markdown"] h2 { color: hsl(118 42% 42%); }
+[data-component="markdown"] h3 { color: hsl(180 53% 40%); }
+[data-component="markdown"] h4 { color: hsl(216 69% 60%); }
+[data-component="markdown"] h5 { color: hsl(258 79% 72%); }
+[data-component="markdown"] h6 { color: hsl(290 85% 76%); }
+
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h1 { color: hsl(78 62% 34%); }
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h2 { color: hsl(118 42% 30%); }
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h3 { color: hsl(180 53% 28%); }
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h4 { color: hsl(216 69% 45%); }
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h5 { color: hsl(258 79% 52%); }
+html[data-color-scheme="light"][data-theme] [data-component="markdown"] h6 { color: hsl(290 85% 58%); }
+
+/* ---------- 2b. 行内代码：BT 橙 ---------- */
+[data-component="markdown"] :not(pre) > code {
+  color: #d58000;
+  background: rgba(17, 17, 17, 0.08);
+  border-radius: 4px;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="markdown"] :not(pre) > code {
+  background: rgba(17, 17, 17, 0.45);
+}
+
+/* ---------- 2c. 代码块单框：框只落 markdown-code 外层 ---------- */
+html[data-color-scheme="dark"][data-theme] {
+  --syntax-comment: #7a7a7a;
+  --syntax-keyword: #baaaff;
+  --syntax-string: #00ceb9;
+  --syntax-type: #fcd53a;
+  --syntax-property: #fab283;
+  --syntax-primitive: #8cb0ff;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="markdown-code"] {
+  background: rgba(17, 17, 17, 0.82);
+  border: 1px solid #343434;
+  border-radius: 8px;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="markdown-code"] pre {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="markdown-code"] code {
+  color: #d0d0d0;
+}
+
+/* ---------- 2d. 引用块 / 分隔线 / 链接 ---------- */
+[data-component="markdown"] blockquote {
+  border-left: 3px solid hsl(208 64% 49% / 0.5);
+  background: rgba(145, 145, 145, 0.11);
+  border-radius: 0 6px 6px 0;
+}
+[data-component="markdown"] a { text-underline-offset: 2px; }
+[data-component="markdown"] hr {
+  border-color: var(--v2-border-border-base);
+  opacity: 0.6;
+}
+
+/* ---------- 3a. Shell 输出面板：同族绿 ---------- */
+[data-component="bash-output"] {
+  background: hsl(118 30% 45% / 0.06);
+  border: 1px solid hsl(118 25% 55% / 0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="bash-output"] {
+  background: hsl(118 26% 10% / 0.75);
+  border-color: hsl(118 20% 32% / 0.5);
+}
+
+/* ---------- 3b. 思维链折叠胶囊 + 底色面板 ---------- */
+[data-component="reasoning-part"].bt-r-body-host {
+  position: relative;
+}
+[data-component="reasoning-part"] .bt-r-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 3px;
+  padding: 2px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #a85e00;
+  background: rgba(213, 128, 0, 0.09);
+  border: 1px solid rgba(213, 128, 0, 0.38);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] .bt-r-toggle {
+  color: #eda94d;
+  background: rgba(213, 128, 0, 0.13);
+  border-color: rgba(213, 128, 0, 0.45);
+}
+[data-component="reasoning-part"] .bt-r-toggle:hover {
+  background: rgba(213, 128, 0, 0.18);
+}
+.bt-r-toggle svg {
+  margin-left: 5px;
+  transition: transform 0.15s ease;
+}
+[data-component="reasoning-part"].bt-closed .bt-r-toggle svg {
+  transform: rotate(-90deg);
+}
+
+[data-component="reasoning-part"] .bt-r-body {
+  background: rgba(213, 128, 0, 0.045);
+  border: 1px solid rgba(213, 128, 0, 0.16);
+  border-radius: 10px;
+  padding: 8px 10px 6px;
+}
+html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] .bt-r-body {
+  background: rgba(213, 128, 0, 0.07);
+  border-color: rgba(213, 128, 0, 0.22);
+}
+[data-component="reasoning-part"].bt-closed .bt-r-body {
+  max-height: 5.5em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+}
+
+/* ---------- 4. 工具胶囊：Shell 绿 / 编辑·写入 蓝 / 其余紫 ----------
+ * 宽度收缩修复：应用的百分比约束链会破坏固有宽度计算，
+ * 用 min-width:max-content 强制内容贡献真实宽度。
+ * --------------------------------------------------------------- */
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"] {
+  width: fit-content;
+  max-width: 100%;
+}
+[data-component="tool-trigger"][data-pill-kind] {
+  padding: 2px 14px 2px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  gap: 7px;
+}
+[data-component="tool-trigger"][data-pill-kind] > [data-slot="basic-tool-tool-trigger-content"],
+[data-component="tool-trigger"][data-pill-kind] [data-slot="basic-tool-tool-info"],
+[data-component="tool-trigger"][data-pill-kind] [data-slot="basic-tool-tool-info-structured"] {
+  min-width: max-content;
+  max-width: none;
+}
+
+/* --- Shell: 终端绿 --- */
+[data-component="tool-trigger"][data-pill-kind="shell"] {
+  color: hsl(118 42% 30%);
+  background: hsl(118 42% 45% / 0.1);
+  border-color: hsl(118 42% 45% / 0.4);
+}
+html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-pill-kind="shell"] {
+  color: hsl(118 42% 60%);
+  background: hsl(118 42% 45% / 0.13);
+  border-color: hsl(118 42% 45% / 0.45);
+}
+
+/* --- 编辑/写入: BT accent 蓝 --- */
+[data-component="tool-trigger"][data-pill-kind="edit"] {
+  color: hsl(208 64% 35%);
+  background: hsl(208 64% 49% / 0.08);
+  border-color: hsl(208 64% 49% / 0.35);
+}
+html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-pill-kind="edit"] {
+  color: hsl(208 64% 65%);
+  background: hsl(208 64% 49% / 0.12);
+  border-color: hsl(208 64% 49% / 0.4);
+}
+
+/* --- 其余工具调用: BT h5 紫 --- */
+[data-component="tool-trigger"][data-pill-kind="tool"] {
+  color: hsl(258 55% 42%);
+  background: hsl(258 60% 60% / 0.09);
+  border-color: hsl(258 60% 60% / 0.38);
+}
+html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-pill-kind="tool"] {
+  color: hsl(258 80% 76%);
+  background: hsl(258 60% 60% / 0.13);
+  border-color: hsl(258 60% 60% / 0.42);
+}
+
+/* 标题文字继承胶囊色 */
+[data-component="tool-trigger"][data-pill-kind] [data-slot="basic-tool-tool-title"],
+[data-component="tool-trigger"][data-pill-kind] [data-slot="message-part-title-area"] {
+  color: inherit;
+}
+
+/* --- 箭头常显 + Shell 预览文本 ---
+ * 原生默认 opacity:0 hover 才显形；改为常显，
+ * 收起朝右(原生 rotate -90)、展开朝下，方向逻辑保持原生
+ * --------------------------------------------------------------- */
+[data-slot="collapsible-arrow"] {
+  opacity: 1 !important;
+}
+.bt-shell-preview {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  opacity: 0.75;
+}

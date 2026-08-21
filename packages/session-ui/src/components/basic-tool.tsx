@@ -42,6 +42,10 @@ export interface BasicToolProps {
   triggerHref?: string
   triggerAsLink?: boolean
   clickable?: boolean
+  /** Blue Topaz：胶囊分类（shell/edit/tool），决定配色 */
+  kind?: string
+  /** Blue Topaz：收起时胶囊内的命令行预览 */
+  preview?: string
 }
 
 const SPRING = { type: "spring" as const, visualDuration: 0.35, bounce: 0 }
@@ -182,12 +186,13 @@ export function BasicTool(props: BasicToolProps) {
     setOpen(value)
   }
 
-  const trigger = () => (
-    <div
-      data-component="tool-trigger"
-      data-clickable={props.clickable ? "true" : undefined}
-      data-hide-details={props.hideDetails ? "true" : undefined}
-    >
+    const trigger = () => (
+      <div
+        data-component="tool-trigger"
+        data-clickable={props.clickable ? "true" : undefined}
+        data-hide-details={props.hideDetails ? "true" : undefined}
+        data-pill-kind={props.kind ?? "tool"}
+      >
       <div data-slot="basic-tool-tool-trigger-content">
         <div data-slot="basic-tool-tool-info">
           <Switch>
@@ -247,6 +252,9 @@ export function BasicTool(props: BasicToolProps) {
             <Match when={true}>{props.trigger as JSX.Element}</Match>
           </Switch>
         </div>
+        <Show when={!open() && props.preview}>
+          <span data-slot="bt-pill-preview">{props.preview}</span>
+        </Show>
       </div>
       <Show when={hasChildren() && !props.hideDetails && !props.locked && (!pending() || props.allowOpenWhilePending)}>
         <Collapsible.Arrow />
