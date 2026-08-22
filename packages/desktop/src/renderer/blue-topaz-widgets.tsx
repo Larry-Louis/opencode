@@ -232,31 +232,53 @@ export function BlueTopazWidgets() {
     return null
   }
 
+  // 用户消息文本登记簿：路过视口即记录，虚拟化卸载后徽章仍可显示
+  const umHistory: string[] = []
+  function rememberUm(el: Element) {
+    const body = el.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
+    const t = ((body ?? el).textContent || "").replace(/\s+/g, " ").trim()
+    if (t && umHistory[0] !== t) umHistory.unshift(t.slice(0, 60))
+    if (umHistory.length > 30) umHistory.length = 30
+  }
+
   function updateSticky() {
     positionPicker()
     const sc = findScroller()
     if (!sc) { setStickyVisible(false); return }
     const sr = sc.getBoundingClientRect()
-    // 两个悬浮件都锚定滚动视口：徽章=右上，状态栏=左下（纯文本）
-    setStatsPos({ left: Math.round(sr.left + 14), top: Math.round(sr.bottom - 26) })
+    // 状态栏=滚动视口左下（纯文本），坐标守卫防漂移
+    const wantStats = { left: Math.round(sr.left + 14), top: Math.round(sr.bottom - 26) }
+    setStatsPos(prev => (prev.left === wantStats.left && prev.top === wantStats.top) ? prev : wantStats)
     const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
       u => u.getBoundingClientRect().height > 8,
     )
-    if (ums.length === 0) { setStickyVisible(false); return }
     let lastAbove: Element | null = null
     let anyVisible = false
     for (const u of ums) {
+      rememberUm(u)
       const r = u.getBoundingClientRect()
-      if (r.bottom > sr.top && r.top < sr.bottom) { anyVisible = true; break }
-      if (r.top <= sr.top) lastAbove ??= u
+      if (r.bottom > sr.top && r.top < sr.bottom) { anyVisible = true; continue }
+      if (r.top <= sr.top && !lastAbove) lastAbove = u
     }
-    if (anyVisible || !lastAbove) { setStickyVisible(false); return }
+    if (anyVisible || !lastAbove) {
+      // 视口内还有用户消息 → 徽章隐藏；但已登记的文本保留供卸载后兜底
+      setStickyVisible(false); return
+    }
     stickyTarget = lastAbove
     const bodyEl = lastAbove.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
     const text = ((bodyEl ?? lastAbove).textContent || "").replace(/\s+/g, " ").trim()
+    if (!text && umHistory[0]) {
+      // 兜底：目标回合已被虚拟化卸载——显示登记簿里最近的用户消息，
+      // 点击退回最顶上的已挂载回合（近似定位）
+      setStickyText("↩ " + (umHistory[0].slice(0, 58)))
+      setStickyVisible(true)
+      return
+    }
     setStickyText(text.slice(0, 60))
-    // 徽章钉在滚动视口右上角内侧
-    setStickyPos({ right: Math.max(10, Math.round(window.innerWidth - sr.right + 12)), top: Math.round(sr.top + 8) })
+    // 徽章贴着滚动区内渐变 sticky 头的下沿（找不到头则回退到视口顶 +8）
+    const stHeader = sc.querySelector(":scope > div.sticky.top-0") as HTMLElement | null
+    const badgeTop = stHeader ? Math.round(stHeader.getBoundingClientRect().bottom + 4) : Math.round(sr.top + 8)
+    setStickyPos(prev => (prev.right === Math.max(10, Math.round(window.innerWidth - sr.right + 12)) && prev.top === badgeTop) ? prev : { right: Math.max(10, Math.round(window.innerWidth - sr.right + 12)), top: badgeTop })
     setStickyVisible(true)
   }
 
@@ -314,14 +336,16 @@ export function BlueTopazWidgets() {
       >
         {"<>"}
       </button>
-      <Show when={statsVisible()}>
-        <div
-          id="bt-statsbar"
-          style={{ left: `${statsPos().left}px`, top: `${statsPos().top}px` }}
-        >
-          {statsText()}
-        </div>
-      </Show>
+      <div
+        id="bt-statsbar"
+        style={{
+          left: `${statsPos().left}px`,
+          top: `${statsPos().top}px`,
+          visibility: statsVisible() ? "visible" : "hidden",
+        }}
+      >
+        {statsText()}
+      </div>
       <Show when={panelOpen()}>
         <div id={PICK_PANEL_ID}>
           <div class="bt-panel-head">
