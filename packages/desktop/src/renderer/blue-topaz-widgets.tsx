@@ -330,6 +330,7 @@ export function BlueTopazWidgets() {
       <button
         type="button"
         id={PICK_BTN_ID}
+        class="size-7 rounded-md p-[6px] text-v2-icon-icon-muted shadow-[var(--v2-elevation-button-contrast)]"
         classList={{ "bt-active": picking() }}
         title="Pick element: hover to highlight, click to capture selector + HTML. ArrowUp = parent."
         onClick={togglePicker}
@@ -365,15 +366,14 @@ export function BlueTopazWidgets() {
           </div>
         </div>
       </Show>
-      <Show when={stickyVisible()}>
-        <button
-          type="button"
-          id={STICKY_ID}
-          style={{ right: `${stickyPos().right}px`, top: `${stickyPos().top}px` }}
-          title="Last user request - click to scroll back"
-          onClick={scrollBack}
-        >{"↩ " + stickyText()}</button>
-      </Show>
+      <button
+        type="button"
+        id={STICKY_ID}
+        classList={{ "bt-sticky-empty": !stickyText() }}
+        style={{ right: `${stickyPos().right}px`, top: `${stickyPos().top}px` }}
+        title="Last user request - click to scroll back"
+        onClick={scrollBack}
+      >{"↩ " + stickyText()}</button>
     </>
   )
 }

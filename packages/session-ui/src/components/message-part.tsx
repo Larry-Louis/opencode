@@ -366,6 +366,7 @@ function getDirectory(path: string | undefined) {
 
 import type { IconProps } from "@opencode-ai/ui/icon"
 import { normalize, resolveFileDiff } from "./session-diff"
+import { tokenizeShellText } from "./bash-highlight"
 
 export type ToolInfo = {
   icon: IconProps["name"]
@@ -2172,7 +2173,17 @@ ToolRegistry.register({
             aria-label={i18n.t("ui.scrollView.ariaLabel")}
           >
             <pre data-slot="bash-pre">
-              <code>{text()}</code>
+              <code>
+                {tokenizeShellText(text()).map((tok, i) =>
+                  tok.cls ? (
+                    <span key={i} class={tok.cls}>
+                      {tok.text}
+                    </span>
+                  ) : (
+                    <span key={i}>{tok.text}</span>
+                  ),
+                )}
+              </code>
             </pre>
           </div>
         </div>
