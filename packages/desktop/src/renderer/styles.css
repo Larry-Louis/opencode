@@ -264,8 +264,8 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
 }
 
 /* ============================================================
- * Blue Topaz widgets：元素拾取器 + 粘性用户请求徽章
- * （配合 blue-topaz-widgets.tsx）
+ * Blue Topaz widgets：元素拾取器 + 粘性徽章 + 会话状态栏
+ * （配合 blue-topaz-widgets.tsx；单份定义，勿重复追加）
  * ============================================================ */
 #bt-widgets-root {
   display: contents;
@@ -392,10 +392,9 @@ body.bt-picking * {
   color: #7a7a7a;
 }
 
+/* 粘性徽章：滚动视口右上角（坐标由 widgets 组件以 fixed 内联样式钉入） */
 #bt-sticky {
-  position: absolute;
-  top: -16px;
-  right: 10px;
+  position: fixed;
   z-index: 2147482999;
   max-width: min(420px, 45vw);
   overflow: hidden;
@@ -419,7 +418,7 @@ html[data-color-scheme="dark"][data-theme] #bt-sticky {
   border-color: hsl(208 64% 49% / 0.9);
 }
 
-/* ---------- 会话状态栏：输入框上方，token 聚合统计 ---------- */
+/* 会话状态栏：滚动视口左下角，纯文本无气泡 */
 #bt-statsbar {
   position: fixed;
   z-index: 2147482998;
@@ -427,15 +426,11 @@ html[data-color-scheme="dark"][data-theme] #bt-sticky {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 3px 10px;
   font-size: 11px;
   font-family: ui-monospace, Consolas, monospace;
-  color: hsl(118 30% 45%);
-  background: hsl(0 0% 100% / 0.92);
-  border: 1px solid hsl(118 25% 55% / 0.4);
-  border-radius: 999px;
+  color: hsl(118 30% 32%);
+  opacity: 0.85;
 }
 html[data-color-scheme="dark"][data-theme] #bt-statsbar {
-  color: hsl(118 35% 62%);
-  background: hsl(210 20% 16% / 0.94);
+  color: hsl(118 30% 58%);
 }

@@ -177,6 +177,7 @@ export function BlueTopazWidgets() {
   // ---- 粘性"最近用户请求"徽章 ----
   const [stickyVisible, setStickyVisible] = createSignal(false)
   const [stickyText, setStickyText] = createSignal("")
+  const [stickyPos, setStickyPos] = createSignal({ right: 10, top: 8 })
   let stickyTarget: Element | null = null
 
   // ---- 会话状态栏 ----
@@ -232,13 +233,16 @@ export function BlueTopazWidgets() {
   }
 
   function updateSticky() {
+    positionPicker()
     const sc = findScroller()
     if (!sc) { setStickyVisible(false); return }
+    const sr = sc.getBoundingClientRect()
+    // 两个悬浮件都锚定滚动视口：徽章=右上，状态栏=左下（纯文本）
+    setStatsPos({ left: Math.round(sr.left + 14), top: Math.round(sr.bottom - 26) })
     const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
       u => u.getBoundingClientRect().height > 8,
     )
     if (ums.length === 0) { setStickyVisible(false); return }
-    const sr = sc.getBoundingClientRect()
     let lastAbove: Element | null = null
     let anyVisible = false
     for (const u of ums) {
@@ -251,6 +255,8 @@ export function BlueTopazWidgets() {
     const bodyEl = lastAbove.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
     const text = ((bodyEl ?? lastAbove).textContent || "").replace(/\s+/g, " ").trim()
     setStickyText(text.slice(0, 60))
+    // 徽章钉在滚动视口右上角内侧
+    setStickyPos({ right: Math.max(10, Math.round(window.innerWidth - sr.right + 12)), top: Math.round(sr.top + 8) })
     setStickyVisible(true)
   }
 
@@ -339,6 +345,7 @@ export function BlueTopazWidgets() {
         <button
           type="button"
           id={STICKY_ID}
+          style={{ right: `${stickyPos().right}px`, top: `${stickyPos().top}px` }}
           title="Last user request - click to scroll back"
           onClick={scrollBack}
         >{"↩ " + stickyText()}</button>
