@@ -251,13 +251,13 @@ export function BlueTopazWidgets() {
 
   function updateSticky() {
     positionPicker()
-    // 状态栏定位：只依赖侧栏/主面板几何，无条件执行（不随会话视图切换失效）
-    const sb = resolveSidebar()
-    if (sb) {
-      const sbr = sb.getBoundingClientRect()
-      if (sbr.width > 80 && sbr.height > 100) {
-        // 下沿对齐面板容器下缘（bottom = 视口高 − 面板底）
-        const want = { left: Math.round(sbr.left + 6), bottom: Math.round(window.innerHeight - sbr.bottom) }
+    // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘
+    const dock = document.querySelector('[data-component="session-prompt-dock"]')
+    const alignEl = dock?.querySelector(".flex.flex-col.gap-3") as HTMLElement | null
+    if (alignEl) {
+      const ar = alignEl.getBoundingClientRect()
+      if (ar.height > 0) {
+        const want = { left: Math.round(ar.left + 5), bottom: Math.round(window.innerHeight - ar.bottom) }
         setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
       }
     }
