@@ -418,3 +418,24 @@ html[data-color-scheme="dark"][data-theme] #bt-sticky {
 #bt-sticky:hover {
   border-color: hsl(208 64% 49% / 0.9);
 }
+
+/* ---------- 会话状态栏：输入框上方，token 聚合统计 ---------- */
+#bt-statsbar {
+  position: fixed;
+  z-index: 2147482998;
+  max-width: min(640px, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: hsl(118 30% 45%);
+  background: hsl(0 0% 100% / 0.92);
+  border: 1px solid hsl(118 25% 55% / 0.4);
+  border-radius: 999px;
+}
+html[data-color-scheme="dark"][data-theme] #bt-statsbar {
+  color: hsl(118 35% 62%);
+  background: hsl(210 20% 16% / 0.94);
+}
