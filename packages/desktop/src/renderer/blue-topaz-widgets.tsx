@@ -183,7 +183,7 @@ export function BlueTopazWidgets() {
   // ---- 会话状态栏 ----
   const [statsText, setStatsText] = createSignal("")
   const [statsVisible, setStatsVisible] = createSignal(false)
-  const [statsPos, setStatsPos] = createSignal({ left: 0, top: 0 })
+  const [statsPos, setStatsPos] = createSignal({ left: 0, bottom: 0 })
 
   function fmtTok(n: number): string {
     if (n >= 1e6) return (n / 1e6).toFixed(1) + "M"
@@ -256,8 +256,9 @@ export function BlueTopazWidgets() {
     if (sb) {
       const sbr = sb.getBoundingClientRect()
       if (sbr.width > 80 && sbr.height > 100) {
-        const want = { left: Math.round(sbr.left + 6), top: Math.round(sbr.bottom - 10) }
-        setStatsPos(prev => (prev.left === want.left && prev.top === want.top) ? prev : want)
+        // 下沿对齐面板容器下缘（bottom = 视口高 − 面板底）
+        const want = { left: Math.round(sbr.left + 6), bottom: Math.round(window.innerHeight - sbr.bottom) }
+        setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
       }
     }
     const sc = findScroller()
@@ -355,7 +356,7 @@ export function BlueTopazWidgets() {
         id="bt-statsbar"
         style={{
           left: `${statsPos().left}px`,
-          top: `${statsPos().top}px`,
+          bottom: `${statsPos().bottom}px`,
           visibility: statsVisible() ? "visible" : "hidden",
         }}
       >
