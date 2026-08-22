@@ -122,7 +122,11 @@ const main = Effect.gen(function* () {
 
   process.env.OPENCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
+  const appId = app.isPackaged
+    ? APP_IDS[CHANNEL]
+    : // Blue Topaz fork：dev 实例与官方安装版共用同一 userData，
+      // 设置/项目注册/草稿全部同源（注意：不要同时运行两个实例）
+      "ai.opencode.desktop"
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
