@@ -257,7 +257,7 @@ export function BlueTopazWidgets() {
     if (alignEl) {
       const ar = alignEl.getBoundingClientRect()
       if (ar.height > 0) {
-        const want = { left: Math.round(ar.left + 5), bottom: Math.round(window.innerHeight - ar.bottom) }
+        const want = { left: Math.round(ar.left - 5), bottom: Math.round(window.innerHeight - ar.bottom) }
         setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
       }
     }

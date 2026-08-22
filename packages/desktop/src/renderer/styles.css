@@ -288,10 +288,6 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
   box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   cursor: pointer;
 }
-html[data-color-scheme="dark"][data-theme] #bt-picker-btn {
-  color: hsl(208 64% 70%);
-  background: hsl(210 20% 16% / 0.94);
-}
 #bt-picker-btn.bt-active {
   background: #d58000;
   color: #fff;
