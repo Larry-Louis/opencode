@@ -45,6 +45,12 @@ export function path() {
     if (Flag.OPENCODE_DB === ":memory:" || isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB
     return join(Global.Path.data, Flag.OPENCODE_DB)
   }
+  // Blue Topaz fork：本分支用于本地主题/功能开发，
+  // 直接使用与官方安装版相同的数据库，会话与配置全量同源。
+  // 如需恢复按渠道隔离的默认行为，还原下方 early-return 即可。
+  if (!Flag.OPENCODE_DISABLE_CHANNEL_DB) {
+    return join(Global.Path.data, "opencode.db")
+  }
   if (
     ["latest", "beta", "prod"].includes(InstallationChannel) ||
     process.env.OPENCODE_DISABLE_CHANNEL_DB === "1" ||
