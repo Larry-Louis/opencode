@@ -250,6 +250,11 @@ export function BlueTopazWidgets() {
   }
 
   function updateSticky() {
+    // 非对话页面（Git 面板等）隐藏全部 widgets
+    const sc0 = findScroller()
+    const btRootEl = document.getElementById("bt-widgets-root")
+    if (btRootEl) btRootEl.style.display = sc0 ? "" : "none"
+    if (!sc0) { setStickyVisible(false); return }
     positionPicker()
     // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘
     const dock = document.querySelector('[data-component="session-prompt-dock"]')
