@@ -215,12 +215,7 @@ export function BlueTopazWidgets() {
         `${arr.length} 会话 · 输入 ${fmtTok(ti)} tok · 输出 ${fmtTok(to)} tok · 缓存命中 ${hit}%`,
       )
       setStatsVisible(true)
-      // 定位：输入框上方居中偏右
-      const form = document.querySelector('form[data-component="prompt-input-v2"]')
-      if (form) {
-        const fr = form.getBoundingClientRect()
-        setStatsPos({ left: Math.max(8, fr.left), top: Math.max(4, fr.top - 26) })
-      }
+      // 定位统一由 updateSticky 管理（侧栏左下竖排），此处只更新文本
     } catch {}
   }
 
@@ -241,14 +236,33 @@ export function BlueTopazWidgets() {
     if (umHistory.length > 30) umHistory.length = 30
   }
 
+  /** 侧栏容器：从滚动器向上爬祖先找 @container 可折叠面板（结构稳定） */
+  function resolveSidebar(): HTMLElement | null {
+    const sc = findScroller()
+    let n: HTMLElement | null = sc
+    while (n && n.tagName !== "MAIN") {
+      if (n.className && String(n.className).includes("@container")) return n
+      n = n.parentElement
+    }
+    return (document.querySelector(
+      'main div[class*="@container"][class*="transition-[width]"]',
+    ) as HTMLElement | null) ?? null
+  }
+
   function updateSticky() {
     positionPicker()
+    // 状态栏定位：只依赖侧栏/主面板几何，无条件执行（不随会话视图切换失效）
+    const sb = resolveSidebar()
+    if (sb) {
+      const sbr = sb.getBoundingClientRect()
+      if (sbr.width > 80 && sbr.height > 100) {
+        const want = { left: Math.round(sbr.left + 6), top: Math.round(sbr.bottom - 10) }
+        setStatsPos(prev => (prev.left === want.left && prev.top === want.top) ? prev : want)
+      }
+    }
     const sc = findScroller()
     if (!sc) { setStickyVisible(false); return }
     const sr = sc.getBoundingClientRect()
-    // 状态栏=滚动视口左下（纯文本），坐标守卫防漂移
-    const wantStats = { left: Math.round(sr.left + 14), top: Math.round(sr.bottom - 26) }
-    setStatsPos(prev => (prev.left === wantStats.left && prev.top === wantStats.top) ? prev : wantStats)
     const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
       u => u.getBoundingClientRect().height > 8,
     )
