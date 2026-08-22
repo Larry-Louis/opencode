@@ -262,3 +262,159 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
   font-size: 11px;
   opacity: 0.75;
 }
+
+/* ============================================================
+ * Blue Topaz widgets：元素拾取器 + 粘性用户请求徽章
+ * （配合 blue-topaz-widgets.tsx）
+ * ============================================================ */
+#bt-widgets-root {
+  display: contents;
+}
+
+#bt-picker-btn {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  height: 26px;
+  font-size: 12px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: hsl(208 64% 40%);
+  background: hsl(0 0% 100% / 0.92);
+  border: 1px solid hsl(208 64% 49% / 0.45);
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+html[data-color-scheme="dark"][data-theme] #bt-picker-btn {
+  color: hsl(208 64% 70%);
+  background: hsl(210 20% 16% / 0.94);
+}
+#bt-picker-btn.bt-active {
+  background: #d58000;
+  color: #fff;
+}
+body.bt-picking,
+body.bt-picking * {
+  cursor: crosshair !important;
+}
+
+#bt-pick-tip {
+  position: fixed;
+  z-index: 2147483002;
+  max-width: min(480px, 80vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: #ffd9a8;
+  background: rgba(21, 21, 21, 0.95);
+  border: 1px solid #d58000;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+#bt-picker-panel {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 2147483001;
+  width: min(560px, calc(100vw - 28px));
+  max-height: 60vh;
+  overflow: auto;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: #c6c6c6;
+  background: rgba(21, 21, 21, 0.97);
+  border: 1px solid #444444;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.4);
+}
+#bt-picker-panel label {
+  display: block;
+  margin: 8px 0 3px;
+  color: #d58000;
+  font-weight: 700;
+}
+#bt-picker-panel .bt-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  color: #eda94d;
+  font-weight: 700;
+}
+#bt-picker-panel .bt-panel-head button,
+#bt-picker-panel .bt-row button {
+  padding: 2px 10px;
+  color: #c6c6c6;
+  background: #2b2b2b;
+  border: 1px solid #555555;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#bt-picker-panel .bt-panel-head button:hover,
+#bt-picker-panel .bt-row button:hover {
+  background: #3a3a3a;
+}
+#bt-picker-panel input {
+  width: 100%;
+  padding: 3px 6px;
+  color: #00ceb9;
+  background: #111111;
+  border: 1px solid #343434;
+  border-radius: 4px;
+}
+#bt-picker-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  color: #c6c6c6;
+  background: #111111;
+  border: 1px solid #343434;
+  border-radius: 4px;
+  resize: vertical;
+}
+#bt-picker-panel .bt-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+#bt-picker-panel .bt-hint {
+  color: #7a7a7a;
+}
+
+#bt-sticky {
+  position: absolute;
+  top: -16px;
+  right: 10px;
+  z-index: 2147482999;
+  max-width: min(420px, 45vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: hsl(208 64% 35%);
+  background: hsl(0 0% 100% / 0.95);
+  border: 1px solid hsl(208 64% 49% / 0.45);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+  text-align: left;
+}
+html[data-color-scheme="dark"][data-theme] #bt-sticky {
+  color: hsl(208 64% 72%);
+  background: hsl(210 20% 16% / 0.96);
+}
+#bt-sticky:hover {
+  border-color: hsl(208 64% 49% / 0.9);
+}

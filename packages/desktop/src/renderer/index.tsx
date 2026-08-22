@@ -29,6 +29,7 @@ import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import "./styles.css"
+import { BlueTopazWidgets } from "./blue-topaz-widgets"
 import { Splash } from "@opencode-ai/ui/logo"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 
@@ -450,3 +451,9 @@ render(() => {
     </Show>
   )
 }, root!)
+
+// Blue Topaz widgets：元素拾取器 + 粘性用户请求徽章（挂独立根，不进 App 树）
+const btRoot = document.createElement("div")
+btRoot.id = "bt-widgets-root"
+document.documentElement.appendChild(btRoot)
+render(() => <BlueTopazWidgets />, btRoot)
