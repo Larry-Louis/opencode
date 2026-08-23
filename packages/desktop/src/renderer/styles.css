@@ -465,3 +465,58 @@ html[data-color-scheme="dark"][data-theme] #bt-sticky {
 html[data-color-scheme="dark"][data-theme] #bt-statsbar {
   color: hsl(118 30% 58%);
 }
+
+/* ---------- 序列条：最近20次用户输入快速导航（滚动视口右侧居中） ---------- */
+#bt-seqbar {
+  position: fixed;
+  right: 5px;
+  z-index: 2147482997;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.bt-seq-bar {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(208 30% 55% / 0.45);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: background 0.15s ease, height 0.15s ease;
+}
+.bt-seq-bar:hover {
+  background: #d58000;
+  height: 5px;
+}
+.bt-seq-tip {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: min(380px, 50vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  font-size: 11px;
+  text-align: left;
+  line-height: 1.4;
+  color: hsl(208 64% 35%);
+  background: hsl(0 0% 100% / 0.96);
+  border: 1px solid hsl(208 64% 49% / 0.45);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+html[data-color-scheme="dark"][data-theme] .bt-seq-tip {
+  color: hsl(208 64% 72%);
+  background: hsl(210 20% 16% / 0.97);
+}
+.bt-seq-bar:hover .bt-seq-tip {
+  opacity: 1;
+}

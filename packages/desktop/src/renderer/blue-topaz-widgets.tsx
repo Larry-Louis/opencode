@@ -256,6 +256,7 @@ export function BlueTopazWidgets() {
     if (btRootEl) btRootEl.style.display = sc0 ? "" : "none"
     if (!sc0) { setStickyVisible(false); return }
     positionPicker()
+    updateSeqBar()
     // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘
     const dock = document.querySelector('[data-component="session-prompt-dock"]')
     const alignEl = dock?.querySelector(".flex.flex-col.gap-3") as HTMLElement | null
@@ -301,6 +302,31 @@ export function BlueTopazWidgets() {
     const badgeTop = stHeader ? Math.round(stHeader.getBoundingClientRect().bottom + 4) : Math.round(sr.top + 8)
     setStickyPos(prev => (prev.right === Math.max(10, Math.round(window.innerWidth - sr.right + 12)) && prev.top === badgeTop) ? prev : { right: Math.max(10, Math.round(window.innerWidth - sr.right + 12)), top: badgeTop })
     setStickyVisible(true)
+  }
+
+  // ---- 序列条：最近 20 次用户输入快速导航 ----
+  const [seqEntries, setSeqEntries] = createSignal<Array<{ id: string; text: string }>>([])
+  const [seqTop, setSeqTop] = createSignal(0)
+
+  function extractUmText(el: Element): string {
+    const b = el.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
+    return ((b ?? el).textContent || "").replace(/\s+/g, " ").trim()
+  }
+
+  function updateSeqBar() {
+    const sc = findScroller()
+    if (!sc) { setSeqEntries([]); return }
+    const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
+      u => u.getBoundingClientRect().height > 8,
+    )
+    const recent = ums.slice(-20)
+    setSeqEntries(recent.map((u, i) => ({ id: "seq" + i, text: extractUmText(u).slice(0, 60) })))
+    // 垂直居中于滚动视口
+    if (recent.length) {
+      const sr = sc.getBoundingClientRect()
+      const totalH = recent.length * 9 + (recent.length - 1) * 4
+      setSeqTop(Math.round(sr.top + sr.height / 2 - totalH / 2))
+    }
   }
 
   function scrollBack() {
@@ -396,6 +422,27 @@ export function BlueTopazWidgets() {
         title="Last user request - click to scroll back"
         onClick={scrollBack}
       >{"↩ " + stickyText()}</button>
+      <Show when={seqEntries().length > 0}>
+        <div id="bt-seqbar" style={{ top: `${seqTop()}px` }}>
+          {seqEntries().map((e) => (
+            <button
+              type="button"
+              class="bt-seq-bar"
+              onClick={() => {
+                const sc = findScroller()
+                const el = sc && sc.contains(e.el) ? e.el : null
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+                else {
+                  const turns = sc?.querySelectorAll("[data-component='session-turn']")
+                  if (turns && turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              }}
+            >
+              <span class="bt-seq-tip">{e.text}</span>
+            </button>
+          ))}
+        </div>
+      </Show>
     </>
   )
 }
