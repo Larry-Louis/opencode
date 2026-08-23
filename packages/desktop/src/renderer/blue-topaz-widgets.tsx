@@ -306,37 +306,53 @@ export function BlueTopazWidgets() {
     setStickyVisible(true)
   }
 
-  // ---- 序列条：最近 20 次用户输入快速导航 ----
+  // 序列条数据：从 sidecar API 加载当前会话的用户输入历史（最近20条）
   const [seqEntries, setSeqEntries] = createSignal<Array<{ id: string; text: string }>>([])
   const [seqTop, setSeqTop] = createSignal(0)
+  let seqSessionId: string | null = null
 
   function extractUmText(el: Element): string {
     const b = el.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
     return ((b ?? el).textContent || "").replace(/\s+/g, " ").trim()
   }
 
-  // 序列登记簿：路过视口即登记，凑满 20 条；虚拟化卸载后仍可显示/跳转（近似）
-  const seqReg: string[] = []
+  async function loadUmHistoryFromApi(): Promise<string[]> {
+    const api = (window as any).api
+    if (!api?.awaitInitialization) return []
+    const ready = await api.awaitInitialization()
+    const base = String(ready.url).replace(/\/$/, "")
+    const auth = "Basic " + btoa((ready.username || "opencode") + ":" + (ready.password || ""))
+    // 最新会话（按更新时间排序的第一个）
+    const r1 = await fetch(base + "/session?limit=1", { headers: { Authorization: auth } })
+    const arr = await r1.json()
+    const sid = arr[0]?.id
+    if (!sid) return []
+    seqSessionId = sid
+    // 该会话全部消息 → 用户消息文本
+    const r2 = await fetch(base + "/session/" + sid + "/message", { headers: { Authorization: auth } })
+    const msgs = await r2.json()
+    const texts: string[] = []
+    for (const m of msgs) {
+      if (m.info?.role !== "user") continue
+      let t = ""
+      if (m.parts) {
+        for (const p of m.parts) {
+          if (p.type === "text" && p.text) { t = p.text; break }
+        }
+      }
+      const clean = t.replace(/\s+/g, " ").trim()
+      if (clean) texts.push(clean.slice(0, 60))
+    }
+    return texts.slice(-20) // 最近 20 条用户输入
+  }
 
+  /** 序列条刷新：从 API 加载的登记数据渲染 + 视口居中定位 */
   function updateSeqBar() {
     const sc = findScroller()
-    if (!sc) { setSeqEntries([]); return }
-    const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
-      u => u.getBoundingClientRect().height > 8,
-    )
-    const mountedTexts = ums.map(u => extractUmText(u).slice(0, 60)).filter(Boolean)
-    // 会话切换检测：挂载的消息没有一条在登记簿中（且两边都非空）→ 新会话，清空重建
-    const known = mountedTexts.filter(t => seqReg.includes(t)).length
-    if (mountedTexts.length > 0 && seqReg.length > 0 && known === 0) seqReg.length = 0
-    for (const t of mountedTexts) {
-      if (!seqReg.includes(t)) { seqReg.push(t); if (seqReg.length > 20) seqReg.shift() }
-    }
-    setSeqEntries(seqReg.map((t, i) => ({ id: "seq" + i, text: t })))
-    if (seqReg.length) {
-      const sr = sc.getBoundingClientRect()
-      const n = Math.min(seqReg.length, 20)
-      setSeqTop(Math.round(sr.top + sr.height / 2 - (n * 13 - 4) / 2))
-    }
+    if (!sc || seqEntries().length === 0) return
+    const sr = sc.getBoundingClientRect()
+    const n = seqEntries().length
+    setSeqTop(Math.round(sr.top + sr.height / 2 - (n * 13 - 4) / 2))
   }
 
   function scrollBack() {
@@ -368,8 +384,15 @@ export function BlueTopazWidgets() {
     tryPositionLoop(25)
     updateSticky()
     void loadSessionStats()
-    // 状态栏低频刷新（tokens 聚合随会话增长）
-    const statsIv = setInterval(loadSessionStats, 30000)
+    // 历史加载重试：启动早期可能失败（server 未就绪等），指数退避重试
+    const retryHistory = (n: number) => {
+      loadUmHistoryFromApi().then(updateSeqBar).catch(() => {
+        if (n > 0) setTimeout(() => retryHistory(n - 1), 2000)
+      })
+    }
+    retryHistory(5)
+    // 状态栏低频刷新（tokens 聚合随会话增长）+ 序列条同步刷新
+    const statsIv = setInterval(() => { loadSessionStats(); loadUmHistoryFromApi().then(updateSeqBar) }, 30000)
     window.__btCleanup?.push(() => clearInterval(statsIv))
 
     onCleanup(() => {
