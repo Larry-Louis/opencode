@@ -467,23 +467,40 @@ export function BlueTopazWidgets() {
               onClick={() => {
                 const sc = findScroller()
                 if (!sc) return
-                // ① 精确匹配已挂载的用户消息
+                // 归一化函数（与登记时一致）
+                const norm = (el: Element) =>
+                  extractUmText(el).replace(/\s+/g, " ").trim().slice(0, 60)
+                // ① 精确匹配已挂载的用户消息（双侧同口径）
                 const ums = Array.from(sc.querySelectorAll("[data-component='user-message']"))
                 let best: Element | null = null
                 let bestDist = Infinity
                 for (const u of ums) {
-                  const t = extractUmText(u).slice(0, 60)
-                  if (t === e.text) { best = u; break } // 精确命中
-                  const regIdx = seqEntries().findIndex(x => x.text === t)
+                  if (norm(u) === e.text) { best = u; break } // 精确命中
+                  const regIdx = seqEntries().findIndex(x => x.text === norm(u))
                   if (regIdx >= 0) {
                     const dist = Math.abs(regIdx - clickedIdx)
                     if (dist < bestDist) { bestDist = dist; best = u }
                   }
                 }
                 if (best) { best.scrollIntoView({ block: "center" }); return }
-                // ② 全部虚拟化卸载：退回最顶回合（近似）
-                const turns = sc.querySelectorAll("[data-component='session-turn']")
-                if (turns.length) turns[0].scrollIntoView({ block: "start" })
+                // ② 全部虚拟化卸载：按登记序号比例定位到历史区域
+                const total = Math.max(1, seqEntries().length - 1)
+                const frac = Math.min(0.95, Math.max(0, clickedIdx / total))
+                sc.scrollTop = (sc.scrollHeight - sc.clientHeight) * frac
+                // 滚动后内容重新挂载，再试一次精确/邻域匹配
+                setTimeout(() => {
+                  const ums2 = Array.from(sc.querySelectorAll("[data-component='user-message']"))
+                  let best2: Element | null = null
+                  let bestDist2 = Infinity
+                  for (const u of ums2) {
+                    const nt = norm(u)
+                    const regIdx = seqEntries().findIndex(x => x.text === nt)
+                    if (regIdx < 0) continue
+                    const dist = Math.abs(regIdx - clickedIdx)
+                    if (dist < bestDist2) { bestDist2 = dist; best2 = u }
+                  }
+                  if (best2) best2.scrollIntoView({ block: "center" })
+                }, 250)
               }}
             >
               <span class="bt-seq-tip">{e.text}</span>
