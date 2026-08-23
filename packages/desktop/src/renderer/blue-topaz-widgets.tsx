@@ -251,10 +251,12 @@ export function BlueTopazWidgets() {
 
   function updateSticky() {
     // 非对话页面（Git 面板等）隐藏全部 widgets
+    // 判定强化：scroller 必须真实包含会话回合（Git 面板等视图也有滚动区，会误判）
     const sc0 = findScroller()
+    const hasSession = !!(sc0 && sc0.querySelector("[data-component='session-turn']"))
     const btRootEl = document.getElementById("bt-widgets-root")
-    if (btRootEl) btRootEl.style.display = sc0 ? "" : "none"
-    if (!sc0) { setStickyVisible(false); return }
+    if (btRootEl) btRootEl.style.display = hasSession ? "" : "none"
+    if (!hasSession) { setStickyVisible(false); return }
     positionPicker()
     updateSeqBar()
     // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘
