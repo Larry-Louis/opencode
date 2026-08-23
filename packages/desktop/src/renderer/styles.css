@@ -267,8 +267,16 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
  * Blue Topaz widgets：元素拾取器 + 粘性徽章 + 会话状态栏
  * （配合 blue-topaz-widgets.tsx；单份定义，勿重复追加）
  * ============================================================ */
+.bt-host-panel {
+  position: relative !important;
+}
 #bt-widgets-root {
-  display: contents;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#bt-widgets-root > * {
+  pointer-events: auto;
 }
 
 #bt-picker-btn {

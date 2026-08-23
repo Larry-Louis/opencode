@@ -452,24 +452,10 @@ render(() => {
   )
 }, root!)
 
-// Blue Topaz widgets：元素拾取器 + 粘性用户请求徽章（挂进对话面板容器，跟随显隐）
+// Blue Topaz widgets：元素拾取器 + 粘性用户请求徽章
+// 挂在 documentElement 下——不能放进 Solid 管理的容器（会被重渲染清除）
+// 显隐通过 updateSticky 里的 display 同步控制
 const btRoot = document.createElement("div")
 btRoot.id = "bt-widgets-root"
 document.documentElement.appendChild(btRoot)
 render(() => <BlueTopazWidgets />, btRoot)
-
-// 迁移到对话面板容器内（面板有 will-change:width 会创建包含块，
-// widgets 改用 absolute 定位以面板为基准，天然跟随面板显隐）
-function relocateBtRoot() {
-  const el = document.getElementById("bt-widgets-root")
-  const mainEl = document.querySelector("#root main")
-  if (!el || !mainEl) return
-  let c: Element | null = mainEl
-  for (let d = 0; d < 3 && c; d++) c = c.children[0] ?? null
-  if (!c) return
-  c.classList.add("bt-host-panel")
-  if (el.parentElement !== c) c.appendChild(el)
-}
-// 持续重试直到成功（面板可能晚于入口代码挂载）
-const relocateIv = setInterval(relocateBtRoot, 800)
-setTimeout(() => clearInterval(relocateIv), 30000)
