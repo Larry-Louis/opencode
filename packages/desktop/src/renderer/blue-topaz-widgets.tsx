@@ -315,18 +315,26 @@ export function BlueTopazWidgets() {
     return ((b ?? el).textContent || "").replace(/\s+/g, " ").trim()
   }
 
+  // 序列登记簿：路过视口即登记，凑满 20 条；虚拟化卸载后仍可显示/跳转（近似）
+  const seqReg: string[] = []
+
   function updateSeqBar() {
     const sc = findScroller()
     if (!sc) { setSeqEntries([]); return }
     const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
       u => u.getBoundingClientRect().height > 8,
     )
-    const recent = ums.slice(-20)
-    setSeqEntries(recent.map((u, i) => ({ id: "seq" + i, text: extractUmText(u).slice(0, 60) })))
-    // 垂直居中于滚动视口
-    if (recent.length) {
+    for (const u of ums) {
+      const txt = extractUmText(u).slice(0, 60)
+      if (txt && seqReg[seqReg.length - 1] !== txt) {
+        seqReg.push(txt)
+        if (seqReg.length > 20) seqReg.shift()
+      }
+    }
+    setSeqEntries(seqReg.map((t, i) => ({ id: "seq" + i, text: t })))
+    if (seqReg.length) {
       const sr = sc.getBoundingClientRect()
-      const totalH = recent.length * 9 + (recent.length - 1) * 4
+      const totalH = Math.min(seqReg.length, 20) * 9 + (Math.min(seqReg.length, 20) - 1) * 4
       setSeqTop(Math.round(sr.top + sr.height / 2 - totalH / 2))
     }
   }
@@ -430,14 +438,16 @@ export function BlueTopazWidgets() {
             <button
               type="button"
               class="bt-seq-bar"
+              title={e.text}
               onClick={() => {
                 const sc = findScroller()
-                const el = sc && sc.contains(e.el) ? e.el : null
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
-                else {
-                  const turns = sc?.querySelectorAll("[data-component='session-turn']")
-                  if (turns && turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
-                }
+                if (!sc) return
+                // 按文本前缀匹配已挂载的用户消息；虚拟化找不到时退回最顶回合
+                const ums = Array.from(sc.querySelectorAll("[data-component='user-message']"))
+                const target = ums.find(u => extractUmText(u).startsWith(e.text.slice(0, 20)))
+                if (target) { target.scrollIntoView({ behavior: "smooth", block: "center" }); return }
+                const turns = sc.querySelectorAll("[data-component='session-turn']")
+                if (turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
               }}
             >
               <span class="bt-seq-tip">{e.text}</span>
