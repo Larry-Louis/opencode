@@ -307,8 +307,9 @@ export function BlueTopazWidgets() {
   }
 
   // 序列条数据：从 sidecar API 加载当前会话的用户输入历史（最近20条）
-  const [seqEntries, setSeqEntries] = createSignal<Array<{ id: string; text: string }>>([])
+  const [seqEntries, setSeqEntries] = createSignal<Array<{ id: string; text: string; absIdx: number }>>([])
   const [seqTop, setSeqTop] = createSignal(0)
+  let umTotal = 0 // 会话用户消息总数（API 统计）
   let seqSessionId: string | null = null
 
   function extractUmText(el: Element): string {
@@ -316,13 +317,14 @@ export function BlueTopazWidgets() {
     return ((b ?? el).textContent || "").replace(/\s+/g, " ").trim()
   }
 
+  /** 从 sidecar API 加载当前会话的用户消息文本，返回 {texts, total} */
   async function loadUmHistoryFromApi(): Promise<string[]> {
     const api = (window as any).api
     if (!api?.awaitInitialization) return []
     const ready = await api.awaitInitialization()
     const base = String(ready.url).replace(/\/$/, "")
     const auth = "Basic " + btoa((ready.username || "opencode") + ":" + (ready.password || ""))
-    // 最新会话（按更新时间排序的第一个）
+    // 最新更新的会话
     const r1 = await fetch(base + "/session?limit=1", { headers: { Authorization: auth } })
     const arr = await r1.json()
     const sid = arr[0]?.id
@@ -343,12 +345,11 @@ export function BlueTopazWidgets() {
       const clean = t.replace(/\s+/g, " ").trim()
       if (clean) texts.push(clean.slice(0, 60))
     }
-    // 直接填充序列条（此前缺失的调用点——数据从未进入渲染管线）
-    setSeqEntries(texts.slice(-20).map((t, i) => ({ id: "api" + i, text: t })))
-    return texts.slice(-20) // 最近 20 条用户输入
+    umTotal = texts.length
+    return texts
   }
 
-  /** 序列条刷新：从 API 加载的登记数据渲染 + 视口居中定位 */
+  /** 序列条刷新：仅重算位置；数据由 API 周期加载，非会话视图保留现有条目 */
   function updateSeqBar() {
     const sc = findScroller()
     if (!sc || seqEntries().length === 0) return
@@ -394,7 +395,7 @@ export function BlueTopazWidgets() {
     }
     retryHistory(5)
     // 状态栏低频刷新（tokens 聚合随会话增长）+ 序列条同步刷新
-    const statsIv = setInterval(() => { loadSessionStats(); loadUmHistoryFromApi().then(updateSeqBar) }, 30000)
+    const statsIv = setInterval(() => { loadSessionStats(); loadUmHistoryFromApi().then(updateSeqBar) }, 10000)
     window.__btCleanup?.push(() => clearInterval(statsIv))
 
     onCleanup(() => {
@@ -467,7 +468,6 @@ export function BlueTopazWidgets() {
               onClick={() => {
                 const sc = findScroller()
                 if (!sc) return
-                // 归一化函数（与登记时一致）
                 const norm = (el: Element) =>
                   extractUmText(el).replace(/\s+/g, " ").trim().slice(0, 60)
                 // ① 精确匹配已挂载的用户消息（双侧同口径）
