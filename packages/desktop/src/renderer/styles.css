@@ -273,7 +273,7 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
 
 #bt-picker-btn {
   position: fixed;
-  z-index: 2147483000;
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,7 +299,7 @@ body.bt-picking * {
 
 #bt-pick-tip {
   position: fixed;
-  z-index: 2147483002;
+  z-index: 62;
   max-width: min(480px, 80vw);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -318,7 +318,7 @@ body.bt-picking * {
   position: fixed;
   left: 14px;
   bottom: 14px;
-  z-index: 2147483001;
+  z-index: 61;
   width: min(560px, calc(100vw - 28px));
   max-height: 60vh;
   overflow: auto;
@@ -389,7 +389,7 @@ body.bt-picking * {
 /* 粘性徽章：滚动视口右上角（坐标由 widgets 组件以 fixed 内联样式钉入） */
 #bt-sticky {
   position: fixed;
-  z-index: 2147482999;
+  z-index: 60;
   max-width: min(420px, 45vw);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -459,7 +459,7 @@ html[data-color-scheme="dark"][data-theme] #bt-sticky {
 /* 会话状态栏：侧栏左下角，竖排纯文本 */
 #bt-statsbar {
   position: fixed;
-  z-index: 2147482998;
+  z-index: 59;
   max-height: min(480px, 70vh);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -479,7 +479,7 @@ html[data-color-scheme="dark"][data-theme] #bt-statsbar {
 #bt-seqbar {
   position: fixed;
   right: 12px;
-  z-index: 2147482997;
+  z-index: 58;
   display: flex;
   flex-direction: column;
   gap: 5px;
