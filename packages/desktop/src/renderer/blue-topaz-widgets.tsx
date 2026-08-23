@@ -156,9 +156,9 @@ export function BlueTopazWidgets() {
 
     const w = Math.round(rr.width)
     const h = Math.round(rr.height)
-    // 水平对齐参考按钮（host 相对坐标）
-    const left = Math.round(rr.left - hr.left)
-    const top = Math.round(rr.top - hr.top)
+    // 水平/垂直对齐参考按钮（btRoot 覆盖全视口，直接用视口坐标）
+    const left = Math.round(rr.left)
+    const top = Math.round(rr.top)
 
     const want = `abs|${w}|${h}|${left}|${top}`
     if (btn.dataset.btPos === want) return true
