@@ -277,8 +277,9 @@ export function BlueTopazWidgets() {
     for (const u of ums) {
       rememberUm(u)
       const r = u.getBoundingClientRect()
-      if (r.bottom > sr.top && r.top < sr.bottom) { anyVisible = true; continue }
-      if (r.top <= sr.top && !lastAbove) lastAbove = u
+      if (r.bottom > sr.top && r.top < sr.bottom) { anyVisible = true; break }
+      // 取向上最近的一条：持续覆盖，循环结束时的 lastAbove 即最靠近视口顶的用户消息
+      if (r.bottom <= sr.top) lastAbove = u
     }
     if (anyVisible || !lastAbove) {
       // 视口内还有用户消息 → 徽章隐藏；但已登记的文本保留供卸载后兜底
@@ -304,7 +305,8 @@ export function BlueTopazWidgets() {
 
   function scrollBack() {
     if (stickyTarget && findScroller()?.contains(stickyTarget)) {
-      stickyTarget.scrollIntoView({ behavior: "smooth", block: "start" })
+      // block:center 避免消息顶到视口最上被渐变头遮挡，视觉定位也更明确
+      stickyTarget.scrollIntoView({ behavior: "smooth", block: "center" })
     } else {
       const sc = findScroller()
       const turns = sc?.querySelectorAll("[data-component='session-turn']")
