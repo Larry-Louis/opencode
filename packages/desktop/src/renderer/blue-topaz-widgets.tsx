@@ -360,6 +360,74 @@ export function BlueTopazWidgets() {
     setSeqTop(Math.round(sr.top + sr.height / 2 - (n * 13 - 4) / 2))
   }
 
+  /** 跳转到登记序号为 seqIdx 的用户输入（0=最旧，length-1=最新）
+   *  虚拟化环境下目标可能未挂载——逐屏向上搜索直到进入挂载窗口 */
+  async function scrollToSeqEntry(seqIdx: number) {
+    const sc = findScroller()
+    if (!sc) return
+    const total = seqEntries().length
+    if (!total) return
+
+    for (var attempt = 0; attempt < 8; attempt++) {
+      var ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
+        function(u){ return u.getBoundingClientRect().height > 8 }
+      )
+      if (!ums.length) { await sleep(250); continue }
+
+      // 挂载窗口假设：尾部连续（最新的 m 条已挂载）
+      // 第 j 个挂载 um 对应全局序号 total - m + j
+      var m = ums.length
+      var firstGlobal = total - m
+      var lastGlobal = total - 1
+
+      if (seqIdx >= firstGlobal && seqIdx <= lastGlobal) {
+        // 目标已挂载：精确居中
+        ums[seqIdx - firstGlobal].scrollIntoView({ behavior: "smooth", block: "center" })
+        return
+      }
+
+      // 未挂载：向目标方向翻页
+      if (seqIdx < firstGlobal) {
+        // 目标更靠旧（上方）→ 向上翻一屏
+        sc.scrollTop -= sc.clientHeight * 0.75
+      } else {
+        // 目标更新（下方）→ 向下翻一屏
+        sc.scrollTop += sc.clientHeight * 0.75
+      }
+      await sleep(320) // 等虚拟化挂载
+    }
+    // 多次逼近仍未精确命中：停在最后一次位置（已在目标邻域）
+  }
+
+  function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }) }
+
+  /** 跳转到登记序号为 seqIdx 的用户输入（虚拟化环境下逐屏逼近） */
+  async function scrollToSeqEntry(seqIdx: number) {
+    const total = seqEntries().length
+    if (!total) return
+    for (var attempt = 0; attempt < 8; attempt++) {
+      var sc = findScroller()
+      if (!sc) { await sleep(250); continue }
+      var ums = Array.from(sc.querySelectorAll("[data-component=user-message]")).filter(
+        function(u){ return u.getBoundingClientRect().height > 8 }
+      )
+      if (!ums.length) { await sleep(250); continue }
+      var m = ums.length
+      var firstGlobal = total - m
+      var lastGlobal = total - 1
+      if (seqIdx >= firstGlobal && seqIdx <= lastGlobal) {
+        ums[seqIdx - firstGlobal].scrollIntoView({ behavior: "smooth", block: "center" })
+        return
+      }
+      if (seqIdx < firstGlobal) {
+        sc.scrollTop -= sc.clientHeight * 0.75
+      } else {
+        sc.scrollTop += sc.clientHeight * 0.75
+      }
+      await sleep(320)
+    }
+  }
+
   function scrollBack() {
     if (stickyTarget && findScroller()?.contains(stickyTarget)) {
       // 瞬时滚动：smooth 动画期间虚拟化重锚会打断跳转
@@ -467,43 +535,7 @@ export function BlueTopazWidgets() {
               type="button"
               class="bt-seq-bar"
               title={e.text}
-              onClick={() => {
-                const sc = findScroller()
-                if (!sc) return
-                const norm = (el: Element) =>
-                  extractUmText(el).replace(/\s+/g, " ").trim().slice(0, 60)
-                // ① 精确匹配已挂载的用户消息（双侧同口径）
-                const ums = Array.from(sc.querySelectorAll("[data-component='user-message']"))
-                let best: Element | null = null
-                let bestDist = Infinity
-                for (const u of ums) {
-                  if (norm(u) === e.text) { best = u; break } // 精确命中
-                  const regIdx = seqEntries().findIndex(x => x.text === norm(u))
-                  if (regIdx >= 0) {
-                    const dist = Math.abs(regIdx - clickedIdx)
-                    if (dist < bestDist) { bestDist = dist; best = u }
-                  }
-                }
-                if (best) { best.scrollIntoView({ block: "center" }); return }
-                // ② 全部虚拟化卸载：按登记序号比例定位到历史区域
-                const total = Math.max(1, seqEntries().length - 1)
-                const frac = Math.min(0.95, Math.max(0, clickedIdx / total))
-                sc.scrollTop = (sc.scrollHeight - sc.clientHeight) * frac
-                // 滚动后内容重新挂载，再试一次精确/邻域匹配
-                setTimeout(() => {
-                  const ums2 = Array.from(sc.querySelectorAll("[data-component='user-message']"))
-                  let best2: Element | null = null
-                  let bestDist2 = Infinity
-                  for (const u of ums2) {
-                    const nt = norm(u)
-                    const regIdx = seqEntries().findIndex(x => x.text === nt)
-                    if (regIdx < 0) continue
-                    const dist = Math.abs(regIdx - clickedIdx)
-                    if (dist < bestDist2) { bestDist2 = dist; best2 = u }
-                  }
-                  if (best2) best2.scrollIntoView({ block: "center" })
-                }, 250)
-              }}
+              onClick={() => { scrollToSeqEntry(clickedIdx) }}
             >
               <span class="bt-seq-tip">{e.text}</span>
             </button>
