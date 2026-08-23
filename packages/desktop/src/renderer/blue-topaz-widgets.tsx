@@ -343,6 +343,8 @@ export function BlueTopazWidgets() {
       const clean = t.replace(/\s+/g, " ").trim()
       if (clean) texts.push(clean.slice(0, 60))
     }
+    // 直接填充序列条（此前缺失的调用点——数据从未进入渲染管线）
+    setSeqEntries(texts.slice(-20).map((t, i) => ({ id: "api" + i, text: t })))
     return texts.slice(-20) // 最近 20 条用户输入
   }
 
