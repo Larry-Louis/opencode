@@ -482,13 +482,13 @@ html[data-color-scheme="dark"][data-theme] #bt-statsbar {
   z-index: 2147482997;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
 }
 .bt-seq-bar {
-  width: 16px;
-  height: 3px;
-  border-radius: 2px;
+  width: 20px;
+  height: 8px;
+  border-radius: 3px;
   background: hsl(208 30% 55% / 0.45);
   border: none;
   cursor: pointer;
@@ -498,7 +498,7 @@ html[data-color-scheme="dark"][data-theme] #bt-statsbar {
 }
 .bt-seq-bar:hover {
   background: #d58000;
-  height: 5px;
+  height: 10px;
 }
 .bt-seq-tip {
   position: absolute;

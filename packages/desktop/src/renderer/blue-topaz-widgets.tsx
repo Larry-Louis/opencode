@@ -324,18 +324,18 @@ export function BlueTopazWidgets() {
     const ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
       u => u.getBoundingClientRect().height > 8,
     )
-    for (const u of ums) {
-      const txt = extractUmText(u).slice(0, 60)
-      if (txt && seqReg[seqReg.length - 1] !== txt) {
-        seqReg.push(txt)
-        if (seqReg.length > 20) seqReg.shift()
-      }
+    const mountedTexts = ums.map(u => extractUmText(u).slice(0, 60)).filter(Boolean)
+    // 会话切换检测：挂载的消息没有一条在登记簿中（且两边都非空）→ 新会话，清空重建
+    const known = mountedTexts.filter(t => seqReg.includes(t)).length
+    if (mountedTexts.length > 0 && seqReg.length > 0 && known === 0) seqReg.length = 0
+    for (const t of mountedTexts) {
+      if (!seqReg.includes(t)) { seqReg.push(t); if (seqReg.length > 20) seqReg.shift() }
     }
     setSeqEntries(seqReg.map((t, i) => ({ id: "seq" + i, text: t })))
     if (seqReg.length) {
       const sr = sc.getBoundingClientRect()
-      const totalH = Math.min(seqReg.length, 20) * 9 + (Math.min(seqReg.length, 20) - 1) * 4
-      setSeqTop(Math.round(sr.top + sr.height / 2 - totalH / 2))
+      const n = Math.min(seqReg.length, 20)
+      setSeqTop(Math.round(sr.top + sr.height / 2 - (n * 13 - 4) / 2))
     }
   }
 
@@ -434,7 +434,7 @@ export function BlueTopazWidgets() {
       >{"↩ " + stickyText()}</button>
       <Show when={seqEntries().length > 0}>
         <div id="bt-seqbar" style={{ top: `${seqTop()}px` }}>
-          {seqEntries().map((e) => (
+          {seqEntries().map((e, clickedIdx) => (
             <button
               type="button"
               class="bt-seq-bar"
@@ -442,10 +442,21 @@ export function BlueTopazWidgets() {
               onClick={() => {
                 const sc = findScroller()
                 if (!sc) return
-                // 按文本前缀匹配已挂载的用户消息；虚拟化找不到时退回最顶回合
+                // ① 精确匹配已挂载的用户消息
                 const ums = Array.from(sc.querySelectorAll("[data-component='user-message']"))
-                const target = ums.find(u => extractUmText(u).startsWith(e.text.slice(0, 20)))
-                if (target) { target.scrollIntoView({ behavior: "smooth", block: "center" }); return }
+                let best: Element | null = null
+                let bestDist = Infinity
+                for (const u of ums) {
+                  const t = extractUmText(u).slice(0, 60)
+                  if (t === e.text) { best = u; break } // 精确命中
+                  const regIdx = seqEntries().findIndex(x => x.text === t)
+                  if (regIdx >= 0) {
+                    const dist = Math.abs(regIdx - clickedIdx)
+                    if (dist < bestDist) { bestDist = dist; best = u }
+                  }
+                }
+                if (best) { best.scrollIntoView({ behavior: "smooth", block: "center" }); return }
+                // ② 全部虚拟化卸载：退回最顶回合（近似）
                 const turns = sc.querySelectorAll("[data-component='session-turn']")
                 if (turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
               }}
