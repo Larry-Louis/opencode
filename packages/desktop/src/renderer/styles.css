@@ -247,16 +247,6 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
   color: inherit;
 }
 
-/* ---------- 子 agent 调用卡：左侧 agent 色条 + 提亮背景 ----------
- * 应用自带 per-agent 颜色变量 --task-agent-color，直接引用
- * --------------------------------------------------------------- */
-[data-component="task-tool-card"] {
-  border-left: 3px solid var(--task-agent-color, var(--v2-icon-icon-accent));
-  background: color-mix(in oklch, var(--task-agent-color, var(--v2-icon-icon-accent)) 6%, transparent);
-  border-radius: 0 8px 8px 0;
-  padding-left: 8px;
-}
-
 /* --- 箭头常显 + Shell 预览文本 ---
  * 原生默认 opacity:0 hover 才显形；改为常显，
  * 收起朝右(原生 rotate -90)、展开朝下，方向逻辑保持原生
