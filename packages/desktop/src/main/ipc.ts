@@ -219,6 +219,13 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("open-path", async (_event: IpcMainInvokeEvent, path: string, app?: string) => {
     if (!app) return shell.openPath(path)
     await new Promise<void>((resolve, reject) => {
+      if (process.platform === "win32" && app.includes("powershell")) {
+        // PowerShell 打开目录：-NoExit -Command Set-Location 'path'
+        // 直接传 path 会被 PS 当作命令执行而非 cd 目标
+        const psArgs = ["-NoExit", "-Command", `Set-Location -LiteralPath '${path.replace(/'/g, "''")}'`]
+        execFile(app, psArgs, (err) => (err ? reject(err) : resolve()))
+        return
+      }
       const [cmd, args] =
         process.platform === "darwin" ? (["open", ["-a", app, path]] as const) : ([app, [path]] as const)
       execFile(cmd, args, (err) => (err ? reject(err) : resolve()))
