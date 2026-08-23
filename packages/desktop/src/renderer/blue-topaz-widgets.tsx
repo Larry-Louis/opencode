@@ -142,6 +142,10 @@ export function BlueTopazWidgets() {
   function positionPicker(): boolean {
     const btn = document.getElementById(PICK_BTN_ID)
     if (!btn) return false
+    const host = getHostPanel()
+    if (!host) return false
+    const hr = host.getBoundingClientRect()
+    if (hr.width === 0) return false
     const ref =
       document.querySelector(
         'form[data-component="prompt-input-v2"] > div:nth-of-type(2) > div[data-component="tooltip-v2-trigger"]:nth-of-type(2) > button[data-component="icon-button"]',
@@ -152,15 +156,15 @@ export function BlueTopazWidgets() {
 
     const w = Math.round(rr.width)
     const h = Math.round(rr.height)
-    const left = Math.round(rr.left - 8 - w)
-    const top = Math.round(rr.top)
+    // 水平对齐参考按钮（host 相对坐标）
+    const left = Math.round(rr.left - hr.left)
+    const top = Math.round(rr.top - hr.top)
 
-    // 变更守卫：已就位则不写样式（避免高频 MO 触发时的样式抖动）
-    const want = `fixed|${w}|${h}|${left}|${top}`
+    const want = `abs|${w}|${h}|${left}|${top}`
     if (btn.dataset.btPos === want) return true
     btn.dataset.btPos = want
 
-    btn.style.position = "fixed"
+    btn.style.position = "absolute"
     btn.style.width = `${w}px`
     btn.style.height = `${h}px`
     btn.style.left = `${left}px`
@@ -259,13 +263,17 @@ export function BlueTopazWidgets() {
     if (!hasSession) { setStickyVisible(false); return }
     positionPicker()
     updateSeqBar()
-    // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘
+    // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘（面板相对坐标）
     const dock = document.querySelector('[data-component="session-prompt-dock"]')
     const alignEl = dock?.querySelector(".flex.flex-col.gap-3") as HTMLElement | null
     if (alignEl) {
       const ar = alignEl.getBoundingClientRect()
-      if (ar.height > 0) {
-        const want = { left: Math.round(ar.left - 38), bottom: Math.round(window.innerHeight - ar.bottom) }
+      const hpr = getHostPanel()?.getBoundingClientRect()
+      if (ar.height > 0 && hpr) {
+        const want = {
+          left: Math.round(ar.left - hpr.left - 38),
+          bottom: Math.round(hpr.bottom - ar.bottom),
+        }
         setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
       }
     }
@@ -302,7 +310,10 @@ export function BlueTopazWidgets() {
     // 徽章贴着滚动区内渐变 sticky 头的下沿（找不到头则回退到视口顶 +8）
     const stHeader = sc.querySelector(":scope > div.sticky.top-0") as HTMLElement | null
     const badgeTop = stHeader ? Math.round(stHeader.getBoundingClientRect().bottom + 4) : Math.round(sr.top + 8)
-    setStickyPos(prev => (prev.right === Math.max(10, Math.round(window.innerWidth - sr.right + 12)) && prev.top === badgeTop) ? prev : { right: Math.max(10, Math.round(window.innerWidth - sr.right + 12)), top: badgeTop })
+    // 徽章钉在滚动视口右上角内侧，坐标转为面板相对系（widgets 根已迁入面板）
+    var hrPanel = getHostPanel()?.getBoundingClientRect()
+    var badgeRight = hrPanel ? Math.max(10, Math.round(hrPanel.right - sr.right + 12)) : 12
+    setStickyPos(prev => (prev.right === badgeRight && prev.top === badgeTop) ? prev : { right: badgeRight, top: badgeTop })
     setStickyVisible(true)
   }
 
@@ -311,6 +322,18 @@ export function BlueTopazWidgets() {
   const [seqTop, setSeqTop] = createSignal(0)
   let umTotal = 0 // 会话用户消息总数（API 统计）
   let seqSessionId: string | null = null
+
+  /** 宿主面板：widgets 的定位基准（@container 可折叠面板） */
+  function getHostPanel(): HTMLElement | null {
+    const root = document.getElementById("bt-widgets-root")
+    if (root?.parentElement && root.parentElement.classList.contains("bt-host-panel"))
+      return root.parentElement
+    // 回退：按结构解析
+    const mainEl = document.querySelector("#root main")
+    let c: Element | null = mainEl
+    for (let d = 0; d < 3 && c; d++) c = c.children[0] ?? null
+    return (c as HTMLElement) ?? null
+  }
 
   function extractUmText(el: Element): string {
     const b = el.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
