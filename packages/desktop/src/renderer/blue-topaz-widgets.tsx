@@ -156,8 +156,8 @@ export function BlueTopazWidgets() {
 
     const w = Math.round(rr.width)
     const h = Math.round(rr.height)
-    // 水平/垂直对齐参考按钮（btRoot 覆盖全视口，直接用视口坐标）
-    const left = Math.round(rr.left)
+    // 发送按钮左侧 8px（btRoot 覆盖全视口，直接用视口坐标）
+    const left = Math.round(rr.left - 8 - w)
     const top = Math.round(rr.top)
 
     const want = `abs|${w}|${h}|${left}|${top}`
