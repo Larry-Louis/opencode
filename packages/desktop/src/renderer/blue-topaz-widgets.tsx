@@ -263,16 +263,15 @@ export function BlueTopazWidgets() {
     if (!hasSession) { setStickyVisible(false); return }
     positionPicker()
     updateSeqBar()
-    // 状态栏定位：下沿对齐 dock 内容区（gap-3 容器）的下缘（面板相对坐标）
-    const dock = document.querySelector('[data-component="session-prompt-dock"]')
-    const alignEl = dock?.querySelector(".flex.flex-col.gap-3") as HTMLElement | null
-    if (alignEl) {
-      const ar = alignEl.getBoundingClientRect()
+    // 状态栏定位：下沿对齐输入框（form）的下缘（面板相对坐标）
+    const inputForm = document.querySelector('form[data-component="prompt-input-v2"]')
+    if (inputForm) {
+      const fr = inputForm.getBoundingClientRect()
       const hpr = getHostPanel()?.getBoundingClientRect()
-      if (ar.height > 0 && hpr) {
+      if (fr.height > 0 && hpr) {
         const want = {
-          left: Math.round(ar.left - hpr.left - 38),
-          bottom: Math.round(hpr.bottom - ar.bottom),
+          left: Math.round(fr.left - hpr.left - 38),
+          bottom: Math.round(hpr.bottom - fr.bottom),
         }
         setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
       }
