@@ -346,6 +346,8 @@ export function BlueTopazWidgets() {
       if (clean) texts.push(clean.slice(0, 60))
     }
     umTotal = texts.length
+    // 填充序列条数据（最近 20 条用户输入）
+    setSeqEntries(texts.slice(-20).map((t, i) => ({ id: "api" + i, text: t })))
     return texts
   }
 
