@@ -440,6 +440,14 @@ html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-t
 
 html[data-color-scheme="dark"][data-theme] [data-component="bash-output"] .bt-tok-op { color: #d18052; }
 html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-tok-op { color: #b34a1f; }
+
+/* ---------- 上下文收集组标题（正在探索/已探索）：青色 ---------- */
+[data-slot="context-tool-group-title"] {
+  color: hsl(180 55% 40%);
+}
+html[data-color-scheme="dark"][data-theme] [data-slot="context-tool-group-title"] {
+  color: hsl(180 55% 60%);
+}
 html[data-color-scheme="dark"][data-theme] #bt-sticky {
   color: hsl(208 64% 72%);
   background: hsl(210 20% 16% / 0.96);
