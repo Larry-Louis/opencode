@@ -341,12 +341,12 @@ export function BlueTopazWidgets() {
 
   function scrollBack() {
     if (stickyTarget && findScroller()?.contains(stickyTarget)) {
-      // block:center 避免消息顶到视口最上被渐变头遮挡，视觉定位也更明确
-      stickyTarget.scrollIntoView({ behavior: "smooth", block: "center" })
+      // 瞬时滚动：smooth 动画期间虚拟化重锚会打断跳转
+      stickyTarget.scrollIntoView({ block: "center" })
     } else {
       const sc = findScroller()
       const turns = sc?.querySelectorAll("[data-component='session-turn']")
-      if (turns && turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
+      if (turns && turns.length) turns[0].scrollIntoView({ block: "start" })
     }
   }
 
@@ -455,10 +455,10 @@ export function BlueTopazWidgets() {
                     if (dist < bestDist) { bestDist = dist; best = u }
                   }
                 }
-                if (best) { best.scrollIntoView({ behavior: "smooth", block: "center" }); return }
+                if (best) { best.scrollIntoView({ block: "center" }); return }
                 // ② 全部虚拟化卸载：退回最顶回合（近似）
                 const turns = sc.querySelectorAll("[data-component='session-turn']")
-                if (turns.length) turns[0].scrollIntoView({ behavior: "smooth", block: "start" })
+                if (turns.length) turns[0].scrollIntoView({ block: "start" })
               }}
             >
               <span class="bt-seq-tip">{e.text}</span>
