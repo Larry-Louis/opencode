@@ -187,7 +187,7 @@ export function BlueTopazWidgets() {
   // ---- 会话状态栏 ----
   const [statsText, setStatsText] = createSignal("")
   const [statsVisible, setStatsVisible] = createSignal(false)
-  const [statsPos, setStatsPos] = createSignal({ left: 0, bottom: 0 })
+  const [statsPos, setStatsPos] = createSignal({ left: 0, top: 0 })
 
   function fmtTok(n: number): string {
     if (n >= 1e6) return (n / 1e6).toFixed(1) + "M"
@@ -263,17 +263,17 @@ export function BlueTopazWidgets() {
     if (!hasSession) { setStickyVisible(false); return }
     positionPicker()
     updateSeqBar()
-    // 状态栏定位：下沿对齐输入框（form）的下缘（面板相对坐标）
+    // 状态栏定位：下沿对齐输入框（form）的下缘
     const inputForm = document.querySelector('form[data-component="prompt-input-v2"]')
     if (inputForm) {
       const fr = inputForm.getBoundingClientRect()
-      const hpr = getHostPanel()?.getBoundingClientRect()
-      if (fr.height > 0 && hpr) {
+      if (fr.height > 0) {
+        // statsbar 约 20px 高，top = form.bottom 让其紧贴输入框下沿
         const want = {
-          left: Math.round(fr.left - hpr.left - 38),
-          bottom: Math.round(hpr.bottom - fr.bottom),
+          left: Math.round(fr.left - 38),
+          top: Math.round(fr.bottom + 2),
         }
-        setStatsPos(prev => (prev.left === want.left && prev.bottom === want.bottom) ? prev : want)
+        setStatsPos(prev => (prev.left === want.left && prev.top === want.top) ? prev : want)
       }
     }
     const sc = findScroller()
@@ -517,7 +517,7 @@ export function BlueTopazWidgets() {
         id="bt-statsbar"
         style={{
           left: `${statsPos().left}px`,
-          bottom: `${statsPos().bottom}px`,
+          top: `${statsPos().top}px`,
           visibility: statsVisible() ? "visible" : "hidden",
         }}
       >
