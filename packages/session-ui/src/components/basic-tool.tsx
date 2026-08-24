@@ -191,7 +191,7 @@ export function BasicTool(props: BasicToolProps) {
         data-component="tool-trigger"
         data-clickable={props.clickable ? "true" : undefined}
         data-hide-details={props.hideDetails ? "true" : undefined}
-        data-pill-kind={props.kind ?? "tool"}
+        data-pill-kind={props.kind ?? "plain"}
       >
       <div data-slot="basic-tool-tool-trigger-content">
         <div data-slot="basic-tool-tool-info">

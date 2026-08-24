@@ -271,7 +271,7 @@ export function BlueTopazWidgets() {
         // statsbar 约 20px 高，top = form.bottom 让其紧贴输入框下沿
         const want = {
           left: Math.round(fr.left - 38),
-          top: Math.round(fr.bottom + 2),
+          bottom: Math.round(window.innerHeight - fr.bottom),
         }
         setStatsPos(prev => (prev.left === want.left && prev.top === want.top) ? prev : want)
       }
@@ -517,7 +517,7 @@ export function BlueTopazWidgets() {
         id="bt-statsbar"
         style={{
           left: `${statsPos().left}px`,
-          top: `${statsPos().top}px`,
+          bottom: `${statsPos().bottom}px`,
           visibility: statsVisible() ? "visible" : "hidden",
         }}
       >
