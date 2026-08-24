@@ -449,6 +449,14 @@ html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-t
 html[data-color-scheme="dark"][data-theme] [data-component="bash-output"] .bt-tok-op { color: #d18052; }
 html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-tok-op { color: #b34a1f; }
 
+/* ---------- 代码输入区：浅色模式浅蓝底 ---------- */
+[data-component="markdown-code"] {
+  transition: background-color 0.2s ease;
+}
+html[data-color-scheme="light"][data-theme] [data-component="markdown-code"] {
+  background: hsl(200 60% 96%);
+}
+
 /* ---------- 上下文收集组标题（正在探索/已探索）：青色 ---------- */
 [data-slot="context-tool-group-title"] {
   color: hsl(180 55% 40%);
