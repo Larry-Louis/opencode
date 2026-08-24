@@ -1781,7 +1781,8 @@ PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
           aria-expanded={expanded() ? "true" : "false"}
           onClick={(e) => {
             e.stopPropagation()
-            setUserCollapsed(!expanded())
+            // 存入当前的 expanded 值：expanded=!userCollapsed，翻转后语义正确
+            setUserCollapsed(expanded())
           }}
         >
           <span class="bt-label">思维链</span>

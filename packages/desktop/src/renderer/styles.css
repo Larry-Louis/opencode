@@ -454,7 +454,7 @@ html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-t
   transition: background-color 0.2s ease;
 }
 html[data-color-scheme="light"][data-theme] [data-component="markdown-code"] {
-  background: hsl(200 60% 96%);
+  background: hsl(200 45% 92%);
 }
 
 /* ---------- 上下文收集组标题（正在探索/已探索）：青色 ---------- */
