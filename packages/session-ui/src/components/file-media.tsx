@@ -8,6 +8,7 @@ import {
   isBinaryContent,
   mediaKindFromPath,
   normalizeMimeType,
+  publicAssetUrl,
   svgTextFromValue,
 } from "../pierre/media"
 
@@ -68,7 +69,7 @@ export function FileMedia(props: { media?: FileMediaOptions; fallback: () => JSX
     const media = cfg()
     const k = kind()
     if (!media || (k !== "image" && k !== "audio")) return
-    return dataUrlFromMediaValue(mediaValue(media, k), k)
+    return dataUrlFromMediaValue(mediaValue(media, k), k) ?? publicAssetUrl(media.path)
   })
 
   const request = createMemo(() => {

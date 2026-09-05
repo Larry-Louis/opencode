@@ -407,7 +407,7 @@ export function SessionTurn(
                 </div>
               </Show>
               <Show when={assistantMessages().length > 0}>
-                <div data-slot="session-turn-assistant-content" aria-hidden={working()}>
+                <div data-slot="session-turn-assistant-content" inert={working() ? true : undefined}>
                   <AssistantParts
                     messages={assistantMessages()}
                     showAssistantCopyPartID={assistantCopyPartID()}

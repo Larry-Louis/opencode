@@ -181,10 +181,6 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
         "min-height": minHeight(),
         // Keep native macOS traffic lights clear even when the desktop window is narrow.
         "padding-left": macTrafficLights() ? `${macTrafficLightsBaseWidth / zoom()}px` : 0,
-        width: windows() ? `env(titlebar-area-width, calc(100vw - ${windowsControlsWidth()}))` : undefined,
-        "max-width": windows() ? `env(titlebar-area-width, calc(100vw - ${windowsControlsWidth()}))` : undefined,
-        // Native Windows caption controls remain on the physical right in both writing directions.
-        "margin-right": windows() ? "auto" : undefined,
       }}
       data-tauri-drag-region
     >
@@ -430,7 +426,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                   />
                 </TooltipV2>
                 <div class="flex-1" />
-                <TitlebarV2Right state={v2RightState()} />
+                <TitlebarV2Right state={v2RightState()} rightPadding={windows() ? windowsControlsWidth() : undefined} />
               </div>
             )
           }}
@@ -581,9 +577,6 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
               data-tauri-drag-region
             >
               <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
-              <Show when={windows()}>
-                <div class="shrink-0" style={{ width: windowsControlsWidth() }} />
-              </Show>
             </div>
           </div>
         </Match>
@@ -605,9 +598,12 @@ type TitlebarV2RightState = {
   update: TitlebarUpdatePillState
 }
 
-function TitlebarV2Right(props: { state: TitlebarV2RightState }) {
+function TitlebarV2Right(props: { state: TitlebarV2RightState; rightPadding?: string }) {
   return (
-    <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
+    <div
+      class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible"
+      style={{ "padding-right": props.rightPadding }}
+    >
       <Show when={props.state.update.visible}>
         <TitlebarUpdateIconButton state={props.state.update} />
       </Show>

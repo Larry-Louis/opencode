@@ -178,6 +178,14 @@ export function BlueTopazWidgets() {
     if (!positionPicker() && n > 0) window.setTimeout(() => tryPositionLoop(n - 1), 400)
   }
 
+  /** 问题/权限 dock 出现时隐藏拾取按钮，结束后自动恢复 */
+  function updatePickerVisibility() {
+    const btn = document.getElementById(PICK_BTN_ID)
+    if (!btn) return
+    const dock = document.querySelector('[data-component="dock-prompt"][data-kind="question"], [data-component="dock-prompt"][data-kind="permission"]')
+    btn.style.display = dock ? "none" : ""
+  }
+
   // ---- 粘性"最近用户请求"徽章 ----
   const [stickyVisible, setStickyVisible] = createSignal(false)
   const [stickyText, setStickyText] = createSignal("")
@@ -257,10 +265,15 @@ export function BlueTopazWidgets() {
     // 非对话页面（Git 面板等）隐藏全部 widgets
     // 判定强化：scroller 必须真实包含会话回合（Git 面板等视图也有滚动区，会误判）
     const sc0 = findScroller()
-    const hasSession = !!(sc0 && sc0.querySelector("[data-component='session-turn']"))
+    const hasSession = !!(sc0 && (sc0.querySelector("[data-component='session-turn']") || currentSessionId()))
     const btRootEl = document.getElementById("bt-widgets-root")
     if (btRootEl) btRootEl.style.display = hasSession ? "" : "none"
-    if (!hasSession) { setStickyVisible(false); return }
+    if (!hasSession) {
+      setStickyVisible(false)
+      seqSessionId = null
+      setSeqEntries([])
+      return
+    }
     positionPicker()
     updateSeqBar()
     // 状态栏定位：下沿对齐输入框（form）的下缘
@@ -309,9 +322,9 @@ export function BlueTopazWidgets() {
     // 徽章贴着滚动区内渐变 sticky 头的下沿（找不到头则回退到视口顶 +8）
     const stHeader = sc.querySelector(":scope > div.sticky.top-0") as HTMLElement | null
     const badgeTop = stHeader ? Math.round(stHeader.getBoundingClientRect().bottom + 4) : Math.round(sr.top + 8)
-    // 徽章钉在滚动视口右上角内侧，坐标转为面板相对系（widgets 根已迁入面板）
-    var hrPanel = getHostPanel()?.getBoundingClientRect()
-    var badgeRight = hrPanel ? Math.max(10, Math.round(hrPanel.right - sr.right + 12)) : 12
+    // 右缘锚定宿主面板右缘向左 5px（自校准，与序列条同锚）
+    const target = anchorTarget()
+    const badgeRight = target === null ? stickyPos().right : calibratedRight(stickyPos().right, document.getElementById(STICKY_ID), target)
     setStickyPos(prev => (prev.right === badgeRight && prev.top === badgeTop) ? prev : { right: badgeRight, top: badgeTop })
     setStickyVisible(true)
   }
@@ -319,8 +332,14 @@ export function BlueTopazWidgets() {
   // 序列条数据：从 sidecar API 加载当前会话的用户输入历史（最近20条）
   const [seqEntries, setSeqEntries] = createSignal<Array<{ id: string; text: string; absIdx: number }>>([])
   const [seqTop, setSeqTop] = createSignal(0)
+  const [seqRight, setSeqRight] = createSignal(12)
   let umTotal = 0 // 会话用户消息总数（API 统计）
   let seqSessionId: string | null = null
+
+  function currentSessionId(): string | null {
+    const match = location.pathname.match(/\/session\/([^/]+)/)
+    return match?.[1] ? decodeURIComponent(match[1]) : null
+  }
 
   /** 宿主面板：widgets 的定位基准（@container 可折叠面板） */
   function getHostPanel(): HTMLElement | null {
@@ -334,27 +353,65 @@ export function BlueTopazWidgets() {
     return (c as HTMLElement) ?? null
   }
 
+  /** 右缘锚点目标：宿主面板右缘向左 10px（视口 x 坐标） */
+  function anchorTarget(): number | null {
+    const panel = getHostPanel()
+    if (!panel) return null
+    return panel.getBoundingClientRect().right - 10
+  }
+
+  /** 自校准右偏移（闭式解）：R' = R + (实测右缘 − 目标)。
+   *  由 实测右缘 = 包含块右缘 − R 反解，不依赖包含块是否为视口，一拍收敛 */
+  function calibratedRight(currentRight: number, el: HTMLElement | null, target: number): number {
+    const r = el?.getBoundingClientRect()
+    if (!r || r.width === 0) return currentRight
+    return Math.max(0, Math.round(currentRight + (r.right - target)))
+  }
+
   function extractUmText(el: Element): string {
     const b = el.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
     return ((b ?? el).textContent || "").replace(/\s+/g, " ").trim()
   }
 
+  function setSeqEntriesFromTexts(texts: string[]) {
+    const clean = texts.map((text) => text.replace(/\s+/g, " ").trim().slice(0, 60)).filter(Boolean)
+    umTotal = clean.length
+    setSeqEntries(clean.slice(-20).map((text, index) => ({ id: "seq" + index, text, absIdx: index })))
+  }
+
+  function loadUmHistoryFromDom() {
+    const sc = findScroller()
+    if (!sc) return
+    const texts = Array.from(sc.querySelectorAll("[data-component='user-message']"))
+      .map(extractUmText)
+      .filter(Boolean)
+    if (texts.length) setSeqEntriesFromTexts(texts)
+  }
+
   /** 从 sidecar API 加载当前会话的用户消息文本，返回 {texts, total} */
   async function loadUmHistoryFromApi(): Promise<string[]> {
     const api = (window as any).api
-    if (!api?.awaitInitialization) return []
+    if (!api?.awaitInitialization) {
+      loadUmHistoryFromDom()
+      return []
+    }
     const ready = await api.awaitInitialization()
     const base = String(ready.url).replace(/\/$/, "")
     const auth = "Basic " + btoa((ready.username || "opencode") + ":" + (ready.password || ""))
-    // 最新更新的会话
-    const r1 = await fetch(base + "/session?limit=1", { headers: { Authorization: auth } })
-    const arr = await r1.json()
-    const sid = arr[0]?.id
-    if (!sid) return []
+    const sid = currentSessionId()
+    if (!sid) {
+      loadUmHistoryFromDom()
+      return []
+    }
+    const r2 = await fetch(base + "/session/" + encodeURIComponent(sid) + "/message", { headers: { Authorization: auth } })
+    if (!r2.ok) {
+      loadUmHistoryFromDom()
+      return []
+    }
+    const payload = await r2.json()
+    const msgs = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
+    if (currentSessionId() !== sid) return []
     seqSessionId = sid
-    // 该会话全部消息 → 用户消息文本
-    const r2 = await fetch(base + "/session/" + sid + "/message", { headers: { Authorization: auth } })
-    const msgs = await r2.json()
     const texts: string[] = []
     for (const m of msgs) {
       if (m.info?.role !== "user") continue
@@ -367,9 +424,8 @@ export function BlueTopazWidgets() {
       const clean = t.replace(/\s+/g, " ").trim()
       if (clean) texts.push(clean.slice(0, 60))
     }
-    umTotal = texts.length
-    // 填充序列条数据（最近 20 条用户输入）
-    setSeqEntries(texts.slice(-20).map((t, i) => ({ id: "api" + i, text: t })))
+    if (texts.length) setSeqEntriesFromTexts(texts)
+    else loadUmHistoryFromDom()
     return texts
   }
 
@@ -380,6 +436,9 @@ export function BlueTopazWidgets() {
     const sr = sc.getBoundingClientRect()
     const n = seqEntries().length
     setSeqTop(Math.round(sr.top + sr.height / 2 - (n * 13 - 4) / 2))
+    // 右缘与粘性徽章同锚：宿主面板右缘向左 5px（自校准）
+    const target = anchorTarget()
+    if (target !== null) setSeqRight(calibratedRight(seqRight(), document.getElementById("bt-seqbar"), target))
   }
 
   /** 跳转到登记序号为 seqIdx 的用户输入（0=最旧，length-1=最新）
@@ -464,12 +523,29 @@ export function BlueTopazWidgets() {
   const onResize = () => { positionPicker(); updateSticky() }
 
   onMount(() => {
-    const mo = new MutationObserver(() => { positionPicker(); updateSticky() })
+    const mo = new MutationObserver(() => {
+      updatePickerVisibility()
+      positionPicker()
+      updateSticky()
+      const sid = currentSessionId()
+      if (sid === seqSessionId) return
+      seqSessionId = sid
+      setSeqEntries([])
+      if (sid) void loadUmHistoryFromApi().then(updateSeqBar).catch(loadUmHistoryFromDom)
+    })
     mo.observe(document.body, { childList: true, subtree: true })
     let sc: HTMLElement | null = null
+    let layoutObserver: ResizeObserver | null = null
     const attach = () => {
+      sc?.removeEventListener("scroll", updateSticky)
+      layoutObserver?.disconnect()
       sc = findScroller()
       sc?.addEventListener("scroll", updateSticky, { passive: true })
+      if (typeof ResizeObserver === "undefined") return
+      layoutObserver = new ResizeObserver(updateSticky)
+      if (sc) layoutObserver.observe(sc)
+      const host = getHostPanel()
+      if (host && host !== sc) layoutObserver.observe(host)
     }
     attach()
     setTimeout(attach, 1500)
@@ -477,6 +553,7 @@ export function BlueTopazWidgets() {
     window.addEventListener("resize", onResize)
     // 输入框表单挂载晚于组件 mount——重试定位直到锚点出现
     tryPositionLoop(25)
+    updatePickerVisibility()
     updateSticky()
     void loadSessionStats()
     // 历史加载重试：启动早期可能失败（server 未就绪等），指数退避重试
@@ -486,13 +563,25 @@ export function BlueTopazWidgets() {
       })
     }
     retryHistory(5)
+    const refreshSeqHistory = () => {
+      const sid = currentSessionId()
+      if (!sid || sid === seqSessionId) return
+      seqSessionId = sid
+      setSeqEntries([])
+      void loadUmHistoryFromApi().then(updateSeqBar).catch(loadUmHistoryFromDom)
+    }
     // 状态栏低频刷新（tokens 聚合随会话增长）+ 序列条同步刷新
-    const statsIv = setInterval(() => { loadSessionStats(); loadUmHistoryFromApi().then(updateSeqBar) }, 10000)
+    const statsIv = setInterval(() => {
+      refreshSeqHistory()
+      loadSessionStats()
+      loadUmHistoryFromApi().then(updateSeqBar).catch(loadUmHistoryFromDom)
+    }, 10000)
     window.__btCleanup?.push(() => clearInterval(statsIv))
 
     onCleanup(() => {
       mo.disconnect()
       sc?.removeEventListener("scroll", updateSticky)
+      layoutObserver?.disconnect()
       window.removeEventListener("resize", onResize)
       stopPick()
     })
@@ -547,16 +636,14 @@ export function BlueTopazWidgets() {
         id={STICKY_ID}
         classList={{ "bt-sticky-empty": !stickyText() }}
         style={{ right: `${stickyPos().right}px`, top: `${stickyPos().top}px` }}
-        title="Last user request - click to scroll back"
         onClick={scrollBack}
       >{"↩ " + stickyText()}</button>
       <Show when={seqEntries().length > 0}>
-        <div id="bt-seqbar" style={{ top: `${seqTop()}px` }}>
+        <div id="bt-seqbar" style={{ top: `${seqTop()}px`, right: `${seqRight()}px` }}>
           {seqEntries().map((e, clickedIdx) => (
             <button
               type="button"
               class="bt-seq-bar"
-              title={e.text}
               onClick={() => { scrollToSeqEntry(clickedIdx) }}
             >
               <span class="bt-seq-tip">{e.text}</span>

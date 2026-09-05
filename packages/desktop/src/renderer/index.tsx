@@ -33,6 +33,35 @@ import { BlueTopazWidgets } from "./blue-topaz-widgets"
 import { Splash } from "@opencode-ai/ui/logo"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 
+// Dev console noise filter — silence known harmless warnings (Solid root/ghostty/duplicate commands)
+if (import.meta.env.DEV) {
+  const shouldSuppress = (args: unknown[]) => {
+    const text = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ")
+    return (
+      text.includes("cleanups created outside a `createRoot`") ||
+      text.includes("computations created outside a `createRoot`") ||
+      text.includes("ghostty-vt") ||
+      text.includes("ignoring CSI t") ||
+      text.includes("unimplemented mode: 9001") ||
+      text.includes("duplicate command id") ||
+      text.includes("Electron Security Warning") ||
+      text.includes("Slow network is detected") ||
+      text.includes("Autofocus processing was blocked") ||
+      text.includes("Blocked aria-hidden")
+    )
+  }
+  const wrap =
+    (fn: (...a: unknown[]) => void) =>
+    (...args: unknown[]) => {
+      if (shouldSuppress(args)) return
+      fn(...args)
+    }
+  console.warn = wrap(console.warn.bind(console)) as typeof console.warn
+  console.error = wrap(console.error.bind(console)) as typeof console.error
+  // ghostty also logs via console.log in some builds
+  console.log = wrap(console.log.bind(console)) as typeof console.log
+}
+
 const root = document.getElementById("root")
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   throw new Error(t("desktop.error.dev.rootNotFound"))

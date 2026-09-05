@@ -2636,6 +2636,7 @@ ToolRegistry.register({
         {...props}
         defaultOpen={completed()}
         icon="bubble-5"
+        kind="question"
         trigger={{
           title: i18n.t("ui.tool.questions"),
           subtitle: subtitle(),
