@@ -241,6 +241,71 @@ html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] .bt
 [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"] {
   width: fit-content;
   max-width: 100%;
+  cursor: pointer;
+}
+
+/* ---------- 4b. 展开吸顶：思考与工具标签展开时长滚动时固定在横向对齐原位置画面上方 ----------
+ * 当思考或工具执行内容展开且页面向下滚动时，标签保持横向对齐原位置，
+ * 垂直悬浮吸顶在画面上方（--sticky-accordion-top），保持在展开内容中随时可点击折叠；
+ * 当滚动离开该展开内容后，随父容器自然滚出。
+ * 同时加入实底/毛玻璃与微投影，彻底避免滚动文本穿透半透明胶囊。
+ * ---------------------------------------------------------------------------- */
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"],
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] {
+  position: sticky;
+  top: var(--sticky-accordion-top, 0px);
+  z-index: 25;
+  background-color: transparent !important;
+}
+
+/* 伴随吸顶的操作按钮（如 execute 工具的代码查看按钮） */
+[data-component="collapsible"].tool-collapsible[data-has-action="true"][data-expanded] > [data-slot="basic-tool-action"],
+[data-component="collapsible"].tool-collapsible[data-has-action="true"] > [data-slot="collapsible-trigger"][aria-expanded="true"] + [data-slot="basic-tool-action"] {
+  position: sticky;
+  top: var(--sticky-accordion-top, 0px);
+  z-index: 25;
+}
+
+/* 展开吸顶时的防透视与微投影质感 */
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"],
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html[data-color-scheme="dark"][data-theme] [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"],
+html[data-color-scheme="dark"][data-theme] [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* 展开吸顶：各胶囊融合主题底色，实现 100% 不透明阻断，滚动文字不穿透 */
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"][data-pill-kind="shell"],
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"][data-pill-kind="shell"] {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 86%, hsl(118 42% 45%));
+}
+
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"][data-pill-kind="edit"],
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"][data-pill-kind="edit"],
+[data-component="apply-patch-tool"] > [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] > [data-component="tool-trigger"],
+[data-component="apply-patch-tool"] > [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] > [data-component="tool-trigger"] {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 86%, hsl(208 64% 49%));
+}
+
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"][data-pill-kind="tool"],
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"][data-pill-kind="tool"] {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 86%, hsl(258 60% 60%));
+}
+
+/* 其余 plain 工具展开吸顶：微圆角卡片实底防穿透 */
+[data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"][data-pill-kind="plain"]:not([data-component="reasoning-part"] *),
+[data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"][data-pill-kind="plain"]:not([data-component="reasoning-part"] *) {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 90%, hsl(208 64% 49%));
+  border-radius: 6px;
+  border: 1px solid hsl(208 64% 49% / 0.3);
+  border-left-width: 3px;
+  padding: 2px 10px 2px 8px;
 }
 [data-component="tool-trigger"][data-pill-kind] {
   padding: 2px 14px 2px 12px;
@@ -775,6 +840,21 @@ html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] [da
 }
 html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] [data-component="tool-trigger"][data-pill-kind="plain"] [data-slot="basic-tool-tool-title"] {
   color: hsl(36 95% 68%);
+}
+
+/* 思考胶囊展开吸顶：形状对齐药丸胶囊，橙色实底防穿透 */
+[data-component="reasoning-part"] [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"],
+[data-component="reasoning-part"] [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 86%, hsl(36 95% 55%));
+  border: 1px solid hsl(36 95% 50% / 0.4);
+  border-radius: 999px;
+  padding: 2px 14px 2px 12px;
+}
+
+html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"],
+html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
+  background-color: color-mix(in srgb, var(--v2-background-bg-base) 86%, hsl(36 95% 60%));
+  border-color: hsl(36 95% 60% / 0.45);
 }
 
 /* ---------- 7. 折叠思考：每轮末尾的小按钮 ----------
