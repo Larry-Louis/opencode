@@ -113,11 +113,16 @@ function migrateStandardProvider(info: ConfigProviderV1.Info) {
   // V1 `setCacheKey` toggled `prompt_cache_key` for the whole provider; it is not a provider package setting.
   const { setCacheKey, ...rest } = info.options ?? {}
   const options = ConfigProviderOptionsV1.provider(rest)
+  // An explicit `compatibility` block wins over the legacy `setCacheKey` shorthand.
+  const compatibility = {
+    ...info.compatibility,
+    ...(setCacheKey === undefined ? {} : { supportsPromptCacheKey: setCacheKey }),
+  }
   return {
     name: info.name,
     env: info.env,
     package: info.npm ? packageSpecifier(info.npm) : undefined,
-    compatibility: setCacheKey === undefined ? undefined : { supportsPromptCacheKey: setCacheKey },
+    compatibility: Object.keys(compatibility).length ? compatibility : undefined,
     settings: info.api ? { ...options.settings, baseURL: info.api } : info.options ? options.settings : undefined,
     headers: info.options && options.headers,
     body: info.options && options.body,
@@ -201,7 +206,11 @@ function migrateModel(info: typeof ConfigProviderV1.Model.Type, npm: string | un
       : { settings: ConfigProviderOptionsV1.model(input), body: undefined }
   const migrated = options && split(options)
   const settings = migrated?.settings
-  const compatibility = Model.compatibility(info.interleaved)
+  const compatibility = {
+    ...Model.compatibility(info.interleaved),
+    ...info.compatibility,
+    ...(disableThinkingBlockBinding ? { supportsThinkingBlockBinding: false } : {}),
+  }
   const costs = info.cost && [
     {
       input: info.cost.input,
@@ -232,9 +241,7 @@ function migrateModel(info: typeof ConfigProviderV1.Model.Type, npm: string | un
     modelID: info.id,
     family: info.family,
     name: info.name,
-    compatibility: disableThinkingBlockBinding
-      ? { ...compatibility, supportsThinkingBlockBinding: false }
-      : compatibility,
+    compatibility: Object.keys(compatibility).length ? compatibility : undefined,
     package: info.provider?.npm ? packageSpecifier(info.provider.npm) : undefined,
     settings: info.provider?.api ? { ...settings, baseURL: info.provider.api } : settings,
     capabilities,

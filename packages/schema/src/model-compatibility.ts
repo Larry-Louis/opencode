@@ -27,6 +27,8 @@ export const Compatibility = Schema.Struct({
   supportsPromptCacheKey: Schema.Boolean.pipe(optional),
   /** Prompt-cache marker syntax the endpoint accepts. Overrides the route default; both send `cache_control`, and `alibaba` skips tool definitions. */
   cacheFormat: CacheFormat.pipe(optional),
+  /** Endpoint accepts the OpenAI `store` flag. Routes that support it send `store:false` when unset; strict third-party backends (for example Gemini behind a gateway) must set this to `false`. */
+  supportsStore: Schema.Boolean.pipe(optional),
   /** Supports Anthropic's thinking-prefix mismatch controls. Overrides model-ID detection. */
   supportsThinkingBlockBinding: Schema.Boolean.pipe(optional),
   /** Supports per-message effort updates. Overrides model-ID detection. */

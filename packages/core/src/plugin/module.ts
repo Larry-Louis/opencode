@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from "url"
 import type { ConfigPluginSource } from "../config/plugin/source.js"
 import type { Generation } from "../plugin.js"
 import { PluginPromise } from "./promise.js"
+import { PluginLegacy } from "./legacy.js"
 import { Config } from "../config.js"
 import { ManagedPolicy } from "../managed-policy.js"
 import { Watcher } from "../filesystem/watcher.js"
@@ -122,16 +123,27 @@ const load = Effect.fn("PluginModule.load")(function* (
       ? sources.read(entrypoint)
       : Host.load(entrypoint).then((module) => ({ module, version: installed?.revision })),
   )
-  const value = (yield* Schema.decodeUnknownEffect(Module)(loaded.module).pipe(
-    Effect.mapError(
-      (cause) =>
-        new LoadError({
+  // Blue Topaz fork: V2 dropped the V1 plugin API on purpose, so plugins written for V1 (a default
+  // export of `{ id, server }` or of the plugin function itself) fail the schema below. Adapt those
+  // onto the V2 domains instead of failing the load. `adapt` only inspects module shape and returns
+  // undefined for anything it does not recognise, so the stock error path still runs. See ./legacy.ts.
+  const legacy = PluginLegacy.adapt(loaded.module as Record<string, unknown>, operation.target)
+  const decoded = yield* Schema.decodeUnknownEffect(Module)(loaded.module).pipe(Effect.result)
+  const resolved = decoded._tag === "Success"
+    ? (() => {
+        const value = decoded.success.default
+        return "effect" in value ? value : PluginPromise.fromPromise(value)
+      })()
+    : legacy !== undefined
+      ? PluginPromise.fromPromise(legacy)
+      : yield* new LoadError({
           message: "Plugin must export a default definition with an id and an effect or setup function.",
-          cause,
-        }),
-    ),
-  )).default
-  const plugin = "effect" in value ? value : PluginPromise.fromPromise(value)
+          cause: decoded.failure,
+        })
+  const plugin = resolved as unknown as {
+    readonly id: string
+    readonly effect: (host: Record<string, unknown>) => Effect.Effect<void>
+  }
   return {
     id: plugin.id,
     features: {

@@ -70,7 +70,10 @@ export function manageWindowState(win: BrowserWindow, file: string, initial: Win
 
   if (state.isMaximized) win.maximize()
 
-  if (state.isFullScreen) win.setFullScreen(true)
+  // Blue Topaz fork: never restore fullscreen. Windows draws no caption buttons in fullscreen and
+  // this window is frameless with none of its own, so a restored fullscreen state is a one-way
+  // trap — invisible with an auto-hidden taskbar, where fullscreen looks exactly like a maximized
+  // window. Fullscreen stays reachable from the View menu; it just does not survive a restart.
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const update = () => {

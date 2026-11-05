@@ -58,7 +58,14 @@ import {
   readImagePath,
 } from "../message/current-tool-state"
 import { AssistantReasoningContent, writeClipboard } from "../message/message-content"
+import { tokenizeShellText } from "../components/bash-highlight"
 import { followShellOutput } from "./shell-output"
+
+function shellTokens(text: string) {
+  return tokenizeShellText(text).map((token) =>
+    token.cls ? <span class={token.cls}>{token.text}</span> : <span>{token.text}</span>,
+  )
+}
 
 function ShellSubmessage(props: { text: string; animate?: boolean }) {
   let widthRef: HTMLSpanElement | undefined
@@ -1171,6 +1178,7 @@ function FileTool(props: ToolProps & { title: string; count: number; children?: 
       onOpenChange={undefined}
       locked
       icon="code-lines"
+      kind="edit"
       hasContent
       defer={false}
       rail={false}
@@ -1940,8 +1948,8 @@ ToolRegistry.register({
         )}
       >
         <ConsoleOutput copy={code()} variant="shell">
-          <span data-slot="bash-command">{code()}</span>
-          <Show when={output()}>{(value) => <span data-slot="bash-result">{value()}</span>}</Show>
+          <span data-slot="bash-command">{shellTokens(code())}</span>
+          <Show when={output()}>{(value) => <span data-slot="bash-result">{shellTokens(value())}</span>}</Show>
         </ConsoleOutput>
       </BasicTool>
     )
@@ -1993,8 +2001,8 @@ ToolRegistry.register({
 
       return (
         <ConsoleOutput copy={command()} variant="shell">
-          <span data-slot="bash-command">{command()}</span>
-          <Show when={output()}>{(value) => <span data-slot="bash-result">{value()}</span>}</Show>
+          <span data-slot="bash-command">{shellTokens(command())}</span>
+          <Show when={output()}>{(value) => <span data-slot="bash-result">{shellTokens(value())}</span>}</Show>
         </ConsoleOutput>
       )
     }
@@ -2003,6 +2011,7 @@ ToolRegistry.register({
       <BasicTool
         {...props}
         icon="console"
+        kind="shell"
         rail={false}
         hasContent
         compact
@@ -2361,6 +2370,7 @@ ToolRegistry.register({
         {...props}
         defaultOpen={completed()}
         icon="bubble-5"
+        kind="question"
         trigger={{
           title: i18n.t("ui.tool.questions"),
           subtitle: subtitle(),

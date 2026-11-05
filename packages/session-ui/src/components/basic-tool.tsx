@@ -59,6 +59,10 @@ export interface BasicToolProps {
   triggerHref?: string
   triggerAsLink?: boolean
   clickable?: boolean
+  /** Blue Topaz: pill kind (shell/edit/tool) for coloring */
+  kind?: string
+  /** Blue Topaz: collapsed pill command preview */
+  preview?: string
   compact?: boolean
 }
 
@@ -230,6 +234,7 @@ export function BasicTool(props: BasicToolProps) {
       data-component="tool-trigger"
       data-clickable={props.clickable ? "true" : undefined}
       data-hide-details={props.hideDetails ? "true" : undefined}
+      data-pill-kind={props.kind ?? "plain"}
     >
       <div data-slot="basic-tool-tool-trigger-content">
         <div data-slot="basic-tool-tool-info">
@@ -289,6 +294,9 @@ export function BasicTool(props: BasicToolProps) {
             <Match when={true}>{triggerContent() as JSX.Element}</Match>
           </Switch>
         </div>
+        <Show when={!open() && props.preview}>
+          <span data-slot="bt-pill-preview">{props.preview}</span>
+        </Show>
       </div>
       <Show when={hasChildren() && !props.hideDetails && !props.locked && (!pending() || props.allowOpenWhilePending)}>
         <Collapsible.Arrow />

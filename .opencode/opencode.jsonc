@@ -1,20 +1,392 @@
-{
+	{
+  "plugin": ["octto", "oh-my-openagent@latest", "opencode-websearch-cited@1.2.0"],
+  "model": "octopus/deepseek-v4-flash",
   "$schema": "https://opencode.ai/config.json",
-  "provider": {},
-  "permission": {},
-  "references": {
-    "effect": {
-      "repository": "github.com/Effect-TS/effect-smol",
-      "description": "Use for Effect v4 and effect-smol implementation details",
+  "shell": "powershell",
+  "disabled_providers": [],
+  "agent": {
+    "artistry": {
+      "model": "github-copilot/gpt-5.6-luna"
     },
-    "opencode-local": {
-      "path": "~/.local/share/opencode",
-      "description": "Contains opencode logs and data",
+    "compaction": {
+      "model": "octopus/deepseek-v4-flash"
     },
+    "deep": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "explore": {
+      "model": "octopus-responses/muse-spark-1.3-contributor"
+    },
+    "hephaestus": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "librarian": {
+      "model": "octopus/gemini-3.1-flash-lite"
+    },
+    "metis": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "momus": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "multimodal-looker": {
+      "model": "octopus/gemini-3.5-flash-lite"
+    },
+    "oracle": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "plan": {
+      "model": "octopus/gemini-3.5-flash-lite"
+    },
+    "prometheus": {
+      "model": "github-copilot/gpt-5.6-luna"
+    },
+    "quick": {
+      "model": "octopus/mimo-v2.5"
+    },
+    "sisyphus": {
+      "model": "octopus-responses/muse-spark-1.3-contributor",
+      "prompt": "file://C:/Users/Larry/.config/opencode/prompts/sisyphus-compact.md"
+    },
+    "sisyphus-junior": {
+      "model": "octopus/gemini-3.5-flash-lite"
+    }
   },
-  "mcp": {},
-  "tools": {
-    "github-triage": false,
-    "github-pr-search": false,
+  "provider": {
+    "octopus": {
+      "name": "Octopus",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://127.0.0.1:8080/v1",
+        "apiKey": "sk-octopus-8uJlDPQZSN5ay5h6fMkVEcrTdRGSyxAx6bKiTGG2eQGIbmqY",
+        "websearch_cited": {
+          "model": "gemini-2.5"
+        }
+      },
+      "models": {
+        "gemini-3.5-flash-lite": {
+          "name": "Gemini 3.5 Flash Lite",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "input": 240000,
+            "output": 65536
+          }
+        },
+        "gemini-3.1-flash-lite": {
+          "name": "Gemini 3.1 Flash Lite",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "input": 240000,
+            "output": 65536
+          }
+        },
+        "deepseek-v4-flash": {
+          "name": "Deepseek V4 Flash",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "deepseek-v4-pro": {
+          "name": "Deepseek V4 Pro",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "deepseek-v4-flash-vision-exp": {
+          "name": "Deepseek V4 Flash vision exp",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "deepseek-v4-flash-api": {
+          "name": "Deepseek V4 Flash API",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "deepseek-v4-pro-api": {
+          "name": "Deepseek V4 Pro API",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "gemini-3-pro-api": {
+          "name": "Gemini 3 Pro",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+		"mimo-v2.5": {
+          "name": "Mimo V2.5",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          }
+        },
+		"ox-alpha-free": {
+          "name": "Ox Alpha Free",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          }
+        },
+		"nemotron-3.5-lightning-free": {
+          "name": "Nemotron 3.5 Lightning Free",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          }
+        },
+		"mimo-v2.5-free": {
+          "name": "Mimo V2.5 Free",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          }
+        }
+      }
+    },
+    "octopus-responses": {
+      "name": "Octopus Responses",
+      "npm": "@ai-sdk/openai",
+      "options": {
+        "baseURL": "http://127.0.0.1:8080/v1",
+        "apiKey": "sk-octopus-8uJlDPQZSN5ay5h6fMkVEcrTdRGSyxAx6bKiTGG2eQGIbmqY"
+      },
+      "models": {
+        "muse-spark-1.3-contributor": {
+          "name": "Muse Spark 1.3",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "muse-spark-1.3-contributor-free": {
+          "name": "Muse Spark 1.3 Free",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 65536
+          }
+        }
+      }
+    },
+    "gemini-local": {
+      "name": "Gemini Local (Web)",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://127.0.0.1:9001/v1"
+      },
+      "models": {
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash (Web)",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        },
+        "gemini-3-pro-api": {
+          "name": "Gemini 3 Pro (Web)",
+          "attachment": true,
+          "tool_call": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        }
+      }
+    }
   },
+  "mcp": {
+    "freqtrade_mcp": {
+      "command": [
+        "F:/AI/finance/freqtrade/freqtrade-mcp/.venv/Scripts/python.exe",
+        "F:/AI/finance/freqtrade/freqtrade-mcp/__main__.py"
+      ],
+      "enabled": true,
+      "environment": {
+        "FREQTRADE_API_URL": "http://127.0.0.1:8082",
+        "FREQTRADE_PASSWORD": "19930830",
+        "FREQTRADE_USERNAME": "freqtrader"
+      },
+      "type": "local"
+    },
+    "nocturne_memory": {
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer 58sVWrSVCtB6nKKoLwZbIYmkfv_GS7RC8wOJbTS_jMM"
+      },
+      "type": "remote",
+      "url": "http://localhost/mcp"
+    },
+    "link": {
+      "command": [
+        "C:\\Users\\Larry\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+        "-m",
+        "link_mcp",
+        "--wiki",
+        "C:\\Users\\Larry\\link\\wiki",
+        "--surface",
+        "slim"
+      ],
+      "enabled": true,
+      "type": "local"
+    },
+    "tavily": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.tavily.com/mcp/?tavilyApiKey=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"
+      ],
+      "enabled": true,
+      "type": "local"
+    },
+    "solomd": {
+      "command": [
+        "F:/AI/tools/solomd/solomd-mcp.exe",
+        "--allow-write",
+        "--workspace",
+        "F:/Markdown/main"
+      ],
+      "enabled": true,
+      "type": "local"
+    },
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp?exaApiKey=c0e9877e-fc5a-4b87-8531-358ca1900abe",
+      "enabled": true
+    },
+    "anysearch": {
+      "type": "remote",
+      "url": "https://api.anysearch.com/mcp",
+	  "headers": { "Authorization": "Bearer as_sk_9d67079373f4f26dacb4ffe7bad345dc" },
+      "enabled": true
+    },
+    "ai-reader": {
+      "type": "local",
+      "command": ["python", "F:\\AI\\tools\\AI-Reader-V2\\backend\\mcp_server.py"],
+      "environment": {
+        "PYTHONPATH": "F:\\AI\\tools\\AI-Reader-V2\\backend"
+      },
+      "enabled": true
+    }
+  },
+  "skills": {
+    "paths": [
+      "F:/AI/.agentskill/skills"
+    ]
+  }
 }

@@ -9,6 +9,7 @@ import { DesktopLogging, scoped } from "../native/logging"
 import { DesktopStorage } from "../storage"
 import { safeWebContentsURL } from "../windows/state"
 import { getLastFocusedWindow, getWindowByID, makeMainWindows, setAppQuitting, setRelaunchHandler } from "../windows"
+import { presentWindow } from "../windows/present"
 import { marks } from "./marks"
 import { initializeFirstLaunchOnboarding } from "./onboarding"
 import { Shutdown } from "./shutdown"
@@ -37,11 +38,7 @@ const runtime = Layer.effect(
     const prepareToRestart = shutdown.run.pipe(Effect.ensuring(Effect.sync(() => (shutdownReady = true))))
 
     const focusWindow = (win: BrowserWindow | null) => {
-      if (!win) return
-
-      if (win.isMinimized()) win.restore()
-      win.show()
-      win.focus()
+      if (win) presentWindow(win)
     }
 
     const emitDeepLinks = (urls: string[]) => {

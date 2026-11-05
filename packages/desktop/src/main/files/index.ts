@@ -89,6 +89,14 @@ function make(fs: FileSystem.FileSystem, path: Path.Path) {
       if (!application) return yield* Effect.promise(() => shell.openPath(target))
       yield* Effect.tryPromise(() =>
         new Promise<void>((resolve, reject) => {
+          if (process.platform === "win32" && application.includes("powershell")) {
+            // Blue Topaz fork: start PowerShell in the directory. Passing the path directly
+            // makes PowerShell treat it as a command instead of a location.
+            const psArgs = ["-NoExit", "-Command", `Set-Location -LiteralPath '${target.replace(/'/g, "''")}'`]
+            execFile(application, psArgs, (error) => (error ? reject(error) : resolve()))
+            return
+          }
+
           const command =
             process.platform === "darwin"
               ? { file: "open", arguments: ["-a", application, target] }

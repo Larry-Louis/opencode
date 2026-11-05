@@ -16677,6 +16677,9 @@
           "cacheFormat": {
             "$ref": "#/components/schemas/Model.CacheFormat"
           },
+          "supportsStore": {
+            "type": "boolean"
+          },
           "supportsThinkingBlockBinding": {
             "type": "boolean"
           },
@@ -17781,6 +17784,9 @@
           },
           "cacheFormat": {
             "$ref": "#/components/schemas/Model.CacheFormat"
+          },
+          "supportsStore": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

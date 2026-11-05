@@ -635,6 +635,7 @@ export type ModelCompatibility = {
   requireAssistantAfterTool?: boolean
   supportsPromptCacheKey?: boolean
   cacheFormat?: ModelCacheFormat
+  supportsStore?: boolean
   supportsThinkingBlockBinding?: boolean
   supportsEffortUpdates?: boolean
 }
@@ -647,6 +648,7 @@ export type ProviderCompatibility = {
   requireAssistantAfterTool?: boolean
   supportsPromptCacheKey?: boolean
   cacheFormat?: ModelCacheFormat
+  supportsStore?: boolean
 }
 
 export type ModelCost = {
