@@ -12,7 +12,7 @@ import {
   updateTitlebar,
 } from "../windows"
 import { storedZoomLevel } from "../windows/defaults"
-import { focusWindow, showWindow } from "../windows/focus"
+import { focusWindow } from "../windows/focus"
 import { presentWindow } from "../windows/present"
 import { sender } from "./context"
 
