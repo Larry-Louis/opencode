@@ -389,4 +389,11 @@
       "F:/AI/.agentskill/skills"
     ]
   }
+,
+  "tools": {
+    "github-pr-search": false
+  },
+  "experimental": {
+    "part_rows": true
+  }
 }
