@@ -526,8 +526,6 @@ export function createSessionTimelineRowRenderer(input: {
   }
 
   function contentDefaultOpen(item: SessionMessageAssistant["content"][number]) {
-    if (item.type === "tool" && item.name === "execute") return true
-
     if (input.timelineDetail) {
       const category = timelineCategory(item)
 

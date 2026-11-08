@@ -271,13 +271,13 @@ html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] .bt
 [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
 }
 
 html[data-color-scheme="dark"][data-theme] [data-component="collapsible"].tool-collapsible > [data-slot="collapsible-trigger"][aria-expanded="true"] [data-component="tool-trigger"],
 html[data-color-scheme="dark"][data-theme] [data-component="collapsible"].tool-collapsible[data-expanded] > [data-slot="collapsible-trigger"] [data-component="tool-trigger"] {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 /* 展开吸顶：各胶囊融合主题底色，实现 100% 不透明阻断，滚动文字不穿透 */
@@ -304,7 +304,6 @@ html[data-color-scheme="dark"][data-theme] [data-component="collapsible"].tool-c
   background-color: color-mix(in srgb, var(--v2-background-bg-base) 90%, hsl(208 64% 49%));
   border-radius: 6px;
   border: 1px solid hsl(208 64% 49% / 0.3);
-  border-left-width: 3px;
   padding: 2px 10px 2px 8px;
 }
 [data-component="tool-trigger"][data-pill-kind] {

@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js"
+import { createSignal, onCleanup, onMount } from "solid-js"
 import { api } from "./api"
 
 /**
@@ -17,19 +17,6 @@ const THINK_COLLAPSE_TEXT = "折叠思考"
 
 /** 会话状态栏右缘与输入框左缘的水平间距（px） */
 const STATS_RIGHT_GAP = 10
-
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    const ta = document.createElement("textarea")
-    ta.value = text
-    document.body.appendChild(ta)
-    ta.select()
-    try { document.execCommand("copy") } catch {}
-    ta.remove()
-  }
-}
 
 // ---- 每个会话独立的 widget 状态 ----
 // 内存 Map 保证切换会话时立即呈现该会话自己的历史与统计；
@@ -93,13 +80,13 @@ function flushPersist() {
 export function BlueTopazWidgets() {
   // ---- 粘性"最近用户请求"徽章 ----
   const [, setStickyVisible] = createSignal(false)
-  const [stickyText, setStickyText] = createSignal("")
+  const [, setStickyText] = createSignal("")
   const [stickyPos, setStickyPos] = createSignal({ right: STICKY_RIGHT_INSET, top: 8 })
-  let stickyTarget: Element | null = null
 
   // ---- 会话状态栏（按会话独立统计） ----
   const [statsText, setStatsText] = createSignal("")
-  const [statsVisible, setStatsVisible] = createSignal(false)
+  let statsError = ""
+  const [, setStatsVisible] = createSignal(false)
   const [statsPos, setStatsPos] = createSignal({ right: 0, bottom: 0 })
   let activeSid: string | null = null
 
@@ -121,8 +108,19 @@ export function BlueTopazWidgets() {
 
   /** 只统计指定会话自身的 tokens，不再汇总全部会话 */
   async function loadSessionStats(sid: string) {
-    const r = await sessionRequest(sid, "")
-    if (!r || !r.ok) return
+    const r = await sessionRequest(sid, "").catch((error) => {
+      statsError = String(error)
+
+      return null
+    })
+
+    if (!r || !r.ok) {
+      statsError = r ? `http ${r.status}` : "no response"
+
+      return
+    }
+
+    statsError = ""
     const payload = (await r.json()) as SessionInfo & { data?: SessionInfo }
     const info: SessionInfo = payload.data ?? payload
     if (activeSid !== sid) return
@@ -307,7 +305,6 @@ export function BlueTopazWidgets() {
       // 视口内还有用户消息 → 徽章隐藏；但已登记的文本保留供卸载后兜底
       setStickyVisible(false); return
     }
-    stickyTarget = lastAbove
     const bodyEl = lastAbove.querySelector('[data-slot="user-message-body"],[data-component="user-message-body"]')
     const text = ((bodyEl ?? lastAbove).textContent || "").replace(/\s+/g, " ").trim()
     const remembered = activeSid ? stateFor(activeSid).um : []
@@ -336,7 +333,7 @@ export function BlueTopazWidgets() {
 
   // 序列条数据：当前会话的用户输入历史（最近20条），按会话独立缓存
   const [seqEntries, setSeqEntries] = createSignal<SeqEntry[]>([])
-  const [seqTop, setSeqTop] = createSignal(0)
+  const [, setSeqTop] = createSignal(0)
   const [seqRight, setSeqRight] = createSignal(12)
 
   /** 桌面端跑的是 MemoryRouter，location.pathname 永远停在文档地址（oc://renderer/index.html），
@@ -362,7 +359,6 @@ export function BlueTopazWidgets() {
   function switchSession(sid: string | null) {
     if (sid === activeSid) return
     activeSid = sid
-    stickyTarget = null
     if (!sid) {
       setSeqEntries([])
       setStatsText("")
@@ -379,10 +375,18 @@ export function BlueTopazWidgets() {
   }
 
   async function refreshSession(sid: string) {
-    await Promise.all([
-      loadUmHistoryFromApi(sid).then(() => undefined).catch(() => undefined),
-      loadSessionStats(sid).catch(() => undefined),
-    ])
+    // A cold start answers before the sidecar is ready, so keep asking while the session has no numbers yet.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await Promise.all([
+        loadUmHistoryFromApi(sid).then(() => undefined).catch(() => undefined),
+        loadSessionStats(sid).catch(() => undefined),
+      ])
+
+      if (activeSid !== sid || statsText()) break
+
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+
     if (activeSid === sid) updateSeqBar()
   }
 
@@ -501,58 +505,6 @@ export function BlueTopazWidgets() {
     if (target !== null) setSeqRight(calibratedRight(seqRight(), bar, target))
   }
 
-  /** 跳转到登记序号为 seqIdx 的用户输入（0=最旧，length-1=最新）
-   *  虚拟化环境下目标可能未挂载——逐屏向上搜索直到进入挂载窗口 */
-  async function scrollToSeqEntry(seqIdx: number) {
-    const sc = findScroller()
-    if (!sc) return
-    const total = seqEntries().length
-    if (!total) return
-
-    for (var attempt = 0; attempt < 8; attempt++) {
-      var ums = Array.from(sc.querySelectorAll("[data-component='user-message']")).filter(
-        function(u){ return u.getBoundingClientRect().height > 8 }
-      )
-      if (!ums.length) { await sleep(250); continue }
-
-      // 挂载窗口假设：尾部连续（最新的 m 条已挂载）
-      // 第 j 个挂载 um 对应全局序号 total - m + j
-      var m = ums.length
-      var firstGlobal = total - m
-      var lastGlobal = total - 1
-
-      if (seqIdx >= firstGlobal && seqIdx <= lastGlobal) {
-        // 目标已挂载：精确居中
-        ums[seqIdx - firstGlobal].scrollIntoView({ behavior: "smooth", block: "center" })
-        return
-      }
-
-      // 未挂载：向目标方向翻页
-      if (seqIdx < firstGlobal) {
-        // 目标更靠旧（上方）→ 向上翻一屏
-        sc.scrollTop -= sc.clientHeight * 0.75
-      } else {
-        // 目标更新（下方）→ 向下翻一屏
-        sc.scrollTop += sc.clientHeight * 0.75
-      }
-      await sleep(320) // 等虚拟化挂载
-    }
-    // 多次逼近仍未精确命中：停在最后一次位置（已在目标邻域）
-  }
-
-  function sleep(ms: number) { return new Promise((resolve) => setTimeout(resolve, ms)) }
-
-  function scrollBack() {
-    if (stickyTarget && findScroller()?.contains(stickyTarget)) {
-      // 瞬时滚动：smooth 动画期间虚拟化重锚会打断跳转
-      stickyTarget.scrollIntoView({ block: "center" })
-    } else {
-      const sc = findScroller()
-      const turns = sc?.querySelectorAll("[data-component='session-turn']")
-      if (turns && turns.length) turns[0].scrollIntoView({ block: "start" })
-    }
-  }
-
   const onResize = () => updateSticky()
 
   // 布局观察：滚动器与宿主面板都可能被路由重建（来回切页面），
@@ -610,6 +562,21 @@ export function BlueTopazWidgets() {
       if (!activeSid) return
       void loadUmHistoryFromApi(activeSid).then(() => { if (activeSid) updateSeqBar() }).catch(() => undefined)
       void loadSessionStats(activeSid).catch(() => undefined)
+      try {
+        localStorage.setItem(
+          "bt.debug.v1",
+          JSON.stringify({
+            at: Date.now(),
+            sid: currentSessionId(),
+            activeSid,
+            stats: statsText(),
+            error: statsError,
+            composer: !!findComposer(),
+            scroller: !!findScroller(),
+            root: document.getElementById("bt-widgets-root")?.style.display ?? "missing",
+          }),
+        )
+      } catch {}
     }, 10000)
     onCleanup(() => {
       mo.disconnect()
@@ -629,44 +596,11 @@ export function BlueTopazWidgets() {
         style={{
           right: `${statsPos().right}px`,
           bottom: `${statsPos().bottom}px`,
-          visibility: statsVisible() ? "visible" : "hidden",
+          visibility: statsText() ? "visible" : "hidden",
         }}
       >
         {statsText()}
       </div>
-      <button
-        type="button"
-        id={STICKY_ID}
-        classList={{ "bt-sticky-empty": !stickyText() }}
-        style={{ right: `${stickyPos().right}px`, top: `${stickyPos().top}px` }}
-        onClick={scrollBack}
-      >{"↩ " + stickyText()}</button>
-      <Show when={seqEntries().length > 0}>
-        <div id="bt-seqbar" style={{ top: `${seqTop()}px`, right: `${seqRight()}px` }}>
-          {seqEntries().map((e, clickedIdx) => (
-            <button
-              type="button"
-              class="bt-seq-bar"
-              onClick={() => { void scrollToSeqEntry(clickedIdx) }}
-            >
-              <span class="bt-seq-tip">
-                <span class="bt-seq-tip-text">{e.text}</span>
-                <svg
-                  class="bt-seq-tip-copy"
-                  viewBox="0 0 16 16"
-                  width="13"
-                  height="13"
-                  aria-label="复制"
-                  onClick={(ev) => { ev.stopPropagation(); void copyText(e.text) }}
-                >
-                  <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" />
-                  <path d="M3.5 10.5V3.5a1 1 0 0 1 1-1h6.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
-                </svg>
-              </span>
-            </button>
-          ))}
-        </div>
-      </Show>
     </>
   )
 }

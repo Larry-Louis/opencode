@@ -1,0 +1,256 @@
+﻿[data-component="turn-navigator"] {
+  position: absolute;
+  inset-inline-start: 2px;
+  top: 50%;
+  z-index: 55;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* The rail is only as tall as its marks, and scrolls once they no longer fit between the header and the composer. */
+[data-slot="turn-navigator-scroll"] {
+  max-height: calc(100vh - 2 * var(--turn-navigator-gutter, 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+[data-slot="turn-navigator-scroll"]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-slot="turn-navigator-list"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The track reaches from the first mark to the last; it is nearly invisible until the rail is hovered, when it reads
+   as a dashed line. */
+[data-slot="turn-navigator-list"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--v2-border-border-muted);
+}
+
+[data-component="turn-navigator"]:hover [data-slot="turn-navigator-list"]::before {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, var(--v2-border-border-strong) 0 3px, transparent 3px 7px);
+}
+
+[data-slot="turn-navigator-item"] {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+}
+
+[data-slot="turn-navigator-item"][data-kind="bar"] {
+  height: 22px;
+}
+
+[data-slot="turn-navigator-dot"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+
+[data-slot="turn-navigator-dot"] > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v2-icon-icon-base);
+  opacity: 0.5;
+  transition:
+    width 120ms ease,
+    height 120ms ease,
+    opacity 120ms ease,
+    background-color 120ms ease;
+}
+
+/* A bar stands for a group of ten turns once the conversation outgrows one dot per turn. */
+[data-slot="turn-navigator-item"][data-kind="bar"] [data-slot="turn-navigator-dot"] > span {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+/* Only the marked dot and the turn being read are solid; every other dot sits at half strength. */
+[data-slot="turn-navigator-dot"]:hover > span {
+  width: 8px;
+  height: 8px;
+  opacity: 1;
+  background: var(--v2-text-text-base);
+}
+
+[data-slot="turn-navigator-item"][data-active] [data-slot="turn-navigator-dot"] > span {
+  width: 8px;
+  height: 8px;
+  opacity: 1;
+  background: var(--v2-text-text-base);
+}
+
+[data-slot="turn-navigator-item"][data-kind="bar"] [data-slot="turn-navigator-dot"]:hover > span,
+[data-slot="turn-navigator-item"][data-kind="bar"][data-active] [data-slot="turn-navigator-dot"] > span {
+  width: 5px;
+  height: 18px;
+}
+
+[data-slot="turn-navigator-dot"]:focus-visible > span {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--v2-border-border-focus);
+}
+
+[data-component="turn-navigator-preview"] {
+  position: fixed;
+  z-index: 1000;
+  top: clamp(84px, var(--turn-preview-y), calc(100vh - 132px));
+  width: min(300px, calc(100vw - 64px));
+  padding: 10px 12px 8px;
+  border-radius: 8px;
+  background: var(--surface-raised-stronger-non-alpha);
+  color: var(--v2-text-text-base);
+  box-shadow:
+    0 0 0 1px var(--v2-border-border-muted),
+    var(--v2-elevation-raised);
+  pointer-events: none;
+  animation: turn-navigator-preview-in 100ms ease-out;
+}
+
+[data-component="turn-navigator-preview"][data-side="right"] {
+  left: var(--turn-preview-x);
+  transform: translateY(-50%);
+}
+
+[data-component="turn-navigator-preview"][data-side="left"] {
+  left: var(--turn-preview-x);
+  transform: translate(-100%, -50%);
+}
+
+/* The group list stays open under the pointer so a turn in it can be clicked. */
+[data-component="turn-navigator-preview"][data-kind="bar"] {
+  top: clamp(140px, var(--turn-preview-y), calc(100vh - 180px));
+  width: min(268px, calc(100vw - 64px));
+  padding: 8px 6px 6px;
+  pointer-events: auto;
+}
+
+[data-slot="turn-navigator-prompt"] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+[data-slot="turn-navigator-reply"] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--v2-border-border-muted);
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+[data-slot="turn-navigator-meta"] {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-start: 8px;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-slot="turn-navigator-range"] {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 6px 6px;
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-slot="turn-navigator-turns"] {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 240px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+[data-slot="turn-navigator-turns"] button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--v2-text-text-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: start;
+  cursor: pointer;
+}
+
+[data-slot="turn-navigator-turns"] button:hover,
+[data-slot="turn-navigator-turns"] button:focus-visible {
+  background: var(--v2-overlay-simple-overlay-hover);
+  color: var(--v2-text-text-base);
+  outline: none;
+}
+
+[data-slot="turn-navigator-turns"] time {
+  color: var(--v2-text-text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-slot="turn-navigator-turns"] button > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@keyframes turn-navigator-preview-in {
+  from {
+    opacity: 0;
+  }
+}

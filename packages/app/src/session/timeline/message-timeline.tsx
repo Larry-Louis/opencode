@@ -1,5 +1,6 @@
-import { createMemo, createSignal, onCleanup, Show, type Accessor, type JSX } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, Show, untrack, type Accessor, type JSX } from "solid-js"
 import { Predicate } from "effect"
+import type { SessionMessageUser } from "@opencode/client/promise"
 import { abort } from "@opencode/util/abort"
 import { createAnimatedPresence } from "@/runtime/animated-presence"
 import type { SessionUserActions } from "@opencode/session-ui/actions"
@@ -22,6 +23,7 @@ import { getReadyMarkdown, preloadMarkdown } from "@opencode/session-ui/markdown
 import { createTimelineController, type TimelineController, type TimelineSessionSource } from "./controller"
 import type { TimelineFollow } from "./follow"
 import { createTimelineVirtualizer, type TimelineRouteReveal } from "./virtualizer"
+import type { TurnNavigatorItem } from "./turn-navigator"
 import { createSelectedEffect } from "./selected-effect"
 import { containsDirectory } from "@opencode/util/path"
 import { isWorkspaceDirectory } from "@/workspaces/paths"
@@ -175,6 +177,104 @@ function MessageTimelineView(
   const turnPadding = () => "px-4 md:px-6"
   const showHeader = createMemo(() => !props.hideHeader && (props.data.showHeader() || workspaceSession()))
   const messageByID = projection.messageByID
+  const settings = useSettings()
+
+  const promptPresentation = (message: SessionMessageUser) => {
+    const value = readPromptPresentation(message.metadata)
+    const parsed = value ? undefined : parseCommentNote(message.text)
+    const voice = parseVoiceDelegation(value?.displayText ?? message.text)
+
+    return {
+      displayText: voice ? (voice.framing ?? voice.instruction) : value?.displayText,
+      comments: value?.comments ?? (parsed ? [parsed] : []),
+      references: value?.attachments,
+      voice: !!voice,
+      preview: voice?.framing ?? voice?.instruction ?? value?.displayText ?? parsed?.comment ?? message.text,
+    }
+  }
+
+  // A reply is markdown; the preview shows its first sentences without the syntax that only survives rendering.
+  const replyPreview = (text: string) => {
+    const plain = text
+      .slice(0, 1200)
+      .replace(/```[\s\S]*?```/g, " ")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("|") && !line.startsWith("```") && !/^[-:|\s]+$/.test(line))
+      .map((line) =>
+        line
+          .replace(/^#{1,6}\s+/, "")
+          .replace(/^>\s?/, "")
+          .replace(/^[-*+]\s+/, "")
+          .replace(/^\d+\.\s+/, "")
+          .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+          .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+          .replace(/`+([^`]*)`+/g, "$1")
+          .replace(/(\*\*|__|~~|\*|_)/g, "")
+          .trim(),
+      )
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+
+    return plain.length > 320 ? `${plain.slice(0, 320).trimEnd()}…` : plain
+  }
+
+  // One navigator entry per turn, carrying the prompt and the first reply the turn received.
+  const turnNavigatorEntries = createMemo<TurnNavigatorItem[]>(() => {
+    const assistantByParent = projection.assistantMessagesByParent()
+
+    return projection.rows().flatMap((row) => {
+      if (!Predicate.isTagged(row, "UserMessage")) return []
+      const message = messageByID().get(row.userMessageID)
+
+      if (message?.type !== "user") return []
+
+      const reply = assistantByParent
+        .get(message.id)
+        ?.flatMap((assistant) => assistant.content)
+        .find((content) => content.type === "text" && content.text.trim())
+
+      return [
+        {
+          id: message.id,
+          prompt: promptPresentation(message).preview,
+          reply: reply?.type === "text" ? replyPreview(reply.text) || undefined : undefined,
+          createdAt: message.time.created,
+        },
+      ]
+    })
+  })
+
+  // The navigator lists every turn of the session, so the transcript pages in the history it would otherwise fetch
+  // only when the reader scrolls up.
+  createEffect(
+    on(
+      () => (props.active !== false ? sessionID() : undefined),
+      (id) => {
+        if (!id) return
+        const controller = new AbortController()
+        let cancelled = false
+
+        void (async () => {
+          for (let page = 0; page < 12; page++) {
+            if (cancelled || untrack(turnNavigatorEntries).length >= 60) return
+
+            if (!server.ctx.data.session.message.more(id)) return
+
+            await server.ctx.data.session.message.loadMore(id, { signal: controller.signal }).catch(() => undefined)
+            await new Promise((resolve) => setTimeout(resolve, 140))
+          }
+        })()
+
+        onCleanup(() => {
+          cancelled = true
+          controller.abort()
+        })
+      },
+    ),
+  )
 
   const virtualized = createTimelineVirtualizer({
     active: () => props.active !== false,
@@ -244,6 +344,7 @@ function MessageTimelineView(
     setRevealPart: props.setRevealPart,
     setScrollToEnd: props.setScrollToEnd,
     setPage: props.setPage,
+    history: turnNavigatorEntries,
     reveal: props.reveal,
   })
 
@@ -278,25 +379,12 @@ function MessageTimelineView(
         ],
   )
 
-  const settings = useSettings()
-
   const rowRenderer = createSessionTimelineRowRenderer({
     foldUserMessages: settings.general.foldUserMessages,
     sessionID: () => sessionID()!,
     status: sessionStatus,
     projection,
-    presentation: (message) => {
-      const value = readPromptPresentation(message.metadata)
-      const parsed = value ? undefined : parseCommentNote(message.text)
-      const voice = parseVoiceDelegation(value?.displayText ?? message.text)
-
-      return {
-        displayText: voice ? (voice.framing ?? voice.instruction) : value?.displayText,
-        comments: value?.comments ?? (parsed ? [parsed] : []),
-        references: value?.attachments,
-        voice: !!voice,
-      }
-    },
+    presentation: promptPresentation,
     actions: props.actions,
     reasoningMode: props.data.reasoningMode,
     shellToolDefaultOpen: props.data.shellToolPartsExpanded,

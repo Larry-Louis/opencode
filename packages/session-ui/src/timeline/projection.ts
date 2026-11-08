@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ModelRef,
   SessionMessageAssistant,
   SessionMessageIdle,
@@ -641,6 +641,25 @@ export namespace Timeline {
     })
     appendAssistantSegment(assistantSegment)
 
+    // A settled turn reads as what the model wrote: each answer stays visible, and the thinking and tool work between
+    // answers folds into its own disclosure, the way a single thought or tool node does on its own.
+    if (view.settled && detail && detail.tools.placement !== "hidden") {
+      const answers = new Set(
+        assistantMessages.flatMap((message) =>
+          contentEntries(message)
+            .filter(
+              (entry) =>
+                entry.content.type === "text" &&
+                isRenderable(entry.content, showReasoning, detail) &&
+                !commentary.has(entry.content),
+            )
+            .map((entry) => `${message.id}:${entry.id}`),
+        ),
+      )
+
+      return answers.size > 0 ? foldTurnProcess(rows, answers) : rows
+    }
+
     return rows
   }
 
@@ -770,12 +789,28 @@ function shellFailed(message: SessionMessageShell) {
 // OpenAI Responses models label each message with a phase, which wins over position. A settled turn
 // without an answer keeps its last text, so an interrupted turn still ends with something to read.
 function turnCommentary(entries: Entry[], settled: boolean, visible: (content: Content) => boolean) {
-  const contents = entries.flatMap((entry) => (entry.type === "assistant" ? entry.message.content : []))
+  const messages = entries.flatMap((entry) => (entry.type === "assistant" ? [entry.message] : []))
+  const contents = messages.flatMap((message) => message.content)
   const lastTool = contents.findLastIndex((content) => content.type === "tool")
+
+  // A message that ends in text ended on an answer: work it starts later runs in a message of its own, and that
+  // answer must stay readable instead of folding into the work that follows it.
+  const answers = new Set(
+    settled
+      ? messages.flatMap((message) => {
+          const lastTool = message.content.findLastIndex((content) => content.type === "tool")
+
+          return message.content.flatMap((content, index) =>
+            content.type === "text" && index > lastTool && content.native?.phase !== "commentary" ? [content] : [],
+          )
+        })
+      : [],
+  )
 
   const commentary = contents.filter(
     (content, index) =>
       content.type === "text" &&
+      !answers.has(content) &&
       (content.native?.phase === "commentary" || (content.native?.phase !== "final_answer" && index < lastTool)),
   )
 
@@ -784,6 +819,75 @@ function turnCommentary(entries: Entry[], settled: boolean, visible: (content: C
   if (!settled || texts.some((content) => !commentary.includes(content))) return commentary
 
   return commentary.filter((content) => content !== texts.at(-1))
+}
+
+// A finished turn keeps every answer visible and folds the work between answers into one disclosure each, so a turn
+// that answered, ran a shell, then answered again still reads as both answers with their own collapsed work.
+function foldTurnProcess(rows: TimelineRow.TimelineRow[], answers: ReadonlySet<string>) {
+  const folded: TimelineRow.TimelineRow[] = []
+  let run: TimelineRow.TimelineRow[] = []
+
+  const refs = (row: TimelineRow.TimelineRow) => {
+    if (Predicate.isTagged(row, "Notice") || Predicate.isTagged(row, "Shell"))
+      return [{ messageID: row.messageID, partID: row.messageID }]
+
+    if (!Predicate.isTagged(row, "AssistantPart")) return []
+
+    return row.group.type === "part" ? [row.group.ref] : row.group.refs
+  }
+
+  const push = () => {
+    const head = run[0]
+
+    if (!head) return
+
+    const process = run.flatMap(refs)
+
+    // A lone step reads the same as the node it already is, so only real runs become a disclosure.
+    if (process.length < 2) {
+      folded.push(...run)
+      run = []
+
+      return
+    }
+
+    const part = Predicate.isTagged(head, "AssistantPart") ? head : undefined
+
+    folded.push(
+      new TimelineRow.AssistantPart({
+        userMessageID: head.userMessageID,
+        previousAssistantPart: part?.previousAssistantPart ?? false,
+        // The disclosure opens a block of work, so it keeps the content spacing above it.
+        spacing: "content",
+        group: { type: "context", key: `context:${process[0]!.messageID}:${process[0]!.partID}`, refs: process },
+      }),
+    )
+    run = []
+  }
+
+  for (const row of rows) {
+    const answer =
+      Predicate.isTagged(row, "AssistantPart") &&
+      row.group.type === "part" &&
+      answers.has(`${row.group.ref.messageID}:${row.group.ref.partID}`)
+
+    // Diffs, errors, dividers and the user's own prompt end the work before them.
+    const process =
+      Predicate.isTagged(row, "AssistantPart") || Predicate.isTagged(row, "Notice") || Predicate.isTagged(row, "Shell")
+
+    if (!process || answer) {
+      push()
+      folded.push(row)
+
+      continue
+    }
+
+    run.push(row)
+  }
+
+  push()
+
+  return folded
 }
 
 function groupMessages(rows: TimelineRow.TimelineRow[], detail: TimelineDetail, separate: ReadonlySet<string>) {
