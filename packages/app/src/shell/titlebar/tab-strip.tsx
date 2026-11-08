@@ -29,6 +29,8 @@ import { createTabComposerState } from "@/composer/persistence"
 import { base64Encode } from "@opencode/util/encode"
 import { showToast } from "@/shell/notifications/toast"
 import { adjacentTabKey, mergeVisibleTabOrder } from "./tab-order"
+import { flattenGroups, groupTabs, directoryLabel } from "./tab-groups"
+import { pathKey } from "@/workspaces/path-key"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
@@ -537,7 +539,28 @@ export function TitlebarTabStrip(props: {
     props.tabs.filter((tab) => tab.type === "draft" || !!views().get(tabKey(tab))?.visible),
   )
 
-  const visibleTabIds = () => visibleTabs().map(tabKey)
+  // Sidebar tabs are grouped by the directory they belong to so tabs opened from
+  // different projects stay separated instead of interleaving by open order.
+  // Groups keep first-appearance order and tabs keep their relative order inside a group.
+  // Session tabs do not carry a directory of their own: prefer the persisted tab
+  // record and fall back to the loaded session before grouping degenerates.
+  const directoryOf = (tab: Tab) => {
+    if (tab.type === "draft") return pathKey(tab.worktree ?? tab.directory)
+
+    const key = tabKey(tab)
+
+    return pathKey(appTabs.info[key]?.directory ?? views().get(key)?.session?.location.directory ?? "")
+  }
+
+  const directoryLabelOf = (path: string) => directoryLabel(path) || "—"
+
+  const tabGroups = createMemo(() => groupTabs(visibleTabs(), directoryOf, directoryLabelOf))
+
+  // Visual order for the sidebar. Indices, numbering, adjacency and drag all read
+  // this list so they agree with what is on screen.
+  const orderedVisibleTabs = createMemo(() => flattenGroups(tabGroups()))
+
+  const visibleTabIds = () => orderedVisibleTabs().map(tabKey)
 
   // Tells the closed sidebar's toggle whether any row here shows its unread dot, which the current tab never does.
   createEffect(() => {
@@ -596,7 +619,7 @@ export function TitlebarTabStrip(props: {
   const tabRefs = new Map<string, () => HTMLDivElement | undefined>()
 
   command.register("titlebar-tab-numbers", () =>
-    visibleTabs()
+    orderedVisibleTabs()
       .slice(0, 9)
       .map((tab, index) => ({
         id: `tab.${index + 1}`,
@@ -614,6 +637,74 @@ export function TitlebarTabStrip(props: {
     const next = props.tabs.find((tab) => tabKey(tab) === key)
 
     if (next) props.onNavigate(next)
+  }
+
+  const renderTab = (tab: Tab) => {
+    const id = tabKey(tab)
+    let ref!: HTMLDivElement
+    const visibleIndex = () => orderedVisibleTabs().findIndex((item) => tabKey(item) === id)
+
+    const others = () => orderedVisibleTabs().filter((item) => tabKey(item) !== id)
+
+    const after = () => orderedVisibleTabs().slice(visibleIndex() + 1)
+
+    const closeOthers = () => props.onCloseTabs(others(), tab)
+
+    const closeAfter = () => props.onCloseTabs(after(), tab)
+
+    const element = () => ref
+    tabRefs.set(id, element)
+    onCleanup(() => {
+      if (tabRefs.get(id) === element) tabRefs.delete(id)
+    })
+
+    const serverCtx = useServerCtx(() => {
+      if (tab.type !== "session") return
+
+      return global.servers.list().find((item) => ServerConnection.key(item) === tab.server)
+    })
+
+    if (tab.type === "session") {
+      return (
+        <SessionTabEntry
+          tab={tab}
+          currentTab={props.currentTab}
+          id={id}
+          index={visibleIndex()}
+          active={props.currentTab === tab}
+          highlightActive={props.highlightActive}
+          orientation={vertical() ? "vertical" : "horizontal"}
+          serverCtx={serverCtx()}
+          view={views().get(id) ?? hiddenTabView}
+          onUnreadChange={(value) => setUnread(id, value)}
+          onNavigate={(element) => {
+            ref = element
+            props.onNavigate(tab, element)
+          }}
+          onClose={() => props.onClose(tab)}
+          onCloseOthers={others().length ? closeOthers : undefined}
+          onCloseAfter={after().length ? closeAfter : undefined}
+        />
+      )
+    }
+
+    return (
+      <DraftTabSlot
+        tab={tab}
+        id={id}
+        index={visibleIndex()}
+        active={props.currentTab === tab && props.highlightActive !== false}
+        orientation={vertical() ? "vertical" : "horizontal"}
+        title={language.t("session.tab.session")}
+        onNavigate={(element) => {
+          ref = element
+          props.onNavigate(tab, element)
+        }}
+        onClose={() => props.onClose(tab)}
+        onCloseOthers={others().length ? closeOthers : undefined}
+        onCloseAfter={after().length ? closeAfter : undefined}
+      />
+    )
   }
 
   return (
@@ -683,15 +774,19 @@ export function TitlebarTabStrip(props: {
 
             const { initialIndex, index } = source
 
-            if (initialIndex !== index) {
-              props.onReorder(
-                mergeVisibleTabOrder(
-                  props.tabs.map(tabKey),
-                  current,
-                  arrayMove(current, source.initialIndex, source.index),
-                ),
-              )
-            }
+            if (initialIndex === index) return
+
+            // Grouping owns the layout: a tab can only be reordered inside its own
+            // directory, otherwise the drop would be undone by the next regroup.
+            const ordered = orderedVisibleTabs()
+            const moved = ordered[initialIndex]
+            const landing = ordered[index]
+
+            if (!moved || !landing || directoryOf(moved) !== directoryOf(landing)) return
+
+            props.onReorder(
+              mergeVisibleTabOrder(props.tabs.map(tabKey), current, arrayMove(current, initialIndex, index)),
+            )
           }}
         >
           <div
@@ -701,75 +796,30 @@ export function TitlebarTabStrip(props: {
             classList={{ "flex-row items-center": !vertical(), "flex-col items-stretch": vertical() }}
             ref={listRef}
           >
-            <For each={props.tabs}>
-              {(tab) => {
-                const id = tabKey(tab)
-                let ref!: HTMLDivElement
-                const visibleIndex = () => visibleTabs().findIndex((item) => tabKey(item) === id)
-
-                const others = () => visibleTabs().filter((item) => tabKey(item) !== id)
-
-                const after = () => visibleTabs().slice(visibleIndex() + 1)
-
-                const closeOthers = () => props.onCloseTabs(others(), tab)
-
-                const closeAfter = () => props.onCloseTabs(after(), tab)
-
-                const element = () => ref
-                tabRefs.set(id, element)
-                onCleanup(() => {
-                  if (tabRefs.get(id) === element) tabRefs.delete(id)
-                })
-
-                const serverCtx = useServerCtx(() => {
-                  if (tab.type !== "session") return
-
-                  return global.servers.list().find((item) => ServerConnection.key(item) === tab.server)
-                })
-
-                if (tab.type === "session") {
-                  return (
-                    <SessionTabEntry
-                      tab={tab}
-                      currentTab={props.currentTab}
-                      id={id}
-                      index={visibleIndex()}
-                      active={props.currentTab === tab}
-                      highlightActive={props.highlightActive}
-                      orientation={vertical() ? "vertical" : "horizontal"}
-                      serverCtx={serverCtx()}
-                      view={views().get(id) ?? hiddenTabView}
-                      onUnreadChange={(value) => setUnread(id, value)}
-                      onNavigate={(element) => {
-                        ref = element
-                        props.onNavigate(tab, element)
-                      }}
-                      onClose={() => props.onClose(tab)}
-                      onCloseOthers={others().length ? closeOthers : undefined}
-                      onCloseAfter={after().length ? closeAfter : undefined}
-                    />
-                  )
-                }
-
-                return (
-                  <DraftTabSlot
-                    tab={tab}
-                    id={id}
-                    index={visibleIndex()}
-                    active={props.currentTab === tab && props.highlightActive !== false}
-                    orientation={vertical() ? "vertical" : "horizontal"}
-                    title={language.t("session.tab.session")}
-                    onNavigate={(element) => {
-                      ref = element
-                      props.onNavigate(tab, element)
-                    }}
-                    onClose={() => props.onClose(tab)}
-                    onCloseOthers={others().length ? closeOthers : undefined}
-                    onCloseAfter={after().length ? closeAfter : undefined}
-                  />
-                )
-              }}
-            </For>
+            <Show
+              when={vertical() && tabGroups().length > 1}
+              fallback={<For each={props.tabs}>{(tab) => renderTab(tab)}</For>}
+            >
+              <For each={tabGroups()}>
+                {(group) => (
+                  <div data-tab-group={group.key} class="flex w-full min-w-0 flex-col">
+                    <div
+                      data-tab-group-header
+                      class="flex h-6 min-w-0 shrink-0 items-center gap-1.5 px-2 text-[12px] leading-4 text-v2-text-text-faint"
+                      title={group.key}
+                    >
+                      <span class="min-w-0 truncate" dir="auto">
+                        {group.label}
+                      </span>
+                      <span class="shrink-0 tabular-nums opacity-60">{group.tabs.length}</span>
+                    </div>
+                    <div class="flex w-full min-w-0 flex-col">
+                      <For each={group.tabs}>{(tab) => renderTab(tab)}</For>
+                    </div>
+                  </div>
+                )}
+              </For>
+            </Show>
           </div>
         </DragDropProvider>
       </div>
