@@ -192,16 +192,24 @@ async function register(
   const before = trigger("tool.execute.before")
   if (before) {
     await ctx.tool.hook("execute.before", async (event) => {
-      const output: Record<string, unknown> = { args: event.input }
-      await before({ ...event, callID: event.id }, output)
-      event.input = output.args
+      try {
+        const output: Record<string, unknown> = { args: event.input }
+        await before({ ...event, callID: event.id }, output)
+        event.input = output.args
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "tool.execute.before" hook failed:`, error)
+      }
     })
   }
 
   const after = trigger("tool.execute.after")
   if (after) {
     await ctx.tool.hook("execute.after", async (event) => {
-      await after({ ...event, callID: event.id }, event.status === "completed" ? event.result : event.error)
+      try {
+        await after({ ...event, callID: event.id }, event.status === "completed" ? event.result : event.error)
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "tool.execute.after" hook failed:`, error)
+      }
     })
   }
 
@@ -222,18 +230,26 @@ async function register(
   const shellEnv = trigger("shell.env")
   if (shellEnv) {
     await ctx.shell.hook("create.before", async (event) => {
-      const output: Record<string, unknown> = { env: event.env }
-      await shellEnv({ cwd: event.cwd }, output)
-      if (isRecord(output.env)) event.env = output.env as Record<string, string | undefined>
+      try {
+        const output: Record<string, unknown> = { env: event.env }
+        await shellEnv({ cwd: event.cwd }, output)
+        if (isRecord(output.env)) event.env = output.env as Record<string, string | undefined>
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "shell.env" hook failed:`, error)
+      }
     })
   }
 
   const ask = trigger("permission.ask")
   if (ask) {
     await ctx.permission.hook("evaluate", async (event) => {
-      const output: Record<string, unknown> = {}
-      await ask({ sessionID: event.sessionID, permission: event.action, patterns: event.resources }, output)
-      if (typeof output.status === "string") event.effect = output.status as never
+      try {
+        const output: Record<string, unknown> = {}
+        await ask({ sessionID: event.sessionID, permission: event.action, patterns: event.resources }, output)
+        if (typeof output.status === "string") event.effect = output.status as never
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "permission.ask" hook failed:`, error)
+      }
     })
   }
 
@@ -243,21 +259,25 @@ async function register(
   const messagesTransform = trigger("experimental.chat.messages.transform")
   if (params || systemTransform || messagesTransform) {
     await ctx.session.hook("context", async (event) => {
-      if (params) {
-        const output = { ...event.options }
-        await params({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
-        event.options = output as typeof event.options
-      }
-      if (systemTransform) {
-        const output: Record<string, unknown> = { system: [...event.system] }
-        await systemTransform({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
-        const parts = toSystemParts(output.system)
-        if (parts) event.system = parts
-      }
-      if (messagesTransform) {
-        const output: Record<string, unknown> = { messages: [...event.messages] }
-        await messagesTransform({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
-        if (Array.isArray(output.messages)) event.messages = output.messages as typeof event.messages
+      try {
+        if (params) {
+          const output = { ...event.options }
+          await params({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
+          event.options = output as typeof event.options
+        }
+        if (systemTransform) {
+          const output: Record<string, unknown> = { system: [...event.system] }
+          await systemTransform({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
+          const parts = toSystemParts(output.system)
+          if (parts) event.system = parts
+        }
+        if (messagesTransform) {
+          const output: Record<string, unknown> = { messages: [...event.messages] }
+          await messagesTransform({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
+          if (Array.isArray(output.messages)) event.messages = output.messages as typeof event.messages
+        }
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 context hook failed:`, error)
       }
     })
   }
@@ -265,31 +285,84 @@ async function register(
   const message = trigger("chat.message")
   if (message) {
     await ctx.session.hook("prompt", async (event) => {
-      const output: Record<string, unknown> = { message: { id: event.messageID }, parts: event.prompt }
-      await message({ sessionID: event.sessionID, messageID: event.messageID }, output)
+      try {
+        const parts = toLegacyParts(event.prompt)
+        const output: Record<string, unknown> = { message: { id: event.messageID }, parts }
+        await message({ sessionID: event.sessionID, messageID: event.messageID }, output)
+        applyLegacyParts(output.parts, event.prompt)
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "chat.message" hook failed:`, error)
+      }
     })
   }
 
   const headers = trigger("chat.headers")
   if (headers) {
     await ctx.session.hook("model.request", async (event) => {
-      const output: Record<string, unknown> = { headers: { ...event.headers } }
-      await headers({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
-      if (isRecord(output.headers)) event.headers = output.headers as Record<string, string>
+      try {
+        const output: Record<string, unknown> = { headers: { ...event.headers } }
+        await headers({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
+        if (isRecord(output.headers)) event.headers = output.headers as Record<string, string>
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "chat.headers" hook failed:`, error)
+      }
     })
   }
 
   const compacting = trigger("experimental.session.compacting")
   if (compacting) {
     await ctx.session.hook("compaction", async (event) => {
-      const output: Record<string, unknown> = { context: event.messages }
-      await compacting({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
-      if (Array.isArray(output.context)) event.messages = output.context as typeof event.messages
+      try {
+        const output: Record<string, unknown> = { context: event.messages }
+        await compacting({ sessionID: event.sessionID, agent: event.agent, model: event.model }, output)
+        if (Array.isArray(output.context)) event.messages = output.context as typeof event.messages
+      } catch (error) {
+        console.warn(`[plugin:${id}] V1 "experimental.session.compacting" hook failed:`, error)
+      }
     })
   }
 
   const dispose = trigger("dispose")
   if (dispose) cleanups.push(() => void dispose())
+}
+
+/** V1 prompt messages carry an array of part objects; V2's prompt carries structured fields. */
+function toLegacyParts(prompt: { text?: string; files?: unknown[] }): Array<Record<string, unknown>> {
+  const parts: Array<Record<string, unknown>> = []
+  if (typeof prompt.text === "string") {
+    parts.push({ type: "text", text: prompt.text })
+  }
+  if (Array.isArray(prompt.files)) {
+    for (const file of prompt.files) {
+      if (isRecord(file)) {
+        parts.push({ type: "file", ...file })
+      }
+    }
+  }
+  return parts
+}
+
+function applyLegacyParts(
+  parts: unknown,
+  prompt: { text: string; files?: unknown[] },
+) {
+  if (!Array.isArray(parts)) return
+  const textParts: string[] = []
+  const files: unknown[] = []
+  for (const part of parts) {
+    if (!isRecord(part)) continue
+    if (part.type === "text" && typeof part.text === "string") {
+      textParts.push(part.text)
+    } else if (part.type === "file") {
+      files.push(part)
+    }
+  }
+  if (textParts.length > 0) {
+    prompt.text = textParts.join("\n\n")
+  }
+  if (files.length > 0 || (Array.isArray(prompt.files) && prompt.files.length > 0)) {
+    prompt.files = files as never
+  }
 }
 
 /** V1 system transforms push plain strings; V2's system array holds parts. */
