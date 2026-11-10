@@ -13,6 +13,8 @@ export const createBrowserNetwork = Effect.fn("BrowserNetwork.create")(function*
   attachment: { sessionID: Session.ID; connectionID: string }
   location: { directory: string; workspace?: string }
   partition: string
+  /** Whether the connected server runs on this machine, so its loopback is this loopback too. */
+  sameMachine: boolean
 }) {
   const options = { location: input.location }
 
@@ -39,10 +41,16 @@ export const createBrowserNetwork = Effect.fn("BrowserNetwork.create")(function*
 
   const partition = session.fromPartition(input.partition)
   yield* Effect.addFinalizer(() => Effect.promise(() => partition.closeAllConnections()))
-  // This is the browser's private partition, not the app/API connection. Never
-  // bypass localhost: it must resolve on the machine running the OC2 server.
+  // This is the browser's private partition, not the app/API connection. A server on another
+  // machine owns that machine's loopback, so the tunnel has to resolve it there. Beside a local
+  // server the hop only adds a way to lose a plain-HTTP body, so leave loopback to Chromium's own
+  // direct bypass.
   yield* Effect.tryPromise(() =>
-    partition.setProxy({ mode: "fixed_servers", proxyRules: proxy.url, proxyBypassRules: "<-loopback>" }),
+    partition.setProxy({
+      mode: "fixed_servers",
+      proxyRules: proxy.url,
+      ...(input.sameMachine ? {} : { proxyBypassRules: "<-loopback>" }),
+    }),
   )
   yield* Effect.tryPromise(() => partition.closeAllConnections())
 

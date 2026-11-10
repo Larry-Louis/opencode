@@ -167,7 +167,13 @@ export function createBrowserPane(input: {
 
             const attachment = { sessionID, connectionID: crypto.randomUUID() }
             const rpc = client.rpc(Browser.Definition)
-            handle.network = yield* createBrowserNetwork({ rpc, attachment, location: options.location, partition })
+            handle.network = yield* createBrowserNetwork({
+              rpc,
+              attachment,
+              location: options.location,
+              partition,
+              sameMachine: server.sameMachine,
+            })
             const connected = yield* Deferred.make<void>()
             const outbound = yield* Queue.unbounded<Effect.Effect<void>>()
 

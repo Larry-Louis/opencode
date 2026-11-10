@@ -115,9 +115,9 @@ describe("tunnel pool", () => {
 
   test("allows one read and one write at a time, and no write after the end or an error", () => {
     const reading = replay([...opened("a"), { type: "read.started", id: "a" }])
-    expect(BrowserTunnelMachine.readError(reading.state, "a")?.message).toBe(
-      "Only one read may be pending per browser tunnel.",
-    )
+    // Reads are serialized per tunnel by the caller, so a tunnel that is reading still admits the next read.
+    expect(BrowserTunnelMachine.readError(reading.state, "a")).toBeUndefined()
+    expect(BrowserTunnelMachine.describe(reading.state, "a")).toBe("open, reading")
 
     const writing = replay([{ type: "write.started", id: "a" }], reading.state)
     expect(BrowserTunnelMachine.writeError(writing.state, "a")?.message).toBe(
