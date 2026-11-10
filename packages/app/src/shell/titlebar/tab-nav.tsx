@@ -398,6 +398,7 @@ export function TabNavItem(
       classList={{ invisible: props.hidden }}
       data-active={props.active}
       data-status={status()}
+      data-attention={props.attention ? "true" : undefined}
       data-dragging={props.dragging}
       data-state={props.active || props.pressed ? "pressed" : undefined}
       onMouseDown={(event) => {

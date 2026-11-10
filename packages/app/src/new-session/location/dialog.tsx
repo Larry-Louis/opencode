@@ -24,6 +24,8 @@ import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useCommand } from "@/shell/commands/command"
 import { workspaceSelectionDirectories } from "@/workspaces/paths"
+import { pathKey } from "@/workspaces/path-key"
+import { noProjectDirectory, loadNoProjectDirectory } from "@/workspaces/no-project"
 import "@/shell/commands/dialog.css"
 import "@/shell/palette-menu.css"
 import "./dialog.css"
@@ -79,6 +81,19 @@ function NewSessionLocationDialog(props: {
   const [step, setStep] = createSignal(createLocationDialogState(props.drilled))
   const view = createMemo(() => locationDialogView(step()))
   const drilled = createMemo(() => view().drilled)
+
+  // A session needs a working directory. "No project" runs in the shared folder, so the work stays out of any project.
+  createEffect(() => {
+    loadNoProjectDirectory(() => serverSDK.api.location.get())
+  })
+
+  const scratch = () => noProjectDirectory()
+
+  const scratchSelected = () => {
+    const directory = scratch()
+
+    return !!directory && pathKey(props.project.selected()?.worktree ?? "") === pathKey(directory)
+  }
 
   const connection = (project: PromptProject) =>
     project.server ? servers.list.find((item) => ServerConnection.key(item) === project.server!.key) : serverSDK.server
@@ -360,6 +375,40 @@ function NewSessionLocationDialog(props: {
                   </div>
                 }
               >
+                <Show when={scratch()}>
+                  {(directory) => (
+                    <button
+                      type="button"
+                      class="command-palette-row palette-menu-row"
+                      data-size="compact"
+                      aria-selected={scratchSelected()}
+                      data-active={scratchSelected() ? "" : undefined}
+                      onClick={async () => {
+                        const connection = serverSDK.server
+                        const directory_ = directory()
+
+                        // The server only serves locations it knows: registering the folder is what lets the composer
+                        // load agents and models for it.
+                        await global
+                          .serverCtx(ServerConnection.key(connection))
+                          ?.projects.add(directory_)
+                          .catch(() => undefined)
+
+                        props.project.select({
+                          name: language.t("session.new.project.none"),
+                          worktree: directory_,
+                        })
+                        dialog.close()
+                      }}
+                    >
+                      <ProjectRow
+                        project={{ name: language.t("session.new.project.none"), worktree: directory() }}
+                        path={directory()}
+                        drillLabel={language.t("session.new.location.worktrees")}
+                      />
+                    </button>
+                  )}
+                </Show>
                 <For each={entries()}>
                   {(entry, index) => (
                     <>

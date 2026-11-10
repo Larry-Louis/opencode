@@ -2,6 +2,7 @@ import { type Accessor, createMemo } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { pathKey } from "@/workspaces/path-key"
+import { isNoProjectDirectory } from "@/workspaces/no-project"
 
 /** A server listed in the location dialog; the current server gets no tag. */
 export type PromptServer = {
@@ -65,7 +66,15 @@ export function createPromptProjectController(input: { controls: Accessor<Prompt
       ),
   )
 
-  const selected = () => current() ?? projects()[0]
+  const selected = () => {
+    const controls = input.controls()
+
+    // The scratch directory behind "No project" is not a project, even when sessions there created one.
+    if (isNoProjectDirectory(controls.directory))
+      return { name: language.t("session.new.project.none"), worktree: controls.directory }
+
+    return current() ?? projects()[0]
+  }
 
   const matches = (project: PromptProject, other?: PromptProject) =>
     !!other && pathKey(other.worktree) === pathKey(project.worktree) && other.server?.key === project.server?.key

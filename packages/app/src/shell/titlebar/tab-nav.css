@@ -488,3 +488,101 @@
     animation: none;
   }
 }
+
+/* Dragged below the minimum, the sidebar keeps only the project avatars: no labels, no directory headers. */
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-tab-group-header] {
+  display: none;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab-title] {
+  display: none;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-tab-group-tabs] {
+  padding-inline-start: 0;
+}
+
+/* The icon rail has room for the badge only: the status marks and the close button would sit on top of it and take
+   the click, so the whole trailing block stays out of the rail. */
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="tab-close"] {
+  display: none;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] > [data-titlebar-tab-link] {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+/* Hover, the active tab and any status tab fade the link's right edge to make room for the trailing controls. The rail
+   is about 30px wide, so that fade's opaque stop lands off the left edge and masks the avatar away: no trailing
+   controls are drawn here, so the rail keeps the whole link. */
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] [data-slot="tab-link"],
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab]:dir(rtl) [data-slot="tab-link"] {
+  --tab-title-fade-offset: 0px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* With the status marks gone, the avatar carries the state as a ring while the session works, waits on you, or failed.
+   A finished run you have not read instead keeps its unread dot, so "running" and "done" never look the same. */
+[data-slot="vertical-tabs-sidebar"][data-compact]
+  [data-titlebar-tab]:is([data-status="busy"], [data-status="attention"], [data-status="failed"], [data-attention])
+  [data-slot="project-avatar-slot"]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 5px;
+  border: 1.5px solid var(--v2-text-text-accent);
+  pointer-events: none;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact]
+  [data-titlebar-tab]:is([data-status="attention"], [data-attention])
+  [data-slot="project-avatar-slot"]::after {
+  border-color: var(--v2-state-fg-warning);
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab][data-status="failed"] [data-slot="project-avatar-slot"]::after {
+  border-color: var(--v2-state-fg-danger);
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab][data-status="busy"] [data-slot="project-avatar-slot"]::after {
+  animation: tab-rail-ring-pulse 1.4s ease-in-out infinite;
+}
+
+/* Finished, unread, and nothing waiting on you: the dot is the whole signal. */
+[data-slot="vertical-tabs-sidebar"][data-compact]
+  [data-titlebar-tab][data-status="unread"]
+  [data-slot="tab-avatar-unread-dot"] {
+  display: block;
+  width: 6px;
+  height: 6px;
+}
+
+@keyframes tab-rail-ring-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+:root[data-motion="reduce"] [data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] [data-slot="project-avatar-slot"]::after {
+  animation: none;
+}
+
+
+/* Icon rail: with the headers gone, a short rule separates one directory group from the next. */
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-tab-group] + [data-tab-group]::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 1px;
+  margin: 4px auto;
+  background: var(--v2-border-border-strong);
+}
+

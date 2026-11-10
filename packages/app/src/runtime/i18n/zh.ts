@@ -111,7 +111,6 @@ export const dict = {
 
   "command.input.focus": "聚焦输入框",
 
-
   "command.review.toggle": "切换审查",
 
   "command.message.previous": "上一条消息",
@@ -201,7 +200,6 @@ export const dict = {
   "provider.connect.toast.connected.title": "{{provider}} 已连接",
   "provider.connect.toast.connected.description": "现在可以使用 {{provider}} 模型了。",
 
-
   "provider.disconnect.toast.disconnected.title": "{{provider}} 已断开连接",
   "provider.disconnect.toast.disconnected.description": "{{provider}} 模型已不再可用。",
   "provider.disconnect.toast.noCredentials.description": "未找到 {{provider}} 的可移除凭据。",
@@ -265,7 +263,6 @@ export const dict = {
 
   "dialog.mcp.title": "MCP 服务器",
   "dialog.mcp.empty": "未配置 MCP 服务器",
-
 
   "dialog.fork.empty": "没有可用于创建新会话的消息",
 
@@ -383,6 +380,8 @@ export const dict = {
   "session.new.project.new": "新建项目",
   "session.new.project.search": "搜索项目",
   "session.new.project.add": "添加项目",
+  "session.new.project.none": "无项目",
+  "sidebar.noProject": "普通会话",
   "session.new.workspace.runIn": "运行会话的位置",
   "session.new.workspace.triggerLocal": "本地",
   "session.new.workspace.local": "本地仓库",

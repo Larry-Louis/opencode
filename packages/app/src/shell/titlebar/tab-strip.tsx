@@ -22,6 +22,7 @@ import { ServerConnection } from "@/runtime/server/registry"
 import { DraftTabItem, TabNavItem, type TabCloseActions } from "@/shell/titlebar/tab-nav"
 import { useGlobal, useServerCtx, type ServerCtx } from "@/runtime/server/runtime"
 import { useLanguage } from "@/runtime/i18n/language"
+import { isNoProjectDirectory } from "@/workspaces/no-project"
 import { useCommand } from "@/shell/commands/command"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
@@ -428,6 +429,8 @@ export function TitlebarTabStrip(props: {
     if (vertical()) createResizeObserver([scrollRef, listRef], measureFade)
   })
   const [unread, setUnread] = createStore<Record<string, boolean>>({})
+  // Clicking a directory header folds its tabs; the list remembers it until the view is rebuilt.
+  const [collapsedGroups, setCollapsedGroups] = createStore<Record<string, boolean>>({})
   const [tabLoads, setTabLoads] = createSignal(INITIAL_SESSION_TAB_LOADS_STATE)
   const loadTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
@@ -554,7 +557,18 @@ export function TitlebarTabStrip(props: {
 
   const directoryLabelOf = (path: string) => directoryLabel(path) || "—"
 
-  const tabGroups = createMemo(() => groupTabs(visibleTabs(), directoryOf, directoryLabelOf))
+  const tabGroups = createMemo(() => {
+    const groups = groupTabs(visibleTabs(), directoryOf, directoryLabelOf)
+
+    // Sessions opened without a project share one folder; they read as their own group, always last.
+    const own = groups.filter((group) => !isNoProjectDirectory(group.key))
+
+    const none = groups
+      .filter((group) => isNoProjectDirectory(group.key))
+      .map((group) => ({ ...group, label: language.t("sidebar.noProject") }))
+
+    return [...own, ...none]
+  })
 
   // Visual order for the sidebar. Indices, numbering, adjacency and drag all read
   // this list so they agree with what is on screen.
@@ -803,19 +817,29 @@ export function TitlebarTabStrip(props: {
               <For each={tabGroups()}>
                 {(group) => (
                   <div data-tab-group={group.key} class="flex w-full min-w-0 flex-col">
-                    <div
+                    <button
+                      type="button"
                       data-tab-group-header
-                      class="flex h-6 min-w-0 shrink-0 items-center gap-1.5 px-2 text-[12px] leading-4 text-v2-text-text-faint"
+                      data-no-project={isNoProjectDirectory(group.key) ? "" : undefined}
+                      aria-expanded={!collapsedGroups[group.key]}
+                      class="flex h-6 min-w-0 shrink-0 cursor-pointer items-center gap-1.5 px-2 text-start text-[12px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-muted focus-visible:outline-none"
+                      classList={{ "text-v2-text-text-accent italic": isNoProjectDirectory(group.key) }}
                       title={group.key}
+                      onClick={() => setCollapsedGroups(group.key, (value) => !value)}
                     >
+                      <Show when={isNoProjectDirectory(group.key)}>
+                        <span class="size-1 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                      </Show>
                       <span class="min-w-0 truncate" dir="auto">
                         {group.label}
                       </span>
                       <span class="shrink-0 tabular-nums opacity-60">{group.tabs.length}</span>
-                    </div>
-                    <div class="flex w-full min-w-0 flex-col">
-                      <For each={group.tabs}>{(tab) => renderTab(tab)}</For>
-                    </div>
+                    </button>
+                    <Show when={!collapsedGroups[group.key]}>
+                      <div data-tab-group-tabs class="flex w-full min-w-0 flex-col ps-2">
+                        <For each={group.tabs}>{(tab) => renderTab(tab)}</For>
+                      </div>
+                    </Show>
                   </div>
                 )}
               </For>

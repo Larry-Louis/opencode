@@ -309,7 +309,7 @@ function ProjectList(props: {
                       each={projectSessions().slice(0, limit())}
                       by={(record) => record.session.id}
                       fallback={
-                        <div class="ps-8 pe-2 py-2 text-12-regular text-v2-text-text-faint">
+                        <div class="ps-10 pe-2 py-2 text-12-regular text-v2-text-text-faint">
                           {language.t("sidebar.organize.empty")}
                         </div>
                       }
@@ -339,7 +339,7 @@ function ProjectList(props: {
                       <Button
                         variant="ghost-muted"
                         size="small"
-                        class="ms-[23px] self-start"
+                        class="ms-[31px] self-start"
                         onClick={() => setLocal("sessionLimits", key(), (value) => (value ?? 5) + 5)}
                       >
                         {language.t("sidebar.organize.showMore")}
