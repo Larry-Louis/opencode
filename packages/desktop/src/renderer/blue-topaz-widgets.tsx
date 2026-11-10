@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, onMount } from "solid-js"
 import { api } from "./api"
+import { widgetHost } from "./blue-topaz-host"
 
 /**
  * Blue Topaz widgets: sticky "last user request" badge + per-session stats / sequence bars.
@@ -224,8 +225,7 @@ export function BlueTopazWidgets() {
 
   /** 每个"跑完了、且还有展开的思维链"的轮末尾放一个按钮 */
   function updateThinkCollapse(sc: HTMLElement) {
-    const root = document.getElementById("bt-widgets-root")
-    if (!root) return
+    const root = widgetHost
     const host = hostBox()
     const wanted: Array<{ round: HTMLElement[]; left: number; top: number }> = []
     for (const round of timelineRounds(sc)) {
@@ -260,7 +260,7 @@ export function BlueTopazWidgets() {
     // 判定强化：scroller 必须真实包含会话回合（Git 面板等视图也有滚动区，会误判）
     const sc0 = findScroller()
     const hasSession = !!(sc0 && (sc0.querySelector("[data-component='session-turn']") || currentSessionId()))
-    const btRootEl = document.getElementById("bt-widgets-root")
+    const btRootEl = widgetHost
     if (btRootEl) btRootEl.style.display = hasSession ? "" : "none"
     if (!hasSession) {
       setStickyVisible(false)
@@ -395,11 +395,12 @@ export function BlueTopazWidgets() {
    *  widgets 始终待在聊天区域内、并跟着面板一起伸缩（挂 documentElement 时会留在原地）。
    *  面板被 Solid 重渲染清掉时，MutationObserver 会再触发这里补挂。 */
   function ensureRootHost() {
-    const root = document.getElementById("bt-widgets-root")
-    if (!root) return
+    // The panel drops any child it does not own whenever it re-renders, which takes the host with it. The rendered
+    // nodes survive inside the detached element, so putting the same element back restores the widgets untouched.
+    if (!widgetHost.isConnected) document.documentElement.appendChild(widgetHost)
     const panel = document.querySelector<HTMLElement>('[data-slot="session-chat-panel"]')
     const parent: HTMLElement = panel ?? document.documentElement
-    if (root.parentElement !== parent) parent.appendChild(root)
+    if (widgetHost.parentElement !== parent) parent.appendChild(widgetHost)
     panel?.classList.add("bt-host-panel")
   }
 
@@ -407,7 +408,7 @@ export function BlueTopazWidgets() {
    *  root 是面板内 inset:0 的绝对定位元素，所以「root 的父节点」就是定位基准；
    *  还没搬进面板（非会话页，root 挂 documentElement）时返回 null。 */
   function getHostPanel(): HTMLElement | null {
-    const parent = document.getElementById("bt-widgets-root")?.parentElement
+    const parent = widgetHost.parentElement
     return parent && parent !== document.documentElement ? parent : null
   }
 
@@ -417,7 +418,7 @@ export function BlueTopazWidgets() {
    *  而 getBoundingClientRect() 给的是视口坐标，写内联 left/top/right/bottom 前必须减掉它。
    *  还没搬进面板时 root 就在视口原点，四项天然为 0，即恒等变换。 */
   function hostBox() {
-    const r = document.getElementById("bt-widgets-root")?.getBoundingClientRect()
+    const r = widgetHost.getBoundingClientRect()
     if (!r || r.width === 0) return { left: 0, top: 0, offX: 0, offY: 0 }
     return {
       left: r.left,
@@ -557,6 +558,8 @@ export function BlueTopazWidgets() {
     retry(6)
     // 低频刷新：会话切换即时生效，会话内数据随对话增长而更新
     const statsIv = setInterval(() => {
+      // The chat panel may have been rebuilt since the last event: put the host back before measuring.
+      updateSticky()
       const sid = currentSessionId()
       if (sid !== activeSid) switchSession(sid)
       if (!activeSid) return
@@ -573,7 +576,7 @@ export function BlueTopazWidgets() {
             error: statsError,
             composer: !!findComposer(),
             scroller: !!findScroller(),
-            root: document.getElementById("bt-widgets-root")?.style.display ?? "missing",
+            root: widgetHost.isConnected ? (widgetHost.style.display || "visible") : "detached",
           }),
         )
       } catch {}
