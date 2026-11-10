@@ -102,7 +102,8 @@ const layer = Layer.effect(
         }
         if (!primary) return
         const small = yield* model.small(primary.ref.providerID)
-        if (small) return { info: small, variant: minimalVariant(small) }
+        // The auxiliary model names a session: it needs no thinking level, and some small models reject one.
+        if (small) return { info: small, variant: undefined }
         // Without a lower variant, the primary model at its selected variant is already the fallback.
         const info = yield* model.get(primary.ref.providerID, primary.ref.id)
         const variant = info && lowerVariant(info, primary.ref.variant)
