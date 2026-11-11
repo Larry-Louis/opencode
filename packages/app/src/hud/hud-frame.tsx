@@ -23,12 +23,15 @@ export function HudFrame(props: ParentProps) {
   if (!api) return <>{props.children}</>
 
   let stopGesture: (() => void) | undefined
+  let captureAttempt = 0
 
   onCleanup(() => stopGesture?.())
 
   // Keep the next prompt's context current without blocking typing. A screenshot is only taken
   // when the user opted in; the HUD note itself is always present.
   const capture = async () => {
+    const attempt = ++captureAttempt
+
     if (!includeScreen()) {
       setHudContext({ note: HUD_NOTE })
 
@@ -37,8 +40,8 @@ export function HudFrame(props: ParentProps) {
 
     const result = await api.captureContext().catch(() => undefined)
 
-    // The user may have turned capture off while the screen was being read.
-    if (!includeScreen()) return
+    // A newer capture, or turning capture off while the screen was being read, wins.
+    if (attempt !== captureAttempt || !includeScreen()) return
 
     setHudContext({
       note: result?.note ? `${HUD_NOTE} ${result.note}` : HUD_NOTE,
