@@ -47,8 +47,10 @@ export function windowAppearance(path: Path.Path, paths: DesktopPaths.Resolved) 
  * not apply to it.
  */
 export function hudWindowOptions(path: Path.Path, paths: DesktopPaths.Resolved): BrowserWindowConstructorOptions {
-  return {
-    title: "OpenCode",
+  const options: BrowserWindowConstructorOptions = {
+    // A distinct title identifies the HUD in Linux window lists and Hyprland's
+    // client socket; it is not painted because the window is frameless.
+    title: "OpenCode HUD",
     icon: iconPath(path, paths),
     show: false,
     frame: false,
@@ -63,6 +65,15 @@ export function hudWindowOptions(path: Path.Path, paths: DesktopPaths.Resolved):
     alwaysOnTop: true,
     autoHideMenuBar: true,
   }
+
+  // Real frosted material behind the bar on macOS. Windows' DWM backdrop is mutually
+  // exclusive with per-pixel transparency, so Windows keeps the CSS tint only.
+  if (process.platform === "darwin") {
+    options.vibrancy = "hud"
+    options.visualEffectState = "active"
+  }
+
+  return options
 }
 
 export function setDockIcon(path: Path.Path, paths: DesktopPaths.Resolved) {

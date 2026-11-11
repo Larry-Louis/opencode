@@ -29,6 +29,8 @@ import {
 import { isHudWindow, markHudWindow } from "./kinds"
 import { createHudController } from "./hud"
 import type { HudBounds } from "../../shared/hud-geometry"
+import { HudStateChanged } from "../../shared/ipc-rpc/events"
+import { emitIpcEvent } from "../ipc-events"
 import { registerRendererProtocol, setProtocolReporter } from "./protocol"
 import { loadWindow } from "./scheme"
 import { createWindowRegistry } from "./registry"
@@ -180,6 +182,9 @@ export const mainWindows = Effect.fn("Window.make")(function* (input: {
 
     if (hud) {
       markHudWindow(win)
+      // Keep the OS title stable: the session route's document title would otherwise
+      // replace it, and Linux compositors identify the HUD by this title.
+      win.on("page-title-updated", (event) => event.preventDefault())
       wireFocus(win)
       // The HUD closes with the app rather than being restored next launch. Clear the storage
       // namespace its renderer used, but keep the HUD's own geometry file.
@@ -269,6 +274,10 @@ export const mainWindows = Effect.fn("Window.make")(function* (input: {
     findMainWindow: (id) => getMainWindows().find((win) => win.id === id),
     lastMainWindow: () => getLastFocusedWindow() ?? getMainWindows().at(-1),
     createMainWindow: () => create(),
+    onStateChanged: ({ open }) => {
+      const event = new HudStateChanged({ open })
+      getMainWindows().forEach((win) => emitIpcEvent(win.webContents, event))
+    },
   })
 
   return { create, restore, hud }

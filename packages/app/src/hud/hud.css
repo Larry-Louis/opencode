@@ -26,6 +26,27 @@
   touch-action: none;
 }
 
+/* Native Wayland: the compositor owns the move, so the session and strip are drag regions.
+   Controls and the editor must opt out or they would stop taking clicks. */
+[data-hud] [data-hud-native-drag] {
+  -webkit-app-region: drag;
+}
+
+[data-hud] [data-hud-native-drag] button,
+[data-hud] [data-hud-native-drag] a,
+[data-hud] [data-hud-native-drag] input,
+[data-hud] [data-hud-native-drag] textarea,
+[data-hud] [data-hud-native-drag] select,
+[data-hud] [data-hud-native-drag] [contenteditable],
+[data-hud] [data-hud-native-drag] [role="button"],
+[data-hud] [data-hud-native-drag] [role="link"] {
+  -webkit-app-region: no-drag;
+}
+
+[data-hud] [data-hud-grabbing] {
+  user-select: none;
+}
+
 /* A HUD shows one session; docked panels belong to the full shell. */
 [data-hud] [data-slot="session-side-panel-presence"],
 [data-hud] [data-slot="session-bottom-pane"],

@@ -1,12 +1,32 @@
 import { For, Show, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
-import { usePlatform, type HudBounds, type HudEdge } from "@/runtime/platform/platform"
+import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
-import { HUD_NOTE, readIncludeScreen, setHudContext, writeIncludeScreen } from "./hud-attachment"
+import { HUD_NOTE, readIncludeScreen, setHudContext, writeIncludeScreen, type HudContext } from "./hud-attachment"
 import "./hud.css"
 
-const RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
+const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
+
+/** Native Wayland cannot change a top-level's origin, so only growth edges exist. */
+const WAYLAND_RESIZE_EDGES: HudEdge[] = ["e", "se", "s"]
+
+const INTERACTIVE = 'button, a, input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-hud-drag]'
+
+/** Hold anywhere on the session before the bar becomes draggable. Short enough to feel like a
+ *  grab, long enough that a click still clicks; movement cancels so text selection still works. */
+const LONG_PRESS_MS = 140
+
+const MOVE_TOLERANCE = 8
+
+const defaultWindowing = (): HudWindowing => ({
+  backend: "win32",
+  clientPlacement: true,
+  controlDrag: false,
+  nativeDrag: false,
+  solid: false,
+  workspaceTransfer: false,
+})
 
 /**
  * The floating bar's chrome: a drag strip, reset/close controls, the real session view and eight
@@ -19,42 +39,66 @@ export function HudFrame(props: ParentProps) {
   const api = platform.hud
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
+  const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
 
   if (!api) return <>{props.children}</>
 
   let stopGesture: (() => void) | undefined
+  let stopHold: (() => void) | undefined
   let captureAttempt = 0
 
-  onCleanup(() => stopGesture?.())
+  onCleanup(() => {
+    stopGesture?.()
+    stopHold?.()
+  })
 
   // Keep the next prompt's context current without blocking typing. A screenshot is only taken
   // when the user opted in; the HUD note itself is always present.
   const capture = async () => {
     const attempt = ++captureAttempt
 
-    if (!includeScreen()) {
-      setHudContext({ note: HUD_NOTE })
+    // Window metadata is always useful and stays metadata-only. Pixels are only
+    // requested while the user opted in.
+    const result = await api.captureContext(includeScreen()).catch(() => undefined)
 
-      return
-    }
+    if (attempt !== captureAttempt) return
 
-    const result = await api.captureContext().catch(() => undefined)
+    const note = result?.note ? `${HUD_NOTE} ${result.note}` : HUD_NOTE
+    const image = includeScreen() ? result?.image : undefined
+    const context: HudContext = { note, image, platform: result?.platform }
 
-    // A newer capture, or turning capture off while the screen was being read, wins.
-    if (attempt !== captureAttempt || !includeScreen()) return
+    if (result?.window) context.window = result.window
 
-    setHudContext({
-      note: result?.note ? `${HUD_NOTE} ${result.note}` : HUD_NOTE,
-      image: result?.image,
-    })
+    if (result?.frontmost) context.frontmost = result.frontmost
+
+    setHudContext(context)
   }
+
+  onMount(() => {
+    void api.windowing().then(setWindowing, () => undefined)
+  })
 
   onMount(() => {
     void capture()
 
     const focus = () => void capture()
+
+    const close = (event: KeyboardEvent) => {
+      const mod = platform.os === "macos" ? event.metaKey : event.ctrlKey
+
+      if (!mod || event.shiftKey || event.altKey || event.key.toLowerCase() !== "w") return
+
+      event.preventDefault()
+      event.stopPropagation()
+      void api.close()
+    }
+
     window.addEventListener("focus", focus)
-    onCleanup(() => window.removeEventListener("focus", focus))
+    window.addEventListener("keydown", close, true)
+    onCleanup(() => {
+      window.removeEventListener("focus", focus)
+      window.removeEventListener("keydown", close, true)
+    })
   })
 
   const toggleScreen = () => {
@@ -68,19 +112,12 @@ export function HudFrame(props: ParentProps) {
   // read the live bounds when a gesture starts rather than trusting a cache that can be stale.
   const currentBounds = async () => (await api.getState()).bounds
 
-  const startDrag = (event: PointerEvent) => {
-    if (event.button !== 0) return
-    event.preventDefault()
-
-    // SAFETY: Solid dispatches this handler from the div the listener is attached to.
-    const target = event.currentTarget as HTMLElement
-    target.setPointerCapture(event.pointerId)
-    const pointerID = event.pointerId
-
+  const pointerDrag = (pointerID: number, screenX: number, screenY: number, alive: () => boolean = () => true) => {
     void currentBounds().then((start) => {
-      if (!start || event.buttons === 0) return
+      if (!start || !alive()) return
 
-      const origin = { x: event.screenX, y: event.screenY }
+      const origin = { x: screenX, y: screenY }
+      const transfer = windowing().workspaceTransfer
       let latest: HudBounds | undefined
       let frame = 0
 
@@ -98,6 +135,8 @@ export function HudFrame(props: ParentProps) {
         stopGesture = undefined
         setDragging(false)
         flush()
+
+        if (transfer) void api.setWorkspaceTransfer(false)
       }
 
       const move = (event: PointerEvent) => {
@@ -117,7 +156,94 @@ export function HudFrame(props: ParentProps) {
       window.addEventListener("pointercancel", stop)
       stopGesture = stop
       setDragging(true)
+
+      if (transfer) void api.setWorkspaceTransfer(true)
     })
+  }
+
+  const startStripDrag = (event: PointerEvent) => {
+    if (event.button !== 0 || windowing().nativeDrag) return
+    event.preventDefault()
+
+    // SAFETY: Solid dispatches this handler from the div the listener is attached to.
+    const target = event.currentTarget as HTMLElement
+    target.setPointerCapture(event.pointerId)
+    pointerDrag(event.pointerId, event.screenX, event.screenY)
+  }
+
+  /** Press-and-hold anywhere on the session; Ctrl+primary is an immediate X11 grab. */
+  const startComposerDrag = (event: PointerEvent) => {
+    if (event.button !== 0 || windowing().nativeDrag) return
+
+    const hit = event.target
+
+    if (!(hit instanceof Element) || hit.closest(INTERACTIVE)) return
+
+    // SAFETY: Solid dispatches this handler from the div the listener is attached to.
+    const target = event.currentTarget as HTMLElement
+    const pointerID = event.pointerId
+    const origin = { x: event.screenX, y: event.screenY }
+    let latest = origin
+    let pressed = true
+    let armed = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const cleanup = () => {
+      if (timer) clearTimeout(timer)
+      timer = undefined
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+      window.removeEventListener("pointercancel", up)
+      stopHold = undefined
+    }
+
+    const up = () => {
+      pressed = false
+      cleanup()
+    }
+
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointerID) return
+
+      latest = { x: event.screenX, y: event.screenY }
+
+      if (
+        !armed &&
+        (Math.abs(latest.x - origin.x) > MOVE_TOLERANCE || Math.abs(latest.y - origin.y) > MOVE_TOLERANCE)
+      )
+        cleanup()
+    }
+
+    const arm = () => {
+      timer = undefined
+
+      if (!pressed) return cleanup()
+
+      armed = true
+
+      try {
+        target.setPointerCapture(pointerID)
+      } catch {
+        // Window listeners still keep the gesture alive.
+      }
+
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+
+      pointerDrag(pointerID, latest.x, latest.y, () => pressed)
+    }
+
+    if (windowing().controlDrag && event.ctrlKey) {
+      event.preventDefault()
+      arm()
+
+      return
+    }
+
+    timer = setTimeout(arm, LONG_PRESS_MS)
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+    window.addEventListener("pointercancel", up)
+    stopHold = cleanup
   }
 
   const startResize = (edge: HudEdge) => (event: PointerEvent) => {
@@ -167,12 +293,39 @@ export function HudFrame(props: ParentProps) {
     })
   }
 
+  const resizeEdges = () => (windowing().clientPlacement ? ALL_RESIZE_EDGES : WAYLAND_RESIZE_EDGES)
+
+  const onContentPointerDown = (event: PointerEvent) => {
+    const hit = event.target
+    // SAFETY: Solid dispatches this handler from the div the listener is attached to.
+    const root = event.currentTarget as HTMLElement
+
+    // Reading the transcript is not leaving the composer. Links and controls still
+    // take their click; everywhere else puts the caret back where typing goes.
+    if (
+      event.button === 0 &&
+      hit instanceof Element &&
+      !hit.closest(INTERACTIVE) &&
+      !hit.closest('[data-component="composer-editor"]')
+    ) {
+      event.preventDefault()
+      root.querySelector<HTMLElement>('[data-component="composer-editor"]')?.focus()
+    }
+
+    startComposerDrag(event)
+  }
+
   return (
-    <div data-component="hud-frame" class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]">
+    <div
+      data-component="hud-frame"
+      data-hud-grabbing={dragging() ? "" : undefined}
+      class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
+    >
       <div
         data-hud-drag
+        data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         class="relative z-[70] flex h-7 shrink-0 cursor-grab items-center gap-1.5 px-2 select-none active:cursor-grabbing"
-        onPointerDown={startDrag}
+        onPointerDown={startStripDrag}
       >
         <span class="text-[11px] font-medium tracking-wide text-v2-text-text-faint uppercase">
           {language.t("hud.label")}
@@ -227,10 +380,14 @@ export function HudFrame(props: ParentProps) {
           <Icon name="close" size="small" />
         </button>
       </div>
-      <div class="relative flex min-h-0 flex-1 flex-col" data-dragging={dragging() ? "" : undefined}>
+      <div
+        class="relative flex min-h-0 flex-1 flex-col"
+        data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
+        onPointerDown={onContentPointerDown}
+      >
         <HudModeProvider>{props.children}</HudModeProvider>
       </div>
-      <For each={RESIZE_EDGES}>
+      <For each={resizeEdges()}>
         {(edge) => <div data-hud-resize={edge} aria-hidden="true" onPointerDown={startResize(edge)} />}
       </For>
     </div>

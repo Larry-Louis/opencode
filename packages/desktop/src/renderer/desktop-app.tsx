@@ -298,6 +298,15 @@ function DesktopEffects(props: { api: ElectronAPI; hud: boolean }) {
   // The HUD is not a full shell: its menu commands and theme background would act on the main
   // window's state, so it participates in neither.
   onCleanup(props.hud ? () => undefined : bindDesktopMenu((id) => command.trigger(id)))
+  // Hand the caret back to the composer when the floating bar returns the session.
+  onCleanup(
+    props.hud
+      ? () => undefined
+      : props.api.onHudStateChanged((state) => {
+          if (state.open) return
+          queueMicrotask(() => command.trigger("input.focus"))
+        }),
+  )
   const theme = useTheme()
 
   createEffect(() => {

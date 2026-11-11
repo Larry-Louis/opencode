@@ -31,7 +31,9 @@ export const hudHandlers = HudRpcs.toLayer(
           lifecycle.hud.reportRoute(win.id, route)
         }),
       HudGetState: () => Effect.sync(() => lifecycle.hud.state()),
-      HudCaptureContext: () => Effect.promise(() => lifecycle.hud.captureContext()),
+      HudCaptureContext: ({ screenshot }) => Effect.promise(() => lifecycle.hud.captureContext(screenshot)),
+      HudGetWindowing: () => Effect.sync(() => lifecycle.hud.windowing()),
+      HudSetWorkspaceTransfer: ({ enabled }) => Effect.sync(() => lifecycle.hud.setWorkspaceTransfer(enabled)),
     })
   }),
 )

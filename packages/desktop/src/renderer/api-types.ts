@@ -52,10 +52,23 @@ export type ElectronAPI = {
   hudSnapToPointer(): Promise<HudBounds>
   hudReportSession(route?: string): Promise<void>
   hudGetState(): Promise<{ open: boolean; bounds?: HudBounds }>
-  hudCaptureContext(): Promise<{
+  hudCaptureContext(screenshot: boolean): Promise<{
     note: string
     image?: { dataUrl: string; mime: string; name: string }
+    window?: { app: string; title: string; bounds: HudBounds; id: number; pid: number }
+    frontmost?: { app: string; title: string }
+    platform: string
   }>
+  hudGetWindowing(): Promise<{
+    backend: "cocoa" | "win32" | "x11" | "wayland"
+    clientPlacement: boolean
+    controlDrag: boolean
+    nativeDrag: boolean
+    solid: boolean
+    workspaceTransfer: boolean
+  }>
+  hudSetWorkspaceTransfer(enabled: boolean): Promise<void>
+  onHudStateChanged(cb: (state: { open: boolean }) => void): () => void
   themeReady(): Promise<void>
   onMenuCommand(cb: (id: string) => void): () => void
   onDeepLink(cb: (delivery: { attempt: number; urls: string[] }) => void): () => void

@@ -22,12 +22,34 @@ const HudImage = Schema.Struct({
 
 export type HudImage = Schema.Schema.Type<typeof HudImage>
 
-export const HudCapture = Schema.Struct({
+const HudWindow = Schema.Struct({
+  app: Schema.String,
+  title: Schema.String,
+  bounds: Bounds,
+  id: Schema.Number,
+  pid: Schema.Number,
+})
+
+const HudCapture = Schema.Struct({
   note: Schema.String,
   image: Schema.optional(HudImage),
+  window: Schema.optional(HudWindow),
+  frontmost: Schema.optional(Schema.Struct({ app: Schema.String, title: Schema.String })),
+  platform: Schema.String,
 })
 
 export type HudCapture = Schema.Schema.Type<typeof HudCapture>
+
+const HudWindowing = Schema.Struct({
+  backend: Schema.Literals(["cocoa", "win32", "x11", "wayland"]),
+  clientPlacement: Schema.Boolean,
+  controlDrag: Schema.Boolean,
+  nativeDrag: Schema.Boolean,
+  solid: Schema.Boolean,
+  workspaceTransfer: Schema.Boolean,
+})
+
+export type HudWindowing = Schema.Schema.Type<typeof HudWindowing>
 
 /** The same shape the app router already accepts for a session route. */
 export const HudRoute = Schema.String.check(
@@ -73,8 +95,19 @@ export const HudGetState = Rpc.make("HudGetState", {
   success: Schema.Struct({ open: Schema.Boolean, bounds: Schema.optional(Bounds) }),
 })
 
-/** Captures the display under the HUD for the next message's context. */
-export const HudCaptureContext = Rpc.make("HudCaptureContext", { success: HudCapture })
+/** Captures the window below and, when requested, the display under the HUD. */
+export const HudCaptureContext = Rpc.make("HudCaptureContext", {
+  payload: { screenshot: Schema.Boolean },
+  success: HudCapture,
+})
+
+/** The platform/Ozone capability profile the renderer uses for drag and resize. */
+export const HudGetWindowing = Rpc.make("HudGetWindowing", { success: HudWindowing })
+
+/** X11/KWin: keep the HUD visible while the user switches virtual desktops mid-drag. */
+export const HudSetWorkspaceTransfer = Rpc.make("HudSetWorkspaceTransfer", {
+  payload: { enabled: Schema.Boolean },
+})
 
 export const HudRpcs = RpcGroup.make(
   HudOpen,
@@ -87,4 +120,6 @@ export const HudRpcs = RpcGroup.make(
   HudReportSession,
   HudGetState,
   HudCaptureContext,
+  HudGetWindowing,
+  HudSetWorkspaceTransfer,
 )

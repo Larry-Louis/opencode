@@ -34,9 +34,29 @@ export type HudBounds = {
 
 export type HudEdge = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
 
+export type HudWindowInfo = {
+  app: string
+  title: string
+  bounds: HudBounds
+  id: number
+  pid: number
+}
+
 export type HudContextCapture = {
   note: string
   image?: { dataUrl: string; mime: string; name: string }
+  window?: HudWindowInfo
+  frontmost?: { app: string; title: string }
+  platform: string
+}
+
+export type HudWindowing = {
+  backend: "cocoa" | "win32" | "x11" | "wayland"
+  clientPlacement: boolean
+  controlDrag: boolean
+  nativeDrag: boolean
+  solid: boolean
+  workspaceTransfer: boolean
 }
 
 /** The floating HUD's native window, exposed only by the desktop platform. */
@@ -50,7 +70,9 @@ export type HudPlatform = {
   snapToPointer(): Promise<HudBounds>
   reportSession(route?: string): Promise<void>
   getState(): Promise<{ open: boolean; bounds?: HudBounds }>
-  captureContext(): Promise<HudContextCapture>
+  captureContext(screenshot: boolean): Promise<HudContextCapture>
+  windowing(): Promise<HudWindowing>
+  setWorkspaceTransfer(enabled: boolean): Promise<void>
 }
 
 export type FatalRendererErrorLog = {

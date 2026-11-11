@@ -11,7 +11,9 @@ import {
 import { isHudWindow } from "./kinds"
 import { transitionHud, type HudEvent, type HudState } from "./hud-machine"
 import { captureHudContext, type HudCapture } from "./hud-context"
+import { promoteHudOnHyprland } from "./hud-hyprland"
 import { hudStateFile, readHudState, writeHudState } from "./hud-state"
+import { resolveHudWindowing, type HudWindowing } from "./hud-windowing"
 import { presentWindow } from "./present"
 
 /** The window is forced closed this long after a graceful close, so a hung renderer cannot leave a
@@ -33,7 +35,9 @@ export type HudController = {
   readonly resetLayout: () => HudBounds
   readonly snapToPointer: () => HudBounds
   readonly reportRoute: (windowID: number, route: string | undefined) => void
-  readonly captureContext: () => Promise<HudCapture>
+  readonly captureContext: (screenshot: boolean) => Promise<HudCapture>
+  readonly windowing: () => HudWindowing
+  readonly setWorkspaceTransfer: (enabled: boolean) => void
   readonly state: () => { readonly open: boolean; readonly bounds?: HudBounds }
   readonly dispose: () => void
 }
@@ -44,9 +48,11 @@ export function createHudController(input: {
   readonly findMainWindow: (id: number) => BrowserWindow | undefined
   readonly lastMainWindow: () => BrowserWindow | undefined
   readonly createMainWindow: () => BrowserWindow
+  readonly onStateChanged?: (state: { readonly open: boolean }) => void
 }): HudController {
   const stateFile = hudStateFile(input.userData)
   let state: HudState = { status: "closed", attempt: 0 }
+  let announced = false
   let win: BrowserWindow | undefined
   let closeTimer: ReturnType<typeof setTimeout> | undefined
   let persistTimer: ReturnType<typeof setTimeout> | undefined
@@ -58,6 +64,13 @@ export function createHudController(input: {
     const next = transitionHud(state, event)
     state = next.state
     next.effects.forEach(perform)
+
+    const open = state.status !== "closed"
+
+    if (open !== announced) {
+      announced = open
+      input.onStateChanged?.({ open })
+    }
 
     return next
   }
@@ -134,6 +147,9 @@ export function createHudController(input: {
     dispatch({ type: "window.created", attempt })
 
     if (state.status !== "open") closeWindow(attempt)
+
+    // Hyprland tiles new toplevels and owns always-on-top; float and pin the bar after it maps.
+    if (process.env.HYPRLAND_INSTANCE_SIGNATURE) void promoteHudOnHyprland({ title: "OpenCode HUD" })
   }
 
   const closeWindow = (attempt: number) => {
@@ -321,10 +337,25 @@ export function createHudController(input: {
       if (route) routes.set(windowID, route)
       else routes.delete(windowID)
     },
-    captureContext() {
-      if (!win || win.isDestroyed()) return Promise.resolve({ note: "" })
+    captureContext(screenshot) {
+      if (!win || win.isDestroyed()) return Promise.resolve({ note: "", platform: process.platform })
 
-      return captureHudContext(win.getBounds())
+      return captureHudContext(win.getBounds(), screenshot)
+    },
+    windowing() {
+      return resolveHudWindowing()
+    },
+    setWorkspaceTransfer(enabled) {
+      const current = win
+      const windowing = resolveHudWindowing()
+
+      if (!current || current.isDestroyed() || !windowing.workspaceTransfer) return
+
+      try {
+        current.setVisibleOnAllWorkspaces(Boolean(enabled))
+      } catch {
+        // Workspace APIs are window-manager capabilities.
+      }
     },
     state() {
       const bounds = win && !win.isDestroyed() ? win.getBounds() : undefined

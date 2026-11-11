@@ -61,7 +61,9 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
       snapToPointer: () => api.hudSnapToPointer(),
       reportSession: (route) => api.hudReportSession(route),
       getState: () => api.hudGetState(),
-      captureContext: () => api.hudCaptureContext(),
+      captureContext: (screenshot) => api.hudCaptureContext(screenshot),
+      windowing: () => api.hudGetWindowing(),
+      setWorkspaceTransfer: (enabled) => api.hudSetWorkspaceTransfer(enabled),
     },
     checkAppExists: async (appName) => {
       return api.checkAppExists(appName)
