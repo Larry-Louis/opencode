@@ -18,39 +18,44 @@ export const createBrowserNetwork = Effect.fn("BrowserNetwork.create")(function*
 }) {
   const options = { location: input.location }
 
-  const proxy = yield* Effect.acquireRelease(
-    Effect.tryPromise(() =>
-      BrowserProxy.make({
-        open: (target, signal) =>
-          Effect.runPromise(input.rpc["tunnel.open"]({ ...input.attachment, target }, options), { signal }),
-        read: (tunnelID, signal) =>
-          Effect.runPromise(input.rpc["tunnel.read"]({ ...input.attachment, tunnelID }, options), { signal }),
-        write: (tunnelID, data, end, signal) =>
-          Effect.runPromise(
-            input.rpc["tunnel.write"]({ ...input.attachment, tunnelID, data: Base64.encode(data), end }, options),
-            { signal },
-          ),
-        close: (tunnelID) =>
-          Effect.runPromise(
-            input.rpc["tunnel.close"]({ ...input.attachment, tunnelID }, options).pipe(Effect.timeout("5 seconds")),
-          ),
-      }),
-    ),
-    (proxy) => Effect.promise(() => proxy.close()),
-  )
+  // A server on this machine shares this machine's network, so its browser follows the system
+  // proxy (or the TUN) exactly like the app does, and no tunnel hop can lose a plain-HTTP body.
+  // A server on another machine owns the network and the loopback, so its traffic keeps the
+  // tunnel and the tunnel resolves both there.
+  const proxy: Awaited<ReturnType<typeof BrowserProxy.make>> | undefined = input.sameMachine
+    ? undefined
+    : yield* Effect.acquireRelease(
+        Effect.tryPromise(() =>
+          BrowserProxy.make({
+            open: (target, signal) =>
+              Effect.runPromise(input.rpc["tunnel.open"]({ ...input.attachment, target }, options), { signal }),
+            read: (tunnelID, signal) =>
+              Effect.runPromise(input.rpc["tunnel.read"]({ ...input.attachment, tunnelID }, options), { signal }),
+            write: (tunnelID, data, end, signal) =>
+              Effect.runPromise(
+                input.rpc["tunnel.write"]({ ...input.attachment, tunnelID, data: Base64.encode(data), end }, options),
+                { signal },
+              ),
+            close: (tunnelID) =>
+              Effect.runPromise(
+                input.rpc["tunnel.close"]({ ...input.attachment, tunnelID }, options).pipe(Effect.timeout("5 seconds")),
+              ),
+          }),
+        ),
+        (proxy) => Effect.promise(() => proxy.close()),
+      )
 
   const partition = session.fromPartition(input.partition)
   yield* Effect.addFinalizer(() => Effect.promise(() => partition.closeAllConnections()))
-  // This is the browser's private partition, not the app/API connection. A server on another
-  // machine owns that machine's loopback, so the tunnel has to resolve it there. Beside a local
-  // server the hop only adds a way to lose a plain-HTTP body, so leave loopback to Chromium's own
-  // direct bypass.
+  // This is the browser's private partition, not the app/API connection. "system" reads the OS
+  // proxy/PAC per request and keeps Chromium's implicit loopback bypass; the tunnel beside a
+  // remote server has to borrow that server's loopback, so there the rules stay fixed.
   yield* Effect.tryPromise(() =>
-    partition.setProxy({
-      mode: "fixed_servers",
-      proxyRules: proxy.url,
-      ...(input.sameMachine ? {} : { proxyBypassRules: "<-loopback>" }),
-    }),
+    partition.setProxy(
+      proxy
+        ? { mode: "fixed_servers", proxyRules: proxy.url, proxyBypassRules: "<-loopback>" }
+        : { mode: "system" },
+    ),
   )
   yield* Effect.tryPromise(() => partition.closeAllConnections())
 
@@ -63,6 +68,7 @@ export const createBrowserNetwork = Effect.fn("BrowserNetwork.create")(function*
         callback: (username?: string, password?: string) => void,
       ) => {
         if (
+          !proxy ||
           !auth.isProxy ||
           auth.scheme !== "basic" ||
           auth.host !== proxy.host ||
@@ -100,7 +106,7 @@ export const createBrowserNetwork = Effect.fn("BrowserNetwork.create")(function*
 
         const timeout = setTimeout(fail, 5_000)
         request.on("login", (auth, callback) => {
-          if (auth.isProxy && auth.host === proxy.host && auth.port === proxy.port)
+          if (proxy && auth.isProxy && auth.host === proxy.host && auth.port === proxy.port)
             return callback(proxy.credentials.username, proxy.credentials.password)
           callback()
         })
