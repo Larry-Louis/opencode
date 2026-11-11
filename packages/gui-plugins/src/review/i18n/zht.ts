@@ -12,4 +12,12 @@ export default {
   noChanges: "沒有變更",
   "settings.wrapLines.title": "換行",
   "settings.wrapLines.description": "在行動裝置差異中換行，而不是水平捲動",
-}
+
+  "menu.count.one": "{{count}} 個檔案已變更",
+  "menu.count.other": "{{count}} 個檔案已變更",
+  "folder.more": "{{count}} · 還有未顯示的變更",
+  "folder.failed": "無法載入變更",
+  "command.open": "開啟審查",
+  "load.failed": "無法載入變更",
+  "load.timeout": "伺服器回應逾時",
+  "offline": "無法連線到此伺服器",}

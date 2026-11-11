@@ -88,7 +88,7 @@ export const dict = {
   "home.growth.title": "开源 AI 编程代理",
   "home.growth.body":
     "拥有超过 <strong>{{stars}}</strong> 颗 GitHub Star，<strong>{{contributors}}</strong> 位贡献者，以及超过 <strong>{{commits}}</strong> 次提交，OpenCode 每月被超过 <strong>{{monthlyUsers}}</strong> 名开发者使用并信赖。",
-  "home.growth.githubStars": "GitHub Stars",
+  "home.growth.githubStars": "GitHub 星标",
   "home.growth.contributors": "贡献者",
   "home.growth.monthlyDevs": "月活开发者",
 
@@ -387,4 +387,12 @@ export const dict = {
   "changelog.hero.subtitle": "OpenCode 的新更新和改进",
   "changelog.empty": "未找到更新日志条目。",
   "changelog.viewJson": "查看 JSON",
+
+  "nav.data": "数据",
+  "nav.teams": "团队",
+  "nav.subscription": "订阅",
+  "enterprise.faq.q5": "在哪里可以找到你们的安全与合规文档？",
+  "enterprise.faq.a5.before":
+    "我们的信任中心提供全部资料：SOC 2 Type 2 报告、安全政策、子处理商列表，以及常见安全问题的解答。请访问",
+  "enterprise.faq.a5.after": "以查看或申请 NDA 下的文档。",
 } satisfies Dict

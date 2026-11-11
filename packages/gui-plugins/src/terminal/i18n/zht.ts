@@ -7,4 +7,20 @@ export default {
   "title.numbered": "終端機 {{number}}",
   close: "關閉終端機",
   "tab.title": "終端機",
-}
+
+  "location.open": "在終端機中開啟",
+  "list.failed": "無法載入終端機",
+  "unavailable": "此伺服器上無法使用終端機",
+  "create.failed": "無法建立終端機",
+  "create.unsupported": "此伺服器版本過舊，不支援終端機。請更新此伺服器上的 OpenCode。",
+  "rename.failed": "無法重新命名終端機",
+  "rename.unsupported": "OpenCode 的終端機服務重新啟動後即可重新命名終端機",
+  "disconnected": "終端機已中斷連線",
+  "connectionFailed": "終端機連線失敗",
+  "serverOutdated": "此伺服器版本過舊，不支援終端機；請更新其上的 OpenCode",
+  "quote.actions": "引用選取的內容",
+  "quote.add": "引用",
+  "quote.addWithComment": "引用並留言",
+  "quote.addWithoutComment": "僅引用",
+  "quote.tooLong": "選取的內容過長",
+  "quote.label": "終端機",}

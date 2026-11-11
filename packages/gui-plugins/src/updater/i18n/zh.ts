@@ -29,4 +29,21 @@ export default {
   "releaseNotes.action.next": "下一步",
   "releaseNotes.action.hideFuture": "不再显示",
   "releaseNotes.media.alt": "版本说明预览",
-}
+
+  "action.reload": "重新加载以更新",
+  "action.reloading": "正在重新加载…",
+  "web.ready.title": "更新已就绪",
+  "web.ready.message": "OpenCode 新版本已就绪。重新加载后，所有打开的窗口都会使用新版本。",
+  "web.reload": "重新加载",
+  "web.reset.title": "从服务器重新加载",
+  "web.reset.description": "清除应用已保存的副本，并加载服务器的当前版本",
+  "web.reset.action": "从服务器重新加载",
+  "beta.title": "新功能",
+  "beta.since.one": "自构建 {{build}} 起 · {{count}} 项更改",
+  "beta.since.other": "自构建 {{build}} 起 · {{count}} 项更改",
+  "beta.added": "新增",
+  "beta.fixed": "修复",
+  "beta.viewAll": "查看全部",
+  "beta.page.description": "此构建中的所有更改。",
+  "beta.github": "在 GitHub 上查看历史",
+  "beta.done": "知道了",}
