@@ -52,6 +52,10 @@ export type ElectronAPI = {
   hudSnapToPointer(): Promise<HudBounds>
   hudReportSession(route?: string): Promise<void>
   hudGetState(): Promise<{ open: boolean; bounds?: HudBounds }>
+  hudCaptureContext(): Promise<{
+    note: string
+    image?: { dataUrl: string; mime: string; name: string }
+  }>
   themeReady(): Promise<void>
   onMenuCommand(cb: (id: string) => void): () => void
   onDeepLink(cb: (delivery: { attempt: number; urls: string[] }) => void): () => void

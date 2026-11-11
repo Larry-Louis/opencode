@@ -31,6 +31,7 @@ export const hudHandlers = HudRpcs.toLayer(
           lifecycle.hud.reportRoute(win.id, route)
         }),
       HudGetState: () => Effect.sync(() => lifecycle.hud.state()),
+      HudCaptureContext: () => Effect.promise(() => lifecycle.hud.captureContext()),
     })
   }),
 )

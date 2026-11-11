@@ -51,6 +51,7 @@ export const api: ElectronAPI = {
   hudSnapToPointer: () => invoke("HudSnapToPointer").then(mutable),
   hudReportSession: (route) => invoke("HudReportSession", { route }),
   hudGetState: () => invoke("HudGetState").then(mutable),
+  hudCaptureContext: () => invoke("HudCaptureContext").then(mutable),
   themeReady: () => invoke("WindowThemeReady"),
   onMenuCommand: (cb) => listen("MenuCommandTriggered", (event) => cb(event.id)),
   onDeepLink: (cb) => listen("DeepLinksOpened", (event) => cb({ attempt: event.attempt, urls: mutable(event.urls) })),

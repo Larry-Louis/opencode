@@ -34,6 +34,11 @@ export type HudBounds = {
 
 export type HudEdge = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
 
+export type HudContextCapture = {
+  note: string
+  image?: { dataUrl: string; mime: string; name: string }
+}
+
 /** The floating HUD's native window, exposed only by the desktop platform. */
 export type HudPlatform = {
   open(route: string): Promise<void>
@@ -45,6 +50,7 @@ export type HudPlatform = {
   snapToPointer(): Promise<HudBounds>
   reportSession(route?: string): Promise<void>
   getState(): Promise<{ open: boolean; bounds?: HudBounds }>
+  captureContext(): Promise<HudContextCapture>
 }
 
 export type FatalRendererErrorLog = {

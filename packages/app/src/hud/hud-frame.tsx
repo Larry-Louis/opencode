@@ -1,8 +1,9 @@
-import { For, createSignal, onCleanup, type ParentProps } from "solid-js"
+import { For, Show, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
+import { HUD_NOTE, readIncludeScreen, setHudContext, writeIncludeScreen } from "./hud-attachment"
 import "./hud.css"
 
 const RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
@@ -17,12 +18,48 @@ export function HudFrame(props: ParentProps) {
   const language = useLanguage()
   const api = platform.hud
   const [dragging, setDragging] = createSignal(false)
+  const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
 
   if (!api) return <>{props.children}</>
 
   let stopGesture: (() => void) | undefined
 
   onCleanup(() => stopGesture?.())
+
+  // Keep the next prompt's context current without blocking typing. A screenshot is only taken
+  // when the user opted in; the HUD note itself is always present.
+  const capture = async () => {
+    if (!includeScreen()) {
+      setHudContext({ note: HUD_NOTE })
+
+      return
+    }
+
+    const result = await api.captureContext().catch(() => undefined)
+
+    // The user may have turned capture off while the screen was being read.
+    if (!includeScreen()) return
+
+    setHudContext({
+      note: result?.note ? `${HUD_NOTE} ${result.note}` : HUD_NOTE,
+      image: result?.image,
+    })
+  }
+
+  onMount(() => {
+    void capture()
+
+    const focus = () => void capture()
+    window.addEventListener("focus", focus)
+    onCleanup(() => window.removeEventListener("focus", focus))
+  })
+
+  const toggleScreen = () => {
+    const next = !includeScreen()
+    setIncludeScreen(next)
+    writeIncludeScreen(next)
+    void capture()
+  }
 
   // A snap or reset happens in main and moves the native window without telling this renderer;
   // read the live bounds when a gesture starts rather than trusting a cache that can be stale.
@@ -138,6 +175,34 @@ export function HudFrame(props: ParentProps) {
           {language.t("hud.label")}
         </span>
         <span class="min-w-0 flex-1" />
+        <button
+          type="button"
+          data-hud-context
+          aria-pressed={includeScreen()}
+          aria-label={language.t(includeScreen() ? "hud.context.disable" : "hud.context.enable")}
+          title={language.t(includeScreen() ? "hud.context.disable" : "hud.context.enable")}
+          class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+          classList={{
+            "text-v2-text-text-base": includeScreen(),
+            "text-v2-text-text-faint hover:text-v2-text-text-base": !includeScreen(),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={toggleScreen}
+        >
+          <Icon name="monitor" size="small" />
+        </button>
+        <Show when={includeScreen()}>
+          <button
+            type="button"
+            aria-label={language.t("hud.context.refresh")}
+            title={language.t("hud.context.refresh")}
+            class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => void capture()}
+          >
+            <Icon name="refresh" size="small" />
+          </button>
+        </Show>
         <button
           type="button"
           aria-label={language.t("hud.reset")}

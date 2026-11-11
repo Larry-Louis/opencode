@@ -10,6 +10,7 @@ import {
 } from "../../shared/hud-geometry"
 import { isHudWindow } from "./kinds"
 import { transitionHud, type HudEvent, type HudState } from "./hud-machine"
+import { captureHudContext, type HudCapture } from "./hud-context"
 import { hudStateFile, readHudState, writeHudState } from "./hud-state"
 import { presentWindow } from "./present"
 
@@ -32,6 +33,7 @@ export type HudController = {
   readonly resetLayout: () => HudBounds
   readonly snapToPointer: () => HudBounds
   readonly reportRoute: (windowID: number, route: string | undefined) => void
+  readonly captureContext: () => Promise<HudCapture>
   readonly state: () => { readonly open: boolean; readonly bounds?: HudBounds }
   readonly dispose: () => void
 }
@@ -318,6 +320,11 @@ export function createHudController(input: {
 
       if (route) routes.set(windowID, route)
       else routes.delete(windowID)
+    },
+    captureContext() {
+      if (!win || win.isDestroyed()) return Promise.resolve({ note: "" })
+
+      return captureHudContext(win.getBounds())
     },
     state() {
       const bounds = win && !win.isDestroyed() ? win.getBounds() : undefined

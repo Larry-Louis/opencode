@@ -14,6 +14,21 @@ const Edge = Schema.Literals(["n", "s", "e", "w", "ne", "nw", "se", "sw"])
 
 export type Edge = Schema.Schema.Type<typeof Edge>
 
+const HudImage = Schema.Struct({
+  dataUrl: Schema.String,
+  mime: Schema.String,
+  name: Schema.String,
+})
+
+export type HudImage = Schema.Schema.Type<typeof HudImage>
+
+export const HudCapture = Schema.Struct({
+  note: Schema.String,
+  image: Schema.optional(HudImage),
+})
+
+export type HudCapture = Schema.Schema.Type<typeof HudCapture>
+
 /** The same shape the app router already accepts for a session route. */
 export const HudRoute = Schema.String.check(
   Schema.isPattern(/^\/server\/[^/]+\/session\/[^/]+$/u),
@@ -58,6 +73,9 @@ export const HudGetState = Rpc.make("HudGetState", {
   success: Schema.Struct({ open: Schema.Boolean, bounds: Schema.optional(Bounds) }),
 })
 
+/** Captures the display under the HUD for the next message's context. */
+export const HudCaptureContext = Rpc.make("HudCaptureContext", { success: HudCapture })
+
 export const HudRpcs = RpcGroup.make(
   HudOpen,
   HudClose,
@@ -68,4 +86,5 @@ export const HudRpcs = RpcGroup.make(
   HudSnapToPointer,
   HudReportSession,
   HudGetState,
+  HudCaptureContext,
 )

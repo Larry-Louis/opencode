@@ -98,6 +98,8 @@ export type SubmitSnapshot = {
   comments: PromptHistoryComment[]
   /** The active Session, whose timeline can show a held prompt; a new-session draft has none yet. */
   session: ComposerSession | undefined
+  /** A HUD screen capture attached to this send only; it never enters the draft or its history. */
+  hudImage?: ImageAttachmentPart
 }
 
 export type QuoteSnapshot = {
@@ -369,7 +371,10 @@ function prepare(
     prompt: snapshot.draft.prompt,
     context: snapshot.draft.context,
     text: snapshot.text,
-    images: snapshot.draft.prompt.filter((part): part is ImageAttachmentPart => part.type === "image"),
+    images: [
+      ...snapshot.draft.prompt.filter((part): part is ImageAttachmentPart => part.type === "image"),
+      ...(snapshot.hudImage ? [snapshot.hudImage] : []),
+    ],
     selection,
     delivery: snapshot.delivery,
   }
