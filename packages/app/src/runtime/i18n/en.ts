@@ -1,6 +1,12 @@
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "hud.label": "HUD",
+  "hud.close": "Exit HUD",
+  "hud.reset": "Reset HUD layout",
+  "hud.drag": "Drag to move",
+  "hud.resize": "Resize HUD",
+  "hud.failed": "The floating HUD could not open.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",
   "voice.mute": "Mute",
@@ -47,6 +53,7 @@ export const dict = {
   "command.category.workspace": "Worktree",
   "command.category.settings": "Settings",
   "command.logs.export": "Export logs",
+  "command.hud.toggle": "Toggle HUD",
 
   "theme.scheme.system": "System",
   "theme.scheme.light": "Light",

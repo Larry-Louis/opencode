@@ -45,9 +45,15 @@ const root = requireRendererRoot()
 
 const version = desktopVersion()
 
-startDesktopMenu(api)
+const bootstrap = api.getWindowBootstrap()
 
-startDeepLinks(api)
+// The HUD is a single-session surface: native menu commands and deep links belong to the full app
+// window, and the fork's chat widgets expect the shell's chat panel.
+if (bootstrap.kind !== "hud") {
+  startDesktopMenu(api)
+
+  startDeepLinks(api)
+}
 
 render(() => <DesktopApp api={api} version={version} />, root)
 
@@ -59,5 +65,7 @@ void initializeSentry(version)
 // 也保证它们不会跑到聊天区域之外（面板被 Solid 重渲染清掉时会自动补挂）。
 // 宿主元素由 blue-topaz-host.ts 持有：面板把整棵子树丢掉后，同一元素的渲染结果还在，
 // ensureRootHost() 直接重新挂回去即可（早先只在元素存在时才搬运，面板一清就永久消失）。
-document.documentElement.appendChild(widgetHost)
-render(() => <BlueTopazWidgets />, widgetHost)
+if (bootstrap.kind !== "hud") {
+  document.documentElement.appendChild(widgetHost)
+  render(() => <BlueTopazWidgets />, widgetHost)
+}

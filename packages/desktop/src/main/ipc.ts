@@ -14,6 +14,7 @@ import { fileHandlers } from "./ipc-handlers/files"
 import { menuHandlers } from "./ipc-handlers/menu"
 import { storageHandlers } from "./ipc-handlers/storage"
 import { windowHandlers } from "./ipc-handlers/window"
+import { hudHandlers } from "./ipc-handlers/hud"
 import { IpcPortHandoff, IpcServerProtocolLive } from "./ipc-transport"
 import { ApplicationLifecycle } from "./lifecycle"
 import { createCliInstaller } from "./native/install-cli"
@@ -31,6 +32,7 @@ const handlers = Layer.mergeAll(
   storageHandlers,
   fileHandlers,
   windowHandlers,
+  hudHandlers,
   menuHandlers,
   eventHandlers,
   pluginHandlers,
@@ -52,6 +54,7 @@ export const registerIpcHandlers = Effect.gen(function* () {
     commandWindow: getLastFocusedWindow,
     installCli: yield* createCliInstaller(desktopCli),
     createWindow: lifecycle.createWindow,
+    toggleHud: () => lifecycle.hud.toggle(),
     openExternal: (url: string) => runFork(openExternalURL(url)),
     relaunch: lifecycle.relaunch,
   }

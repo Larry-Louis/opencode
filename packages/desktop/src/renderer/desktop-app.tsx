@@ -8,6 +8,7 @@ import {
   PlatformProvider,
   preloadRoute,
   ServerConnection,
+  sessionHref,
   useCommand,
   useCurrentRoute,
   usePluginServers,
@@ -49,10 +50,19 @@ const offline = { url: "http://127.0.0.1:0" }
 const MigrationStatus = lazy(() => import("./migration-status").then((module) => ({ default: module.MigrationStatus })))
 
 export function DesktopApp(props: { api: ElectronAPI; version: string }) {
+  const bootstrap = props.api.getWindowBootstrap()
+  const hud = bootstrap.kind === "hud"
   const windowState = { id: props.api.getWindowID(), version: props.version }
-  const initialUrl = getLastActiveUrl(windowState.id)
+  // The HUD is opened for one session and never restores a remembered route; its target arrives
+  // with the bootstrap, before the renderer boots.
+  const initialUrl = hud ? (bootstrap.initialRoute ?? "/") : getLastActiveUrl(windowState.id)
   const url = new URL(initialUrl, "http://localhost")
   const platform = createDesktopPlatform(props.api, windowState)
+
+  if (hud) {
+    document.documentElement.dataset.hud = ""
+    document.documentElement.style.removeProperty("background-color")
+  }
 
   const startup = createStartupDriver({
     api: props.api,
@@ -61,10 +71,12 @@ export function DesktopApp(props: { api: ElectronAPI; version: string }) {
     route: currentRoute(url.pathname, url.search),
     // The window was created with the answers the shell gate needs; only a fresh install, which has no
     // onboarding decision yet, asks over IPC and waits for the port.
-    firstLaunch: props.api.getWindowBootstrap().firstLaunchPending,
+    firstLaunch: hud ? false : bootstrap.firstLaunchPending,
   })
 
-  const router = (routerProps: BaseRouterProps) => <DesktopMemoryRouter {...routerProps} windowID={windowState.id} />
+  const router = (routerProps: BaseRouterProps) => (
+    <DesktopMemoryRouter {...routerProps} windowID={windowState.id} initialUrl={initialUrl} />
+  )
 
   function DesktopShell() {
     const pluginServers = usePluginServers()
@@ -113,17 +125,19 @@ export function DesktopApp(props: { api: ElectronAPI; version: string }) {
           }}
         </Show>
         <Show when={selectInterfaceMounted(startup.state())}>
-          <AppInterface servers={servers()} router={router}>
-            <DesktopStartupReady dispatch={startup.dispatch} />
-            <DesktopFirstLaunchOnboarding
-              api={props.api}
-              initialUrl={initialUrl}
-              pending={selectFirstLaunch(startup.state())}
-              dispatch={startup.dispatch}
-            />
-            <DesktopEffects api={props.api} />
+          <AppInterface servers={servers()} router={router} hud={hud}>
+            <DesktopStartupReady dispatch={startup.dispatch} api={props.api} />
+            <Show when={!hud}>
+              <DesktopFirstLaunchOnboarding
+                api={props.api}
+                initialUrl={initialUrl}
+                pending={selectFirstLaunch(startup.state())}
+                dispatch={startup.dispatch}
+              />
+            </Show>
+            <DesktopEffects api={props.api} hud={hud} />
             <Suspense fallback={null}>
-              <Show when={activeSidecar()} keyed>
+              <Show when={!hud && activeSidecar()} keyed>
                 {(server) => <MigrationStatus server={server} />}
               </Show>
             </Suspense>
@@ -137,14 +151,16 @@ export function DesktopApp(props: { api: ElectronAPI; version: string }) {
     <PlatformProvider value={platform}>
       <AppBaseProviders
         locale={selectStartupLocale(startup.state())}
+        transparentRoot={hud}
         onNativeTranslations={(bundle) => void props.api.setNativeTranslations(bundle).catch(() => undefined)}
         onThemeApplied={(mode, scheme) => {
-          void props.api.setTitlebar({ mode, scheme })
+          // The HUD has no native titlebar or window controls to theme.
+          if (!hud) void props.api.setTitlebar({ mode, scheme })
           startup.dispatch({ type: "theme.applied" })
         }}
       >
         <DesktopShell />
-        <Show when={selectOverlayMounted(startup.state())}>
+        <Show when={!hud && selectOverlayMounted(startup.state())}>
           <div
             data-component="startup-overlay"
             class="fixed inset-0 z-[100] transition-opacity duration-300 ease-out"
@@ -257,10 +273,18 @@ function createStartupDriver(input: {
   return { state, dispatch }
 }
 
-function DesktopStartupReady(props: { dispatch: (event: StartupEvent) => void }) {
+function DesktopStartupReady(props: { dispatch: (event: StartupEvent) => void; api: ElectronAPI }) {
   const tabs = useTabs()
   const route = useCurrentRoute()
-  createEffect(() => props.dispatch({ type: "route.changed", route: route() }))
+  createEffect(() => {
+    const value = route()
+    props.dispatch({ type: "route.changed", route: value })
+    // The global HUD shortcut lives in main and has no router; the focused window reports its
+    // session so the shortcut can open the HUD on what the user is looking at.
+    void props.api
+      .hudReportSession(value.type === "session" ? sessionHref(value.server, value.sessionId) : undefined)
+      .catch(() => undefined)
+  })
   createEffect(() => {
     if (!tabs.ready() || !tabs.infoReady()) return
     props.dispatch({ type: "tabs.ready" })
@@ -269,12 +293,15 @@ function DesktopStartupReady(props: { dispatch: (event: StartupEvent) => void })
   return null
 }
 
-function DesktopEffects(props: { api: ElectronAPI }) {
+function DesktopEffects(props: { api: ElectronAPI; hud: boolean }) {
   const command = useCommand()
-  onCleanup(bindDesktopMenu((id) => command.trigger(id)))
+  // The HUD is not a full shell: its menu commands and theme background would act on the main
+  // window's state, so it participates in neither.
+  onCleanup(props.hud ? () => undefined : bindDesktopMenu((id) => command.trigger(id)))
   const theme = useTheme()
 
   createEffect(() => {
+    if (props.hud) return
     theme.themeId()
     theme.mode()
     const background = getComputedStyle(document.documentElement).getPropertyValue("--background-base").trim()

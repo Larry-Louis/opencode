@@ -1,6 +1,7 @@
 import type { DesktopMenuAction, DesktopZoomLevel } from "@opencode/app/desktop-menu"
 import type { DesktopNativeBundle } from "@opencode/app/i18n/desktop-native"
 import type { StorageSnapshot } from "../shared/ipc-transport"
+import type { HudBounds } from "../shared/hud-geometry"
 import type { WindowBootstrap } from "../shared/window-bootstrap"
 import type {
   ClipboardImage,
@@ -38,6 +39,19 @@ export type ElectronAPI = {
   draftBlobGet(id: string): Promise<ArrayBuffer | null>
   getWindowID(): string
   getWindowBootstrap(): WindowBootstrap
+  hudOpen(route: string): Promise<void>
+  hudClose(): Promise<void>
+  hudToggle(route?: string): Promise<void>
+  hudSetBounds(bounds: HudBounds): Promise<HudBounds>
+  hudResize(input: {
+    start: HudBounds
+    edge: "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
+    delta: { x: number; y: number }
+  }): Promise<HudBounds>
+  hudResetLayout(): Promise<HudBounds>
+  hudSnapToPointer(): Promise<HudBounds>
+  hudReportSession(route?: string): Promise<void>
+  hudGetState(): Promise<{ open: boolean; bounds?: HudBounds }>
   themeReady(): Promise<void>
   onMenuCommand(cb: (id: string) => void): () => void
   onDeepLink(cb: (delivery: { attempt: number; urls: string[] }) => void): () => void

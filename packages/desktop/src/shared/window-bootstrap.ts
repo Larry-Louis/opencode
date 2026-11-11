@@ -5,6 +5,10 @@ export type WindowBootstrap = {
   firstLaunchPending?: boolean
   /** The app runs packaged (`app.isPackaged`), as plugins' `App.packaged` reports in both processes. */
   packaged?: boolean
+  /** "main" for normal app windows; "hud" for the floating chat bar. */
+  kind?: "main" | "hud"
+  /** HUD only: the session route the window mounts, known before the renderer boots. */
+  initialRoute?: string
 }
 
 const prefix = "--opencode-window="

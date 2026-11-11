@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeImage, nativeTheme } from "electron"
+import { app, BrowserWindow, nativeImage, nativeTheme, type BrowserWindowConstructorOptions } from "electron"
 import type { DesktopZoomLevel } from "@opencode/app/desktop-menu"
 import type { Path } from "effect"
 import { type TitlebarTheme } from "../../shared/ipc-contract"
@@ -13,6 +13,7 @@ import type { DesktopPaths } from "../paths"
 import { BACKGROUND_COLOR_KEY, PINCH_ZOOM_ENABLED_KEY, ZOOM_LEVEL_KEY } from "../storage/keys"
 import { getStore } from "../storage/store"
 import { platformFrame, savedBackgroundColor, storedBackgroundColor, storedZoomLevel, titlebarOverlay, tone } from "./defaults"
+import { isHudWindow } from "./kinds"
 
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 
@@ -39,6 +40,31 @@ export function windowAppearance(path: Path.Path, paths: DesktopPaths.Resolved) 
   }
 }
 
+/**
+ * The floating HUD is a transparent, frameless bar with its own CSS chrome. It is deliberately
+ * non-resizable at the OS level: native resize of a transparent window is unreliable on Windows,
+ * so the renderer drives bounds through the HUD RPC instead. Titlebar and background settings do
+ * not apply to it.
+ */
+export function hudWindowOptions(path: Path.Path, paths: DesktopPaths.Resolved): BrowserWindowConstructorOptions {
+  return {
+    title: "OpenCode",
+    icon: iconPath(path, paths),
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    hasShadow: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    autoHideMenuBar: true,
+  }
+}
+
 export function setDockIcon(path: Path.Path, paths: DesktopPaths.Resolved) {
   if (process.platform !== "darwin") return
   const icon = nativeImage.createFromPath(path.join(iconsDir(path, paths), "dock.png"))
@@ -52,6 +78,10 @@ export function setBackgroundColor(color: string) {
   if (getBackgroundColor() !== color) getStore().set(BACKGROUND_COLOR_KEY, color)
   backgroundColor = color
   BrowserWindow.getAllWindows().forEach((win) => {
+    // The HUD paints its own transparent surface; an opaque window background would break it and
+    // must never become the next window's default.
+    if (isHudWindow(win)) return
+
     win.setBackgroundColor(color)
 
     if (process.platform === "darwin") win.invalidateShadow()
@@ -63,6 +93,8 @@ export function getBackgroundColor() {
 }
 
 export function setTitlebar(win: BrowserWindow, theme: Partial<TitlebarTheme> = {}) {
+  if (isHudWindow(win)) return
+
   titlebarThemes.set(win, theme)
 
   // Native window controls follow nativeTheme, not the renderer theme.
@@ -79,7 +111,7 @@ export function setTrafficLightsPosition(win: BrowserWindow, position: { x: numb
 }
 
 export function updateTitlebar(win: BrowserWindow) {
-  if (process.platform !== "win32") return
+  if (process.platform !== "win32" || isHudWindow(win)) return
   win.setTitleBarOverlay(overlay(titlebarThemes.get(win), win.webContents.getZoomFactor()))
 }
 

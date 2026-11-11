@@ -12,6 +12,7 @@ import { SettingsSurfaceProvider } from "@/settings/surface"
 import Shell from "@/shell/shell"
 import { requireServerKey } from "./session"
 import { PluginAttachment } from "@/runtime/plugin/root"
+import { HudFrame } from "@/hud/hud-frame"
 
 export const File = lazy(() => import("@opencode/session-ui/file").then((module) => ({ default: module.File })))
 
@@ -49,8 +50,37 @@ export function preloadRoute(url: string) {
   return Promise.resolve()
 }
 
-export function AppRoutes() {
+export function HudRoutes() {
   return (
+    <Route component={HudLayout}>
+      <Route path="/server/:serverKey/session/:id" component={HudSessionPage} />
+    </Route>
+  )
+}
+
+function HudSessionPage() {
+  return (
+    <Suspense fallback={<div class="size-full" />}>
+      <TargetServerRoute>
+        <TargetSessionRouteContent />
+      </TargetServerRoute>
+    </Suspense>
+  )
+}
+
+function HudLayout(props: ParentProps) {
+  return (
+    <LayoutProvider>
+      <SettingsSurfaceProvider>
+        <PluginAttachment>
+          <HudFrame>{props.children}</HudFrame>
+        </PluginAttachment>
+      </SettingsSurfaceProvider>
+    </LayoutProvider>
+  )
+}
+
+export function AppRoutes() {  return (
     <Route component={AppLayout}>
       <Route path="/" component={Home} />
       <Route path="/settings" component={SettingsScreen} />
@@ -78,7 +108,7 @@ export function AppRoutes() {
   )
 }
 
-function TargetServerRoute(props: ParentProps) {
+export function TargetServerRoute(props: ParentProps) {
   const params = useParams<{ serverKey: string }>()
   const global = useGlobal()
 

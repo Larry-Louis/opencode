@@ -25,6 +25,28 @@ type PlatformName = "web" | "desktop"
 
 type DesktopOS = "macos" | "windows" | "linux"
 
+export type HudBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type HudEdge = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
+
+/** The floating HUD's native window, exposed only by the desktop platform. */
+export type HudPlatform = {
+  open(route: string): Promise<void>
+  close(): Promise<void>
+  toggle(route?: string): Promise<void>
+  setBounds(bounds: HudBounds): Promise<HudBounds>
+  resize(input: { start: HudBounds; edge: HudEdge; delta: { x: number; y: number } }): Promise<HudBounds>
+  resetLayout(): Promise<HudBounds>
+  snapToPointer(): Promise<HudBounds>
+  reportSession(route?: string): Promise<void>
+  getState(): Promise<{ open: boolean; bounds?: HudBounds }>
+}
+
 export type FatalRendererErrorLog = {
   error: string
   url: string
@@ -137,6 +159,9 @@ type PlatformBase = {
 
   /** GUI plugin bridge to the main-process plugin host (desktop only). */
   plugins?: Bridge
+
+  /** The floating HUD window (desktop only). */
+  hud?: HudPlatform
 }
 
 export type Platform = PlatformBase &
