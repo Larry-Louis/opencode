@@ -82,8 +82,11 @@ function SessionScreenContent(props: {
   const attachment = usePluginAttachment()
   const settings = useSettings()
   const server = useServer()
-  const isDesktop = session.isDesktop
   const hud = useHudMode()
+  // HUD windows are narrow, but they must keep the desktop session layout:
+  // the mobile media query would otherwise replace the transcript with the
+  // Session/Changes mobile tabs at 620px.
+  const isDesktop = () => hud || session.isDesktop()
   const bottomMobileTabs = () => settings.general.mobileTitlebarPosition() === "bottom"
   const sidebar = createPanelSidebar()
 

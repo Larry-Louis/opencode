@@ -218,7 +218,9 @@
 [data-hud] [data-slot="session-bottom-pane"],
 [data-hud] [data-slot="session-review-toggle"],
 [data-hud] [data-slot="session-header-drag"],
-[data-hud] [data-component="resize-handle"] {
+[data-hud] [data-component="resize-handle"],
+[data-hud] [data-slot="session-mobile-view-navigation"],
+[data-hud] [data-slot="session-mobile-view-tabs"] {
   display: none !important;
 }
 
