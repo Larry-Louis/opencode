@@ -43,6 +43,7 @@ export function HudFrame(props: ParentProps) {
   const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
   const [typing, setTyping] = createSignal(false)
   const [recent, setRecent] = createSignal(true)
+  const [working, setWorking] = createSignal(false)
   const [focused, setFocused] = createSignal(typeof document === "undefined" ? false : document.hasFocus())
   let content: HTMLDivElement | undefined
 
@@ -86,7 +87,7 @@ export function HudFrame(props: ParentProps) {
   // Native macOS frost is the whole window rectangle; it follows the band's
   // visibility so an idle HUD is not a blurred slab.
   createEffect(() => {
-    void api.setFrost(typing() || recent()).catch(() => undefined)
+    void api.setFrost(typing() || recent() || working()).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
 
@@ -120,11 +121,24 @@ export function HudFrame(props: ParentProps) {
 
     let timer: ReturnType<typeof setTimeout> | undefined
     let frame = 0
+    let wasWorking = false
 
     const hold = () => {
       setRecent(true)
       clearTimeout(timer)
       timer = setTimeout(() => setRecent(false), 1_100)
+    }
+
+    // Session running is rendered by the session screen as a data attribute on
+    // the transcript wrapper. Keep the band up for the whole think/reply, not
+    // just for the 1.1s hold that a message mutation buys.
+    const syncWorking = () => {
+      const next = root.querySelector('[data-hud-transcript][data-hud-transcript-working]') !== null
+      setWorking(next)
+
+      if (wasWorking && !next) hold()
+
+      wasWorking = next
     }
 
     const syncTyping = () =>
@@ -158,6 +172,8 @@ export function HudFrame(props: ParentProps) {
     // Streaming mutates the transcript tens of times a second; one hold per
     // painted frame is enough to keep the band up while the answer writes.
     const observer = new MutationObserver(() => {
+      syncWorking()
+
       if (frame) return
 
       frame = requestAnimationFrame(() => {
@@ -166,12 +182,19 @@ export function HudFrame(props: ParentProps) {
       })
     })
 
-    observer.observe(root, { childList: true, subtree: true, characterData: true })
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-hud-transcript-working"],
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
     root.addEventListener("focusin", focusIn)
     root.addEventListener("focusout", focusOut)
     window.addEventListener("focus", windowFocus)
     window.addEventListener("blur", windowBlur)
     syncTyping()
+    syncWorking()
     hold()
 
     onCleanup(() => {
@@ -218,6 +241,7 @@ export function HudFrame(props: ParentProps) {
       const interactive =
         dragging() ||
         typing() ||
+        (working() && focused()) ||
         overlayFocused ||
         (hit instanceof Element &&
           hit.closest(
@@ -271,6 +295,7 @@ export function HudFrame(props: ParentProps) {
       dragging()
       typing()
       recent()
+      working()
       apply()
     })
 
@@ -503,6 +528,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-grabbing={dragging() ? "" : undefined}
       data-hud-recent={recent() ? "" : undefined}
       data-hud-typing={typing() ? "" : undefined}
+      data-hud-working={working() ? "" : undefined}
       data-hud-focused={focused() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"

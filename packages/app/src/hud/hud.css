@@ -136,7 +136,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 /* While the band is up, the window's own gaps join the same smoked sheet so a
    native macOS frost never shows as a bare rectangle between surfaces. */
 :root[data-hud] [data-component="hud-frame"][data-hud-typing],
-:root[data-hud] [data-component="hud-frame"][data-hud-recent] {
+:root[data-hud] [data-component="hud-frame"][data-hud-recent],
+:root[data-hud] [data-component="hud-frame"][data-hud-working] {
   background: var(--hud-frame-bg);
 }
 
@@ -180,9 +181,22 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: auto;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-hud-transcript] {
+:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-working][data-hud-focused] [data-hud-transcript] {
   background: var(--hud-glass-strong);
   pointer-events: auto;
+}
+
+/* 80/20 read: the transcript itself stays fully readable for the bottom 80% of
+   the band and ramps out over the top 20%, so scrolling text dissolves under
+   the title bar instead of being cut off. */
+:root[data-hud] [data-hud-transcript] [data-slot="session-timeline-scroll"] > .scroll-view__viewport {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
 :root[data-hud] [data-hud-transcript] :is(button, a[href], [role="button"], [role="link"]) {
@@ -205,7 +219,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 }
 
 :root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-recent] [data-hud-transcript],
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-typing] [data-hud-transcript] {
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-typing] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-working] [data-hud-transcript] {
   opacity: 1;
 }
 
