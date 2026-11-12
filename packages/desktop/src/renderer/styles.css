@@ -553,9 +553,15 @@ html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-t
  * 内层 pre 必须透明，否则其 #fcfcfc 底会盖住外层浅蓝
  * ------------------------------------------------ */
 [data-component="markdown-code"] {
-  margin-top: 0 !important;
+  margin-top: 10px !important;
   margin-bottom: 10px !important;
   transition: background-color 0.2s ease;
+}
+
+/* 代码块内层高亮 pre：与外层框同向留白，上下相等 */
+[data-component="markdown"] pre.highlights {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
 }
 html[data-color-scheme="light"][data-theme] [data-component="markdown-code"] {
   background: hsl(200 45% 92%) !important;
