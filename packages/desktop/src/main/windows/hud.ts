@@ -38,6 +38,8 @@ export type HudController = {
   readonly captureContext: (screenshot: boolean) => Promise<HudCapture>
   readonly windowing: () => HudWindowing
   readonly setWorkspaceTransfer: (enabled: boolean) => void
+  readonly setIgnoreMouse: (ignore: boolean) => void
+  readonly setFrost: (enabled: boolean) => void
   readonly state: () => { readonly open: boolean; readonly bounds?: HudBounds }
   readonly dispose: () => void
 }
@@ -355,6 +357,35 @@ export function createHudController(input: {
         current.setVisibleOnAllWorkspaces(Boolean(enabled))
       } catch {
         // Workspace APIs are window-manager capabilities.
+      }
+    },
+    setIgnoreMouse(ignore) {
+      const current = win
+      const windowing = resolveHudWindowing()
+
+      if (!current || current.isDestroyed()) return
+
+      // X11 cannot restore an input region after ignoring; Wayland has no
+      // forwarded moves. Only the platforms Hermes uses keep the per-element path.
+      if (ignore && !windowing.clickThrough) return
+
+      try {
+        current.setIgnoreMouseEvents(Boolean(ignore), { forward: true })
+      } catch {
+        // Not every compositor implements it.
+      }
+    },
+    setFrost(enabled) {
+      const current = win
+
+      if (!current || current.isDestroyed() || process.platform !== "darwin") return
+
+      try {
+        // The native material is the whole window rectangle. Only show it while
+        // the band/composer are up; an idle HUD must not be a frosted slab.
+        current.setVibrancy(enabled ? "under-window" : null)
+      } catch {
+        // Vibrancy is an AppKit capability.
       }
     },
     state() {

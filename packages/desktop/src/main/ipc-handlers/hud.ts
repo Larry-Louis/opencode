@@ -34,6 +34,8 @@ export const hudHandlers = HudRpcs.toLayer(
       HudCaptureContext: ({ screenshot }) => Effect.promise(() => lifecycle.hud.captureContext(screenshot)),
       HudGetWindowing: () => Effect.sync(() => lifecycle.hud.windowing()),
       HudSetWorkspaceTransfer: ({ enabled }) => Effect.sync(() => lifecycle.hud.setWorkspaceTransfer(enabled)),
+      HudSetIgnoreMouse: ({ ignore }) => Effect.sync(() => lifecycle.hud.setIgnoreMouse(ignore)),
+      HudSetFrost: ({ enabled }) => Effect.sync(() => lifecycle.hud.setFrost(enabled)),
     })
   }),
 )

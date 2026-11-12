@@ -57,21 +57,27 @@ export function hudWindowOptions(path: Path.Path, paths: DesktopPaths.Resolved):
     transparent: true,
     backgroundColor: "#00000000",
     hasShadow: false,
+    minWidth: 380,
+    minHeight: 160,
+    // AppKit's constrainFrameRect would otherwise clamp renderer-driven
+    // setBounds to one display and make the bar impossible to drag across monitors.
+    enableLargerThanScreen: true,
+    roundedCorners: true,
+    hiddenInMissionControl: true,
     resizable: false,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    skipTaskbar: true,
+    skipTaskbar: process.platform !== "darwin",
     alwaysOnTop: true,
     autoHideMenuBar: true,
+    visualEffectState: "active",
   }
 
-  // Real frosted material behind the bar on macOS. Windows' DWM backdrop is mutually
-  // exclusive with per-pixel transparency, so Windows keeps the CSS tint only.
-  if (process.platform === "darwin") {
-    options.vibrancy = "hud"
-    options.visualEffectState = "active"
-  }
+  // The material itself is applied by the renderer only while the band is up;
+  // vibrancy is the whole window rectangle and would otherwise be a frosted
+  // slab behind an idle bar.
+  if (process.platform === "darwin") options.visualEffectState = "active"
 
   return options
 }

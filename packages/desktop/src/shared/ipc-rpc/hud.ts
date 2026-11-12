@@ -46,6 +46,7 @@ const HudWindowing = Schema.Struct({
   controlDrag: Schema.Boolean,
   nativeDrag: Schema.Boolean,
   solid: Schema.Boolean,
+  clickThrough: Schema.Boolean,
   workspaceTransfer: Schema.Boolean,
 })
 
@@ -109,6 +110,16 @@ export const HudSetWorkspaceTransfer = Rpc.make("HudSetWorkspaceTransfer", {
   payload: { enabled: Schema.Boolean },
 })
 
+/** Let clicks fall through the HUD wherever the renderer reports no interactive surface. */
+export const HudSetIgnoreMouse = Rpc.make("HudSetIgnoreMouse", {
+  payload: { ignore: Schema.Boolean },
+})
+
+/** macOS: the native frosted material is the window rectangle, so show it only with the band. */
+export const HudSetFrost = Rpc.make("HudSetFrost", {
+  payload: { enabled: Schema.Boolean },
+})
+
 export const HudRpcs = RpcGroup.make(
   HudOpen,
   HudClose,
@@ -122,4 +133,6 @@ export const HudRpcs = RpcGroup.make(
   HudCaptureContext,
   HudGetWindowing,
   HudSetWorkspaceTransfer,
+  HudSetIgnoreMouse,
+  HudSetFrost,
 )

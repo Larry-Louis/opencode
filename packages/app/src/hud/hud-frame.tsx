@@ -1,4 +1,4 @@
-import { For, Show, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
+import { For, Show, createEffect, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
@@ -25,6 +25,7 @@ const defaultWindowing = (): HudWindowing => ({
   controlDrag: false,
   nativeDrag: false,
   solid: false,
+  clickThrough: true,
   workspaceTransfer: false,
 })
 
@@ -40,6 +41,9 @@ export function HudFrame(props: ParentProps) {
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
   const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
+  const [typing, setTyping] = createSignal(false)
+  const [recent, setRecent] = createSignal(true)
+  let content: HTMLDivElement | undefined
 
   if (!api) return <>{props.children}</>
 
@@ -78,6 +82,13 @@ export function HudFrame(props: ParentProps) {
     void api.windowing().then(setWindowing, () => undefined)
   })
 
+  // Native macOS frost is the whole window rectangle; it follows the band's
+  // visibility so an idle HUD is not a blurred slab.
+  createEffect(() => {
+    void api.setFrost(typing() || recent()).catch(() => undefined)
+  })
+  onCleanup(() => void api.setFrost(false).catch(() => undefined))
+
   onMount(() => {
     void capture()
 
@@ -98,6 +109,173 @@ export function HudFrame(props: ParentProps) {
     onCleanup(() => {
       window.removeEventListener("focus", focus)
       window.removeEventListener("keydown", close, true)
+    })
+  })
+
+  onMount(() => {
+    const root = content
+
+    if (!root) return
+
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let frame = 0
+
+    const hold = () => {
+      setRecent(true)
+      clearTimeout(timer)
+      timer = setTimeout(() => setRecent(false), 1_100)
+    }
+
+    const syncTyping = () =>
+      setTyping(
+        document.hasFocus() &&
+          document.activeElement instanceof Element &&
+          document.activeElement.closest('[data-component="composer-editor"]') !== null,
+      )
+
+    const focusIn = () => {
+      syncTyping()
+      hold()
+    }
+
+    const focusOut = () => queueMicrotask(syncTyping)
+
+    const windowFocus = () => {
+      syncTyping()
+      hold()
+    }
+
+    const windowBlur = () => {
+      setTyping(false)
+      clearTimeout(timer)
+      timer = setTimeout(() => setRecent(false), 1_100)
+    }
+
+    // Streaming mutates the transcript tens of times a second; one hold per
+    // painted frame is enough to keep the band up while the answer writes.
+    const observer = new MutationObserver(() => {
+      if (frame) return
+
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        hold()
+      })
+    })
+
+    observer.observe(root, { childList: true, subtree: true, characterData: true })
+    root.addEventListener("focusin", focusIn)
+    root.addEventListener("focusout", focusOut)
+    window.addEventListener("focus", windowFocus)
+    window.addEventListener("blur", windowBlur)
+    syncTyping()
+    hold()
+
+    onCleanup(() => {
+      observer.disconnect()
+      clearTimeout(timer)
+
+      if (frame) cancelAnimationFrame(frame)
+
+      root.removeEventListener("focusin", focusIn)
+      root.removeEventListener("focusout", focusOut)
+      window.removeEventListener("focus", windowFocus)
+      window.removeEventListener("blur", windowBlur)
+    })
+  })
+
+  onMount(() => {
+    let ignored = false
+    let point: { x: number; y: number } | null = null
+
+    const apply = () => {
+      const windowingState = windowing()
+
+      if (!windowingState.clickThrough) {
+        if (ignored) {
+          ignored = false
+          void api.setIgnoreMouse(false)
+        }
+
+        return
+      }
+
+      // A window that has not seen the pointer yet stays solid; the first move decides.
+      if (!point) return
+
+      const hit = document.elementFromPoint(point.x, point.y)
+      const frameRoot = content?.closest("[data-component='hud-frame']")
+
+      const overlayFocused =
+        document.activeElement instanceof Element &&
+        document.activeElement !== document.body &&
+        !!frameRoot &&
+        !frameRoot.contains(document.activeElement)
+
+      const interactive =
+        dragging() ||
+        typing() ||
+        overlayFocused ||
+        (hit instanceof Element &&
+          hit.closest(
+            '[data-hud-drag], button, a[href], input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-component="composer"], [data-component="composer-suggestions"]',
+          ) !== null)
+
+      const next = !interactive
+
+      if (next === ignored) return
+
+      ignored = next
+      void api.setIgnoreMouse(next)
+    }
+
+    const move = (event: MouseEvent) => {
+      point = { x: event.clientX, y: event.clientY }
+      apply()
+    }
+
+    const lost = () => {
+      point = null
+
+      if (!windowing().clickThrough) return
+      // A focused composer keeps the window solid even as the pointer leaves;
+      // that is what lets the HUD stay usable while typing.
+
+      if (document.hasFocus() && typing()) return
+
+      if (!ignored) {
+        ignored = true
+        void api.setIgnoreMouse(true)
+      }
+    }
+
+    const refocus = () => {
+      if (!windowing().clickThrough) return
+
+      // Until the pointer moves again the window is solid, so a keyboard user
+      // who comes back can click straight into the bar.
+      if (ignored) {
+        ignored = false
+        void api.setIgnoreMouse(false)
+      }
+    }
+
+    window.addEventListener("mousemove", move)
+    window.addEventListener("blur", lost)
+    window.addEventListener("focus", refocus)
+    document.addEventListener("mouseleave", lost)
+    createEffect(() => {
+      dragging()
+      typing()
+      recent()
+      apply()
+    })
+
+    onCleanup(() => {
+      if (ignored) void api.setIgnoreMouse(false)
+      window.removeEventListener("mousemove", move)
+      window.removeEventListener("blur", lost)
+      window.removeEventListener("focus", refocus)
+      document.removeEventListener("mouseleave", lost)
     })
   })
 
@@ -319,6 +497,9 @@ export function HudFrame(props: ParentProps) {
     <div
       data-component="hud-frame"
       data-hud-grabbing={dragging() ? "" : undefined}
+      data-hud-recent={recent() ? "" : undefined}
+      data-hud-typing={typing() ? "" : undefined}
+      data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
       <div
@@ -381,7 +562,8 @@ export function HudFrame(props: ParentProps) {
         </button>
       </div>
       <div
-        class="relative flex min-h-0 flex-1 flex-col"
+        ref={content}
+        class="relative flex min-h-0 flex-1 flex-col px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
       >

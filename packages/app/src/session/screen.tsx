@@ -392,7 +392,7 @@ function SessionScreenContent(props: {
           throw error()
         }}
       </Show>
-      <div class="relative isolate flex-1 min-h-0 overflow-hidden">
+      <div class="relative isolate flex-1 min-h-0 overflow-hidden" data-hud-transcript={hud ? "" : undefined}>
         <Show when={!isDesktop() && session.identity.params.id}>
           <For each={cachedViews()}>
             {(entry) => (

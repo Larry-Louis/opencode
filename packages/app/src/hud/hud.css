@@ -11,14 +11,180 @@
   --shell-bottom-inset: 0px;
   --shell-top-inset: 0px;
   --session-header-inset-end: 8px;
+
+  /* The HUD is always light-on-dark, like Hermes' floating band. The sheet is
+     its own dark scrim rather than the theme's card, because the theme's card is
+     near-white on a light theme and the transcript ink is unconditionally white. */
+  --hud-ink: #f7f8fa;
+  --hud-ink-muted: rgb(247 248 250 / 0.76);
+  --hud-ink-faint: rgb(247 248 250 / 0.54);
+  --hud-glass: rgb(12 14 18 / 0.58);
+  --hud-glass-strong: rgb(12 14 18 / 0.76);
+  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-hairline: rgb(255 255 255 / 0.13);
+
+  --v2-text-text-base: var(--hud-ink);
+  --v2-text-text-muted: var(--hud-ink-muted);
+  --v2-text-text-faint: var(--hud-ink-faint);
+  --v2-text-text-contrast: #fff;
+  --v2-text-text-accent: #ffcf6b;
+  --v2-text-text-accent-hover: #ffe1a0;
+  --v2-text-text-code-accent: #ffd88a;
+  --v2-text-text-code-path: #9fd0ff;
+  --v2-icon-icon-base: var(--hud-ink);
+  --v2-icon-icon-muted: var(--hud-ink-muted);
+  --v2-icon-icon-faint: var(--hud-ink-faint);
+  --v2-icon-icon-contrast: #fff;
+  --v2-icon-icon-accent: #ffcf6b;
+  --v2-icon-icon-accent-hover: #ffe1a0;
+  --v2-border-border-base: var(--hud-hairline);
+  --v2-border-border-muted: rgb(255 255 255 / 0.08);
+  --v2-border-border-strong: rgb(255 255 255 / 0.22);
+  --v2-border-border-focus: #ffcf6b;
+  --v2-overlay-simple-overlay-hover: rgb(255 255 255 / 0.08);
+  --v2-overlay-simple-overlay-pressed: rgb(255 255 255 / 0.14);
+  --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.45);
+  --v2-background-bg-base: transparent;
+  --v2-background-bg-deep: transparent;
+  --v2-background-bg-layer-01: rgb(12 14 18 / 0.55);
+  --v2-background-bg-layer-02: rgb(12 14 18 / 0.66);
+  --v2-background-bg-layer-03: rgb(12 14 18 / 0.74);
+  --v2-background-bg-layer-04: rgb(12 14 18 / 0.82);
 }
 
 [data-component="hud-frame"] {
-  background: color-mix(in srgb, var(--v2-background-bg-base) 92%, transparent);
-  border: 1px solid var(--v2-border-border-base);
-  box-shadow: var(--v2-elevation-floating);
+  /* The frame is scaffolding only; the band and composer are the visible and
+     hit-testable surfaces. Clicks in the empty region fall through to the app
+     behind on platforms that can hand the pointer back. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  pointer-events: none;
+  transition: background-color 180ms ease;
+}
+
+/* While the band is up, the window's own gaps join the same smoked sheet so a
+   native macOS frost never shows as a bare rectangle between surfaces. */
+:root[data-hud] [data-component="hud-frame"][data-hud-typing],
+:root[data-hud] [data-component="hud-frame"][data-hud-recent] {
+  background: rgb(12 14 18 / 0.3);
+}
+
+[data-component="hud-frame"] [data-hud-drag],
+[data-component="hud-frame"] button,
+[data-component="hud-frame"] [data-component="composer"],
+[data-component="hud-frame"] [data-hud-resize] {
+  pointer-events: auto;
+}
+
+/* The transcript band: a smoked sheet hugging the composer, shown while the
+   worker is writing or the composer has focus. It is the only painted surface
+   above the bar, so idle HUD mode is just the bar. */
+:root[data-hud] [data-hud-transcript] {
+  border-radius: 12px 12px 0 0;
+  background: var(--hud-glass-band);
+  color: var(--hud-ink);
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.9),
+    0 0 6px rgb(0 0 0 / 0.55);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    background-color 180ms ease;
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+}
+
+:root[data-hud] [data-slot="session-turn-message-content"] {
+  color: #ffcf6b;
+}
+
+:root[data-hud] [data-component="hud-frame"]:not([data-hud-clickthrough]) [data-hud-transcript] {
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-hud-transcript] {
+  background: var(--hud-glass-strong);
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-hud-transcript] :is(button, a[href], [role="button"], [role="link"]) {
+  pointer-events: auto;
+}
+
+/* A ghost band participates in nothing: its controls would otherwise be
+   invisible click targets floating over the app behind. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-recent]):not([data-hud-typing])
+  [data-hud-transcript]
+  :is(button, a[href], [role="button"], [role="link"]) {
+  pointer-events: none;
+}
+
+/* On platforms with forwarded mouse moves, the band is a ghost at rest: clicks
+   pass through to the app behind. Recent activity and focus bring it back. */
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough] [data-hud-transcript] {
+  opacity: 0;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-recent] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-typing] [data-hud-transcript] {
+  opacity: 1;
+}
+
+/* The composer bar is the one persistent solid surface. It gets more opaque
+   when the caret is in it, matching Hermes' `data-hud-typing` step. */
+:root[data-hud] [data-component="composer"] {
+  background: var(--hud-glass) !important;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 12px;
+  box-shadow:
+    0 12px 36px rgb(0 0 0 / 0.4),
+    0 0 0 0.5px rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  color: var(--hud-ink);
+  transition: background-color 160ms ease;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-component="composer"] {
+  background: var(--hud-glass-strong) !important;
+}
+
+:root[data-hud] [data-slot="session-chat-panel"],
+:root[data-hud] [data-slot="session-chat-panel"] > *,
+:root[data-hud] [data-component="session-composer-dock"],
+:root[data-hud] [data-slot="composer-touch-bar-mount"] {
+  background: transparent !important;
+}
+
+/* Popovers live outside the frame's pointer-events tree; they are still part of
+   the HUD and need the same smoked surface as the bar. */
+:root[data-hud] [data-component="composer-suggestions"],
+:root[data-hud] [data-component="menu-v2-content"],
+:root[data-hud] [data-slot="dialog-content"] {
+  background: var(--hud-glass-strong) !important;
+  border: 1px solid var(--hud-hairline);
+  color: var(--hud-ink);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-hud-drag] {
+  margin: 4px 8px 0;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 10px;
+  background: rgb(12 14 18 / 0.4);
+  color: var(--hud-ink-faint);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.85);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+:root[data-hud] [data-hud-transcript]::selection,
+:root[data-hud] [data-hud-transcript] *::selection {
+  background: rgb(255 207 107 / 0.3);
 }
 
 [data-component="hud-frame"] [data-hud-drag] {

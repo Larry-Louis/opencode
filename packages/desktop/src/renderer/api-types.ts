@@ -65,9 +65,12 @@ export type ElectronAPI = {
     controlDrag: boolean
     nativeDrag: boolean
     solid: boolean
+    clickThrough: boolean
     workspaceTransfer: boolean
   }>
   hudSetWorkspaceTransfer(enabled: boolean): Promise<void>
+  hudSetIgnoreMouse(ignore: boolean): Promise<void>
+  hudSetFrost(enabled: boolean): Promise<void>
   onHudStateChanged(cb: (state: { open: boolean }) => void): () => void
   themeReady(): Promise<void>
   onMenuCommand(cb: (id: string) => void): () => void

@@ -19,6 +19,8 @@ export type HudWindowing = {
   readonly nativeDrag: boolean
   /** The OS window cannot punch click-through holes (Linux X11). */
   readonly solid: boolean
+  /** The platform supports setIgnoreMouseEvents({ forward: true }). */
+  readonly clickThrough: boolean
   /** Keep the grabbed window visible while the user changes virtual desktops. */
   readonly workspaceTransfer: boolean
 }
@@ -65,6 +67,7 @@ export function resolveHudWindowing(
       controlDrag: false,
       nativeDrag: false,
       solid: false,
+      clickThrough: true,
       workspaceTransfer: false,
     }
 
@@ -77,6 +80,7 @@ export function resolveHudWindowing(
       controlDrag: false,
       nativeDrag: true,
       solid: false,
+      clickThrough: false,
       workspaceTransfer: false,
     }
 
@@ -86,6 +90,7 @@ export function resolveHudWindowing(
     controlDrag: true,
     nativeDrag: false,
     solid: true,
+    clickThrough: false,
     workspaceTransfer: true,
   }
 }

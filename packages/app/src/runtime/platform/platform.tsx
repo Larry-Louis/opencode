@@ -56,6 +56,7 @@ export type HudWindowing = {
   controlDrag: boolean
   nativeDrag: boolean
   solid: boolean
+  clickThrough: boolean
   workspaceTransfer: boolean
 }
 
@@ -73,6 +74,8 @@ export type HudPlatform = {
   captureContext(screenshot: boolean): Promise<HudContextCapture>
   windowing(): Promise<HudWindowing>
   setWorkspaceTransfer(enabled: boolean): Promise<void>
+  setIgnoreMouse(ignore: boolean): Promise<void>
+  setFrost(enabled: boolean): Promise<void>
 }
 
 export type FatalRendererErrorLog = {

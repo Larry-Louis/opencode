@@ -64,6 +64,8 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
       captureContext: (screenshot) => api.hudCaptureContext(screenshot),
       windowing: () => api.hudGetWindowing(),
       setWorkspaceTransfer: (enabled) => api.hudSetWorkspaceTransfer(enabled),
+      setIgnoreMouse: (ignore) => api.hudSetIgnoreMouse(ignore),
+      setFrost: (enabled) => api.hudSetFrost(enabled),
     },
     checkAppExists: async (appName) => {
       return api.checkAppExists(appName)

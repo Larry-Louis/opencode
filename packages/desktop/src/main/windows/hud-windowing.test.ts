@@ -8,6 +8,7 @@ describe("HUD windowing", () => {
       expect(windowing.clientPlacement).toBe(true)
       expect(windowing.nativeDrag).toBe(false)
       expect(windowing.controlDrag).toBe(false)
+      expect(windowing.clickThrough).toBe(true)
       expect(windowing.workspaceTransfer).toBe(false)
     }
   })
@@ -30,6 +31,7 @@ describe("HUD windowing", () => {
       { WAYLAND_DISPLAY: "wayland-1", XDG_SESSION_TYPE: "wayland" },
       [],
     )
+
     expect(native.backend).toBe("wayland")
     expect(native.nativeDrag).toBe(true)
     expect(native.clientPlacement).toBe(false)
