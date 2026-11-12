@@ -43,6 +43,7 @@ export function HudFrame(props: ParentProps) {
   const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
   const [typing, setTyping] = createSignal(false)
   const [recent, setRecent] = createSignal(true)
+  const [focused, setFocused] = createSignal(typeof document === "undefined" ? false : document.hasFocus())
   let content: HTMLDivElement | undefined
 
   if (!api) return <>{props.children}</>
@@ -134,6 +135,7 @@ export function HudFrame(props: ParentProps) {
       )
 
     const focusIn = () => {
+      setFocused(true)
       syncTyping()
       hold()
     }
@@ -141,11 +143,13 @@ export function HudFrame(props: ParentProps) {
     const focusOut = () => queueMicrotask(syncTyping)
 
     const windowFocus = () => {
+      setFocused(true)
       syncTyping()
       hold()
     }
 
     const windowBlur = () => {
+      setFocused(false)
       setTyping(false)
       clearTimeout(timer)
       timer = setTimeout(() => setRecent(false), 1_100)
@@ -499,6 +503,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-grabbing={dragging() ? "" : undefined}
       data-hud-recent={recent() ? "" : undefined}
       data-hud-typing={typing() ? "" : undefined}
+      data-hud-focused={focused() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >

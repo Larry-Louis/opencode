@@ -12,9 +12,7 @@
   --shell-top-inset: 0px;
   --session-header-inset-end: 8px;
 
-  /* The HUD is always light-on-dark, like Hermes' floating band. The sheet is
-     its own dark scrim rather than the theme's card, because the theme's card is
-     near-white on a light theme and the transcript ink is unconditionally white. */
+  /* Fallback is the dark HUD; the theme blocks below choose the actual glass. */
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
@@ -22,22 +20,31 @@
   --hud-glass-strong: rgb(12 14 18 / 0.76);
   --hud-glass-band: rgb(12 14 18 / 0.62);
   --hud-hairline: rgb(255 255 255 / 0.13);
+  --hud-frame-bg: rgb(12 14 18 / 0.3);
+  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-user: #ffcf6b;
+  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+}
 
-  --v2-text-text-base: var(--hud-ink);
-  --v2-text-text-muted: var(--hud-ink-muted);
-  --v2-text-text-faint: var(--hud-ink-faint);
+/* The theme's own tokens are set on html[data-color-scheme][data-theme], which
+   outranks a plain :root[data-hud]. These blocks carry the extra attribute so
+   the HUD's glass tokens actually win, and follow the app's light/dark choice. */
+html[data-hud][data-theme][data-color-scheme="dark"] {
+  --v2-text-text-base: #f7f8fa;
+  --v2-text-text-muted: rgb(247 248 250 / 0.76);
+  --v2-text-text-faint: rgb(247 248 250 / 0.54);
   --v2-text-text-contrast: #fff;
   --v2-text-text-accent: #ffcf6b;
   --v2-text-text-accent-hover: #ffe1a0;
   --v2-text-text-code-accent: #ffd88a;
   --v2-text-text-code-path: #9fd0ff;
-  --v2-icon-icon-base: var(--hud-ink);
-  --v2-icon-icon-muted: var(--hud-ink-muted);
-  --v2-icon-icon-faint: var(--hud-ink-faint);
+  --v2-icon-icon-base: #f7f8fa;
+  --v2-icon-icon-muted: rgb(247 248 250 / 0.76);
+  --v2-icon-icon-faint: rgb(247 248 250 / 0.54);
   --v2-icon-icon-contrast: #fff;
   --v2-icon-icon-accent: #ffcf6b;
   --v2-icon-icon-accent-hover: #ffe1a0;
-  --v2-border-border-base: var(--hud-hairline);
+  --v2-border-border-base: rgb(255 255 255 / 0.13);
   --v2-border-border-muted: rgb(255 255 255 / 0.08);
   --v2-border-border-strong: rgb(255 255 255 / 0.22);
   --v2-border-border-focus: #ffcf6b;
@@ -50,6 +57,69 @@
   --v2-background-bg-layer-02: rgb(12 14 18 / 0.66);
   --v2-background-bg-layer-03: rgb(12 14 18 / 0.74);
   --v2-background-bg-layer-04: rgb(12 14 18 / 0.82);
+
+  --hud-ink: #f7f8fa;
+  --hud-ink-muted: rgb(247 248 250 / 0.76);
+  --hud-ink-faint: rgb(247 248 250 / 0.54);
+  --hud-glass: rgb(12 14 18 / 0.58);
+  --hud-glass-strong: rgb(12 14 18 / 0.76);
+  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-hairline: rgb(255 255 255 / 0.13);
+  --hud-frame-bg: rgb(12 14 18 / 0.3);
+  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-user: #ffcf6b;
+  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+}
+
+html[data-hud][data-theme][data-color-scheme="light"] {
+  --v2-text-text-base: #171a1f;
+  --v2-text-text-muted: rgb(23 26 31 / 0.72);
+  --v2-text-text-faint: rgb(23 26 31 / 0.5);
+  --v2-text-text-contrast: #0b0d10;
+  --v2-text-text-accent: #9a5b00;
+  --v2-text-text-accent-hover: #7a4600;
+  --v2-text-text-code-accent: #8a4b00;
+  --v2-text-text-code-path: #1d4ed8;
+  --v2-icon-icon-base: #171a1f;
+  --v2-icon-icon-muted: rgb(23 26 31 / 0.72);
+  --v2-icon-icon-faint: rgb(23 26 31 / 0.5);
+  --v2-icon-icon-contrast: #0b0d10;
+  --v2-icon-icon-accent: #9a5b00;
+  --v2-icon-icon-accent-hover: #7a4600;
+  --v2-border-border-base: rgb(20 23 28 / 0.12);
+  --v2-border-border-muted: rgb(20 23 28 / 0.07);
+  --v2-border-border-strong: rgb(20 23 28 / 0.2);
+  --v2-border-border-focus: #9a5b00;
+  --v2-overlay-simple-overlay-hover: rgb(0 0 0 / 0.06);
+  --v2-overlay-simple-overlay-pressed: rgb(0 0 0 / 0.12);
+  --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.2);
+  --v2-background-bg-base: transparent;
+  --v2-background-bg-deep: transparent;
+  --v2-background-bg-layer-01: rgb(255 255 255 / 0.55);
+  --v2-background-bg-layer-02: rgb(255 255 255 / 0.68);
+  --v2-background-bg-layer-03: rgb(255 255 255 / 0.78);
+  --v2-background-bg-layer-04: rgb(255 255 255 / 0.88);
+
+  --hud-ink: #171a1f;
+  --hud-ink-muted: rgb(23 26 31 / 0.72);
+  --hud-ink-faint: rgb(23 26 31 / 0.5);
+  --hud-glass: rgb(252 252 253 / 0.72);
+  --hud-glass-strong: rgb(255 255 255 / 0.88);
+  --hud-glass-band: rgb(250 251 253 / 0.76);
+  --hud-hairline: rgb(20 23 28 / 0.12);
+  --hud-frame-bg: rgb(255 255 255 / 0.32);
+  --hud-pill-bg: rgb(255 255 255 / 0.58);
+  --hud-user: #9a5b00;
+  --hud-text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+
+/* If the theme has not stamped its attributes yet, keep the dark fallback readable. */
+html[data-hud][data-color-scheme="light"]:not([data-theme]) {
+  --v2-text-text-base: #171a1f;
+  --v2-text-text-muted: rgb(23 26 31 / 0.72);
+  --v2-text-text-faint: rgb(23 26 31 / 0.5);
+  --v2-icon-icon-base: #171a1f;
+  --v2-background-bg-base: transparent;
 }
 
 [data-component="hud-frame"] {
@@ -67,7 +137,7 @@
    native macOS frost never shows as a bare rectangle between surfaces. */
 :root[data-hud] [data-component="hud-frame"][data-hud-typing],
 :root[data-hud] [data-component="hud-frame"][data-hud-recent] {
-  background: rgb(12 14 18 / 0.3);
+  background: var(--hud-frame-bg);
 }
 
 [data-component="hud-frame"] [data-hud-drag],
@@ -84,9 +154,7 @@
   border-radius: 12px 12px 0 0;
   background: var(--hud-glass-band);
   color: var(--hud-ink);
-  text-shadow:
-    0 1px 2px rgb(0 0 0 / 0.9),
-    0 0 6px rgb(0 0 0 / 0.55);
+  text-shadow: var(--hud-text-shadow);
   pointer-events: none;
   transition:
     opacity 180ms ease,
@@ -96,7 +164,16 @@
 }
 
 :root[data-hud] [data-slot="session-turn-message-content"] {
-  color: #ffcf6b;
+  color: var(--hud-user);
+}
+
+/* The session title bar is a surface too; without its own tint a bright app
+   behind the transparent header reads as a white strip above the dark band. */
+:root[data-hud] [data-session-title] > div:first-child {
+  border-bottom: 1px solid var(--hud-hairline);
+  background: var(--hud-glass) !important;
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
 :root[data-hud] [data-component="hud-frame"]:not([data-hud-clickthrough]) [data-hud-transcript] {
@@ -175,16 +252,30 @@
   margin: 4px 8px 0;
   border: 1px solid var(--hud-hairline);
   border-radius: 10px;
-  background: rgb(12 14 18 / 0.4);
+  background: var(--hud-pill-bg);
   color: var(--hud-ink-faint);
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.85);
+  text-shadow: var(--hud-text-shadow);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  transition: opacity 160ms ease;
+}
+
+/* Idle HUD is the composer alone. The controls return when the window is
+   focused, a turn is recent, or the caret is in the composer. On solid X11 /
+   Wayland windows they stay visible because there is no click-through to fall
+   back on. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not([data-hud-typing])
+  [data-hud-drag] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
 }
 
 :root[data-hud] [data-hud-transcript]::selection,
 :root[data-hud] [data-hud-transcript] *::selection {
-  background: rgb(255 207 107 / 0.3);
+  background: color-mix(in srgb, var(--hud-user) 28%, transparent);
 }
 
 [data-component="hud-frame"] [data-hud-drag] {
