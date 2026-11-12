@@ -137,7 +137,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
    native macOS frost never shows as a bare rectangle between surfaces. */
 :root[data-hud] [data-component="hud-frame"][data-hud-typing],
 :root[data-hud] [data-component="hud-frame"][data-hud-recent],
-:root[data-hud] [data-component="hud-frame"][data-hud-working] {
+:root[data-hud] [data-component="hud-frame"][data-hud-working],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] {
   background: var(--hud-frame-bg);
 }
 
@@ -181,18 +182,22 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: auto;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-hud-transcript],
-:root[data-hud] [data-component="hud-frame"][data-hud-working][data-hud-focused] [data-hud-transcript] {
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
   background: var(--hud-glass-strong);
   pointer-events: auto;
 }
 
-/* 80/20 read: the transcript itself stays fully readable for the bottom 80% of
-   the band and ramps out over the top 20%, so scrolling text dissolves under
-   the title bar instead of being cut off. */
-:root[data-hud] [data-hud-transcript] [data-slot="session-timeline-scroll"] > .scroll-view__viewport {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+/* While the model writes, the transcript stays fully readable for the bottom
+   60% of the band and ramps out over the top 40%, so streaming text dissolves
+   under the title bar instead of being cut off. A finished turn gets the whole
+   band back: no mask while focused. */
+:root[data-hud]
+  [data-hud-transcript][data-hud-transcript-working]
+  [data-slot="session-timeline-scroll"]
+  > .scroll-view__viewport {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
@@ -203,25 +208,29 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: auto;
 }
 
-/* A ghost band participates in nothing: its controls would otherwise be
+/* A hidden band participates in nothing: its controls would otherwise be
    invisible click targets floating over the app behind. */
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-recent]):not([data-hud-typing])
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-working]):not(
+    [data-hud-focused]
+  )
   [data-hud-transcript]
   :is(button, a[href], [role="button"], [role="link"]) {
   pointer-events: none;
 }
 
-/* On platforms with forwarded mouse moves, the band is a ghost at rest: clicks
-   pass through to the app behind. Recent activity and focus bring it back. */
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough] [data-hud-transcript] {
+/* The band follows the turn and the window: while the model writes it stays up
+   on every platform; otherwise the window's focus alone shows it. On platforms
+   with forwarded mouse moves, an unfocused idle band is fully hidden. */
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]) [data-hud-transcript] {
   opacity: 0;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-recent] [data-hud-transcript],
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-typing] [data-hud-transcript],
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-working] [data-hud-transcript] {
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-working] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-focused] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* The composer bar is the one persistent solid surface. It gets more opaque
@@ -275,12 +284,104 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition: opacity 160ms ease;
 }
 
+/* The project rail is the normal window's sidebar in its locked icon form: project
+   avatars on the right edge, never wider than the rail. Each avatar opens that
+   project's recent sessions in a menu instead of widening the bar. */
+:root[data-hud] [data-hud-rail] {
+  display: flex;
+  width: 44px;
+  flex: none;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  padding: 5px 0;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 10px;
+  background: var(--hud-pill-bg);
+  color: var(--hud-ink-muted);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  transition:
+    opacity 160ms ease,
+    background-color 160ms ease;
+}
+
+:root[data-hud] [data-slot="hud-project-rail-list"] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+:root[data-hud] [data-slot="hud-project-rail-list"]::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-hud] [data-hud-project] {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 8px;
+  color: inherit;
+  cursor: default;
+  transition: background-color 120ms ease;
+}
+
+:root[data-hud] [data-hud-project]:is(:hover, [data-expanded], :focus-visible) {
+  background: var(--v2-overlay-simple-overlay-hover);
+  outline: none;
+}
+
+:root[data-hud] [data-hud-project][data-active] {
+  background: var(--v2-overlay-simple-overlay-pressed);
+  box-shadow: inset 0 0 0 1px var(--hud-hairline);
+}
+
+:root[data-hud] [data-slot="hud-project-menu"] {
+  min-width: 13rem;
+  max-height: min(280px, 70vh);
+  overflow-y: auto;
+}
+
+:root[data-hud] [data-slot="hud-project-menu-empty"] {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--hud-ink-faint);
+}
+
+:root[data-hud] [data-slot="hud-project-session"][data-active] {
+  color: var(--v2-text-text-accent);
+}
+
+/* Idle HUD is the composer alone. The controls and the rail return when the
+   window is focused, a turn is recent, or the caret is in the composer. On
+   solid X11 / Wayland windows they stay visible because there is no
+   click-through to fall back on. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
+    [data-hud-typing]
+  ):not([data-hud-working]):not([data-hud-locked])
+  [data-hud-rail] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
 /* Idle HUD is the composer alone. The controls return when the window is
    focused, a turn is recent, or the caret is in the composer. On solid X11 /
    Wayland windows they stay visible because there is no click-through to fall
    back on. */
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not([data-hud-typing])
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
+    [data-hud-typing]
+  ):not([data-hud-locked])
   [data-hud-drag] {
   opacity: 0;
   visibility: hidden;

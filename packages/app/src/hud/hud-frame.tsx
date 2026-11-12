@@ -3,7 +3,7 @@ import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
-import { HUD_NOTE, readIncludeScreen, setHudContext, writeIncludeScreen, type HudContext } from "./hud-attachment"
+import { HUD_NOTE, readHudLocked, readIncludeScreen, setHudContext, writeHudLocked, writeIncludeScreen, type HudContext } from "./hud-attachment"
 import "./hud.css"
 
 const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
@@ -11,7 +11,7 @@ const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
 /** Native Wayland cannot change a top-level's origin, so only growth edges exist. */
 const WAYLAND_RESIZE_EDGES: HudEdge[] = ["e", "se", "s"]
 
-const INTERACTIVE = 'button, a, input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-hud-drag]'
+const INTERACTIVE = 'button, a, input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-hud-drag], [data-hud-rail]'
 
 /** Hold anywhere on the session before the bar becomes draggable. Short enough to feel like a
  *  grab, long enough that a click still clicks; movement cancels so text selection still works. */
@@ -40,6 +40,7 @@ export function HudFrame(props: ParentProps) {
   const api = platform.hud
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
+  const [locked, setLocked] = createSignal(readHudLocked())
   const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
   const [typing, setTyping] = createSignal(false)
   const [recent, setRecent] = createSignal(true)
@@ -87,7 +88,7 @@ export function HudFrame(props: ParentProps) {
   // Native macOS frost is the whole window rectangle; it follows the band's
   // visibility so an idle HUD is not a blurred slab.
   createEffect(() => {
-    void api.setFrost(typing() || recent() || working()).catch(() => undefined)
+    void api.setFrost(typing() || recent() || working() || locked()).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
 
@@ -217,7 +218,9 @@ export function HudFrame(props: ParentProps) {
     const apply = () => {
       const windowingState = windowing()
 
-      if (!windowingState.clickThrough) {
+      // A locked HUD is a normal always-on-top window: it keeps the pointer so its
+      // band and rail stay usable after focus moves to the app behind it.
+      if (!windowingState.clickThrough || locked()) {
         if (ignored) {
           ignored = false
           void api.setIgnoreMouse(false)
@@ -243,9 +246,14 @@ export function HudFrame(props: ParentProps) {
         typing() ||
         (working() && focused()) ||
         overlayFocused ||
+        // A visible band is a reading surface even when the pointer is between
+        // controls; keep the window solid so text can be scrolled and selected.
+        ((focused() || working() || locked()) &&
+          hit instanceof Element &&
+          hit.closest("[data-hud-transcript]") !== null) ||
         (hit instanceof Element &&
           hit.closest(
-            '[data-hud-drag], button, a[href], input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-component="composer"], [data-component="composer-suggestions"]',
+            '[data-hud-drag], [data-hud-rail], button, a[href], input, textarea, select, [role="button"], [role="link"], [data-hud-resize], [data-component="composer"], [data-component="composer-suggestions"]',
           ) !== null)
 
       const next = !interactive
@@ -265,6 +273,9 @@ export function HudFrame(props: ParentProps) {
       point = null
 
       if (!windowing().clickThrough) return
+
+      if (locked()) return
+
       // A focused composer keeps the window solid even as the pointer leaves;
       // that is what lets the HUD stay usable while typing.
 
@@ -296,6 +307,7 @@ export function HudFrame(props: ParentProps) {
       typing()
       recent()
       working()
+      locked()
       apply()
     })
 
@@ -313,6 +325,12 @@ export function HudFrame(props: ParentProps) {
     setIncludeScreen(next)
     writeIncludeScreen(next)
     void capture()
+  }
+
+  const toggleLock = () => {
+    const next = !locked()
+    setLocked(next)
+    writeHudLocked(next)
   }
 
   // A snap or reset happens in main and moves the native window without telling this renderer;
@@ -530,6 +548,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-typing={typing() ? "" : undefined}
       data-hud-working={working() ? "" : undefined}
       data-hud-focused={focused() ? "" : undefined}
+      data-hud-locked={locked() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
@@ -573,6 +592,21 @@ export function HudFrame(props: ParentProps) {
         </Show>
         <button
           type="button"
+          aria-label={language.t(locked() ? "hud.unlock" : "hud.lock")}
+          title={language.t(locked() ? "hud.unlock" : "hud.lock")}
+          aria-pressed={locked()}
+          class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+          classList={{
+            "text-v2-text-text-accent hover:text-v2-text-text-accent-hover": locked(),
+            "text-v2-text-text-faint hover:text-v2-text-text-base": !locked(),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={toggleLock}
+        >
+          <Icon name="lock" size="small" />
+        </button>
+        <button
+          type="button"
           aria-label={language.t("hud.reset")}
           title={language.t("hud.reset")}
           class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"
@@ -594,7 +628,7 @@ export function HudFrame(props: ParentProps) {
       </div>
       <div
         ref={content}
-        class="relative flex min-h-0 flex-1 flex-col px-2 pb-2"
+        class="relative flex min-h-0 flex-1 flex-row gap-1.5 px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
       >

@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test"
 import {
   HUD_NOTE,
   readHudContext,
+  readHudLocked,
   readIncludeScreen,
   setHudContext,
   withHudNote,
+  writeHudLocked,
   writeIncludeScreen,
 } from "./hud-attachment"
 
@@ -27,6 +29,14 @@ describe("HUD attachment", () => {
 
     writeIncludeScreen(true)
     expect(readIncludeScreen()).toBe(true)
+  })
+
+  test("the lock survives a reopen", () => {
+    writeHudLocked(false)
+    expect(readHudLocked()).toBe(false)
+
+    writeHudLocked(true)
+    expect(readHudLocked()).toBe(true)
   })
 
   test("the base note tells the model the bar is the context", () => {

@@ -14,6 +14,7 @@ import { requireServerKey } from "./session"
 import { PluginAttachment } from "@/runtime/plugin/root"
 import { HudFrame } from "@/hud/hud-frame"
 import { HudContextReporter } from "@/hud/hud-reporter"
+import { HudRail } from "@/hud/hud-rail"
 
 export const File = lazy(() => import("@opencode/session-ui/file").then((module) => ({ default: module.File })))
 
@@ -64,7 +65,10 @@ function HudSessionPage() {
     <Suspense fallback={<div class="size-full" />}>
       <TargetServerRoute>
         <HudContextReporter />
-        <TargetSessionRouteContent />
+        <div data-slot="hud-session-pane" class="flex min-h-0 min-w-0 flex-1 flex-col">
+          <TargetSessionRouteContent />
+        </div>
+        <HudRail />
       </TargetServerRoute>
     </Suspense>
   )

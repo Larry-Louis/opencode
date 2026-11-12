@@ -68,3 +68,20 @@ export function writeIncludeScreen(enabled: boolean) {
     localStorage.setItem(INCLUDE_SCREEN_KEY, enabled ? "1" : "0")
   } catch {}
 }
+
+const LOCKED_KEY = "opencode.hud.locked"
+
+/** A locked HUD keeps the band, the rail and its controls on screen when it loses focus. */
+export function readHudLocked() {
+  try {
+    return localStorage.getItem(LOCKED_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+export function writeHudLocked(locked: boolean) {
+  try {
+    localStorage.setItem(LOCKED_KEY, locked ? "1" : "0")
+  } catch {}
+}
