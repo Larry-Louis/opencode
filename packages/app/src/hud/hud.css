@@ -417,7 +417,9 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 [data-hud] [data-hud-native-drag] select,
 [data-hud] [data-hud-native-drag] [contenteditable],
 [data-hud] [data-hud-native-drag] [role="button"],
-[data-hud] [data-hud-native-drag] [role="link"] {
+[data-hud] [data-hud-native-drag] [role="link"],
+/* The transcript reads and selects; the title strip keeps the drag. */
+[data-hud] [data-hud-native-drag] [data-hud-transcript] {
   -webkit-app-region: no-drag;
 }
 

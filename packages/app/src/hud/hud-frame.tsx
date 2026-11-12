@@ -531,22 +531,32 @@ export function HudFrame(props: ParentProps) {
 
   const onContentPointerDown = (event: PointerEvent) => {
     const hit = event.target
-    // SAFETY: Solid dispatches this handler from the div the listener is attached to.
-    const root = event.currentTarget as HTMLElement
 
-    // Reading the transcript is not leaving the composer. Links and controls still
-    // take their click; everywhere else puts the caret back where typing goes.
-    if (
-      event.button === 0 &&
-      hit instanceof Element &&
-      !hit.closest(INTERACTIVE) &&
-      !hit.closest('[data-component="composer-editor"]')
-    ) {
-      event.preventDefault()
-      root.querySelector<HTMLElement>('[data-component="composer-editor"]')?.focus()
-    }
+    // The transcript is a reading surface: let the browser start a text
+    // selection there instead of stealing the press to move the bar or to
+    // return the caret to the composer. The title strip stays the drag handle.
+    if (hit instanceof Element && hit.closest("[data-hud-transcript]")) return
 
     startComposerDrag(event)
+  }
+
+  // Reading is not leaving the composer: a plain click on the transcript puts
+  // the caret back where typing goes, while a click that ended a selection
+  // keeps what the user just selected.
+  const onContentClick = (event: MouseEvent) => {
+    if (event.button !== 0) return
+
+    const hit = event.target
+
+    if (!(hit instanceof Element) || hit.closest(INTERACTIVE)) return
+
+    if (hit.closest('[data-component="composer-editor"]')) return
+
+    const selection = document.getSelection()
+
+    if (selection && !selection.isCollapsed) return
+
+    content?.querySelector<HTMLElement>('[data-component="composer-editor"]')?.focus()
   }
 
   return (
@@ -640,6 +650,7 @@ export function HudFrame(props: ParentProps) {
         class="relative flex min-h-0 flex-1 flex-row gap-1.5 px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
+        onClick={onContentClick}
       >
         <HudModeProvider>{props.children}</HudModeProvider>
       </div>
