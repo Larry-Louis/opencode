@@ -1,4 +1,4 @@
-import { For, Show, createMemo } from "solid-js"
+import { For, Show, createMemo, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useNavigate, useParams } from "@solidjs/router"
 import type { SessionInfo } from "@opencode/client/promise"
@@ -52,6 +52,12 @@ export function HudRail() {
     failed: Record<string, boolean>
   }>({ sessions: {}, pending: {}, failed: {} })
 
+  // A click on another project switches straight to its newest session, like
+  // the normal window's icon rail. The session menu belongs to the project
+  // already on screen, where switching needs a choice.
+  const [openFor, setOpenFor] = createSignal<string>()
+  const [switching, setSwitching] = createSignal<string>()
+
   const load = (project: Project) => {
     const id = project.id
 
@@ -70,6 +76,26 @@ export function HudRail() {
   const open = (session: SessionInfo) => {
     server.ctx.projects.touch(session.location.directory)
     navigate(sessionHref(server.key, session.id))
+  }
+
+  const switchTo = (project: Project) => {
+    const known = state.sessions[project.id]?.[0]
+
+    if (known) return open(known)
+
+    if (switching()) return
+
+    setSwitching(project.id)
+
+    void server.ctx.sdk.api.session
+      .list({ project: project.id, limit: 1, order: "desc", parentID: null, archived: false })
+      .then((response) => {
+        const session = response.data[0]
+
+        if (session) open(session)
+      })
+      .catch(() => undefined)
+      .finally(() => setSwitching(undefined))
   }
 
   return (
@@ -91,13 +117,22 @@ export function HudRail() {
                   modal={false}
                   placement="left-start"
                   gutter={8}
-                  onOpenChange={(open) => open && load(project)}
+                  open={openFor() === project.id}
+                  onOpenChange={(open) => {
+                    if (!open) return setOpenFor(undefined)
+
+                    if (!active()) return switchTo(project)
+
+                    setOpenFor(project.id)
+                    load(project)
+                  }}
                 >
                   <Menu.Trigger
                     as="button"
                     type="button"
                     data-hud-project
                     data-active={active() ? "" : undefined}
+                    data-pending={switching() === project.id ? "" : undefined}
                     aria-label={displayName(project)}
                     title={displayName(project)}
                   >

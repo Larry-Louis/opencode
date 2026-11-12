@@ -241,7 +241,16 @@ export function HudFrame(props: ParentProps) {
         !!frameRoot &&
         !frameRoot.contains(document.activeElement)
 
+      // A portaled menu or dialog is a live surface even while the pointer sits
+      // between its rows. Without this the window turns click-through as the
+      // pointer enters the popup and its items never receive the click.
+      const popupOpen =
+        document.querySelector(
+          '[data-popper-positioner] [data-component="menu-v2-content"], [data-popper-positioner] [data-slot="select-v2-content"], [data-slot="dialog-content"]',
+        ) !== null
+
       const interactive =
+        popupOpen ||
         dragging() ||
         typing() ||
         (working() && focused()) ||
