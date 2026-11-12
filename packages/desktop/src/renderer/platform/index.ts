@@ -51,6 +51,22 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
       return () => window.removeEventListener(DragCancelEvent, callback)
     },
     runDesktopMenuAction: createDesktopMenuAction(api),
+    hud: {
+      open: (route) => api.hudOpen(route),
+      close: () => api.hudClose(),
+      toggle: (route) => api.hudToggle(route),
+      setBounds: (bounds) => api.hudSetBounds(bounds),
+      resize: (input) => api.hudResize(input),
+      resetLayout: () => api.hudResetLayout(),
+      snapToPointer: () => api.hudSnapToPointer(),
+      reportSession: (route) => api.hudReportSession(route),
+      getState: () => api.hudGetState(),
+      captureContext: (screenshot) => api.hudCaptureContext(screenshot),
+      windowing: () => api.hudGetWindowing(),
+      setWorkspaceTransfer: (enabled) => api.hudSetWorkspaceTransfer(enabled),
+      setIgnoreMouse: (ignore) => api.hudSetIgnoreMouse(ignore),
+      setFrost: (enabled) => api.hudSetFrost(enabled),
+    },
     checkAppExists: async (appName) => {
       return api.checkAppExists(appName)
     },

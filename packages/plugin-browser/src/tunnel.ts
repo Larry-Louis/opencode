@@ -1,7 +1,7 @@
 export * as BrowserTunnel from "./tunnel.js"
 
 import type { Socket } from "node:net"
-import { Effect, Exit } from "effect"
+import { Effect, Exit, Semaphore } from "effect"
 import { Browser } from "./rpc.js"
 import { BrowserTunnelMachine } from "./tunnel-machine.js"
 
@@ -12,14 +12,78 @@ export type Tunnels = ReturnType<typeof make>
 export function make() {
   let state = BrowserTunnelMachine.initial()
   const sockets = new Map<string, Socket>()
+  // One read per tunnel at a time. A second read waits for the first to settle instead of being
+  // rejected: a rejection tears the tunnel down on the desktop and truncates the response it was
+  // streaming, which is how a plain-HTTP body larger than one chunk used to die.
+  const reads = new Map<string, Semaphore.Semaphore>()
+  const gate = (id: string) => {
+    const existing = reads.get(id)
+    if (existing) return existing
+    const created = Semaphore.makeUnsafe(1)
+    reads.set(id, created)
+    return created
+  }
   const dispatch = (event: BrowserTunnelMachine.Event) => {
     const next = BrowserTunnelMachine.transition(state, event)
     state = next.state
     next.effects.forEach((effect) => {
       sockets.get(effect.id)?.destroy()
       sockets.delete(effect.id)
+      reads.delete(effect.id)
     })
   }
+
+  // One pull of a tunnel's socket. Runs under the tunnel's gate, so the socket never has two
+  // readers, and reports why it refuses instead of failing silently.
+  const readOnce = (id: string) =>
+    Effect.suspend(() => {
+      const socket = sockets.get(id)
+      const rejected = BrowserTunnelMachine.readError(state, id)
+      if (rejected || !socket) {
+        const error = rejected ?? new Error("Browser tunnel is closed or unknown.")
+        return Effect.logWarning("Browser tunnel read rejected", {
+          tunnel: id,
+          state: BrowserTunnelMachine.describe(state, id),
+          reason: error.message,
+        }).pipe(Effect.andThen(Effect.fail(error)))
+      }
+      dispatch({ type: "read.started", id })
+      let outcome: BrowserTunnelMachine.ReadOutcome = "interrupted"
+      return Effect.callback<Browser.TunnelRead, Error>((resume) => {
+        const done = (value: Effect.Effect<Browser.TunnelRead, Error>, result: BrowserTunnelMachine.ReadOutcome) => {
+          cleanup()
+          outcome = result
+          resume(value)
+        }
+        const pull = () => {
+          const error = BrowserTunnelMachine.socketError(state, id)
+          if (error) return done(Effect.fail(error), "error")
+          const size = Math.min(socket.readableLength, Browser.TUNNEL_CHUNK_BYTES)
+          if (size > 0) {
+            const data: Buffer = socket.read(size)
+            if (data === null) return
+            return done(Effect.succeed({ data, eof: false }), "chunk")
+          }
+          if (socket.readableEnded || socket.destroyed) done(Effect.succeed({ data: new Uint8Array(), eof: true }), "eof")
+        }
+        const cleanup = () => {
+          socket.off("readable", pull)
+          socket.off("end", pull)
+          socket.off("error", pull)
+          socket.off("close", pull)
+        }
+        socket.on("readable", pull)
+        socket.on("end", pull)
+        socket.on("error", pull)
+        socket.on("close", pull)
+        pull()
+        return Effect.sync(cleanup)
+      }).pipe(
+        Effect.ensuring(
+          Effect.sync(() => dispatch({ type: "read.settled", id, outcome, socketClosed: socket.destroyed })),
+        ),
+      )
+    })
 
   return {
     open: Effect.fn("BrowserTunnel.open")(function* (target: Browser.TunnelTarget) {
@@ -71,44 +135,7 @@ export function make() {
       }).pipe(Effect.onError(() => Effect.sync(() => dispatch({ type: "open.failed", id }))))
     }),
     read: Effect.fn("BrowserTunnel.read")(function* (id: string) {
-      const socket = sockets.get(id)
-      const rejected = BrowserTunnelMachine.readError(state, id)
-      if (rejected || !socket) return yield* Effect.fail(rejected ?? new Error("Browser tunnel is closed or unknown."))
-      dispatch({ type: "read.started", id })
-      let outcome: BrowserTunnelMachine.ReadOutcome = "interrupted"
-      return yield* Effect.callback<Browser.TunnelRead, Error>((resume) => {
-        const done = (value: Effect.Effect<Browser.TunnelRead, Error>, result: BrowserTunnelMachine.ReadOutcome) => {
-          cleanup()
-          outcome = result
-          resume(value)
-        }
-        const pull = () => {
-          const error = BrowserTunnelMachine.socketError(state, id)
-          if (error) return done(Effect.fail(error), "error")
-          const size = Math.min(socket.readableLength, Browser.TUNNEL_CHUNK_BYTES)
-          if (size > 0) {
-            const data: Buffer = socket.read(size)
-            return done(Effect.succeed({ data, eof: false }), "chunk")
-          }
-          if (socket.readableEnded || socket.destroyed) done(Effect.succeed({ data: new Uint8Array(), eof: true }), "eof")
-        }
-        const cleanup = () => {
-          socket.off("readable", pull)
-          socket.off("end", pull)
-          socket.off("error", pull)
-          socket.off("close", pull)
-        }
-        socket.on("readable", pull)
-        socket.on("end", pull)
-        socket.on("error", pull)
-        socket.on("close", pull)
-        pull()
-        return Effect.sync(cleanup)
-      }).pipe(
-        Effect.ensuring(
-          Effect.sync(() => dispatch({ type: "read.settled", id, outcome, socketClosed: socket.destroyed })),
-        ),
-      )
+      return yield* gate(id).withPermits(1)(readOnce(id))
     }),
     write: Effect.fn("BrowserTunnel.write")(function* (id: string, data: Uint8Array, end: boolean = false) {
       const socket = sockets.get(id)

@@ -482,6 +482,32 @@ describe("OpenAI-compatible Chat route", () => {
     }),
   )
 
+  it.effect("appends grounding citations as a trailing sources block", () =>
+    Effect.gen(function* () {
+      const response = yield* LLMClient.generate(request).pipe(
+        Effect.provide(
+          fixedResponse(
+            sseEvents(
+              deltaChunk({ role: "assistant", content: "武汉 16℃" }),
+              deltaChunk({
+                annotations: [
+                  { type: "url_citation", url_citation: { url: "https://a.test/1", title: "中国天气网" } },
+                  // Same URL twice: listed once.
+                  { type: "url_citation", url_citation: { url: "https://a.test/1", title: "中国天气网" } },
+                  // No title: falls back to the URL.
+                  { type: "url_citation", url_citation: { url: "https://b.test/2" } },
+                ],
+              }),
+              deltaChunk({}, "stop"),
+            ),
+          ),
+        ),
+      )
+
+      expect(response.text).toBe("武汉 16℃\n\n来源：\n1. 中国天气网\n2. https://b.test/2")
+    }),
+  )
+
   it.effect("accepts nullable usage and preserves provider fields", () =>
     Effect.gen(function* () {
       const response = yield* LLMClient.generate(request).pipe(

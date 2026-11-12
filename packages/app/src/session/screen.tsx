@@ -50,6 +50,7 @@ import { useServer } from "@/runtime/server/current"
 import { reviewGlyphFill, SessionReviewToggle } from "./header/session-header-actions"
 import { createTimelineCache } from "./timeline/cache"
 import { createPanelMotion, holdLandingWidth, panelOpacity, setPanelResizing } from "@/shell/panel-motion"
+import { useHudMode } from "@/hud/hud-context"
 
 export function SessionScreenView(props: { session: SessionModel }) {
   // Link handling for the rest of the screen; each cached timeline provides its own for its session.
@@ -81,7 +82,11 @@ function SessionScreenContent(props: {
   const attachment = usePluginAttachment()
   const settings = useSettings()
   const server = useServer()
-  const isDesktop = session.isDesktop
+  const hud = useHudMode()
+  // HUD windows are narrow, but they must keep the desktop session layout:
+  // the mobile media query would otherwise replace the transcript with the
+  // Session/Changes mobile tabs at 620px.
+  const isDesktop = () => hud || session.isDesktop()
   const bottomMobileTabs = () => settings.general.mobileTitlebarPosition() === "bottom"
   const sidebar = createPanelSidebar()
 
@@ -380,7 +385,11 @@ function SessionScreenContent(props: {
           throw error()
         }}
       </Show>
-      <div class="relative isolate flex-1 min-h-0 overflow-hidden">
+      <div
+        class="relative isolate flex-1 min-h-0 overflow-hidden"
+        data-hud-transcript={hud ? "" : undefined}
+        data-hud-transcript-working={hud && session.data.working() ? "" : undefined}
+      >
         <Show when={!isDesktop() && session.identity.params.id}>
           <For each={cachedViews()}>
             {(entry) => (
@@ -448,10 +457,16 @@ function SessionScreenContent(props: {
 
   return (
     <>
-      <div class="flex-1 min-h-0 flex flex-col gap-2 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
+      <div
+        class="flex-1 min-h-0 flex flex-col gap-2"
+        classList={{
+          "px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]":
+            !hud,
+        }}
+      >
         <div ref={screen.panel.ref} data-pane-row class="relative flex-1 min-h-0 flex flex-col md:flex-row gap-2">
           {/* Keep the control outside panel animations. */}
-          <Show when={isDesktop() && messagesReady() && session.identity.params.id}>
+          <Show when={isDesktop() && messagesReady() && session.identity.params.id && !hud}>
             <div
               class="absolute end-[var(--session-header-inset-end,12px)] top-0 z-30 h-12 flex items-center"
               data-slot="session-review-toggle"
@@ -478,33 +493,42 @@ function SessionScreenContent(props: {
             onKeyDown={revealTimelineScrollbar}
           >
             <Show when={!!session.identity.params.id}>
-              <SessionPanelFrame raised>
-                <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
-              </SessionPanelFrame>
+              <Show
+                when={!hud}
+                fallback={
+                  <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
+                }
+              >
+                <SessionPanelFrame raised>
+                  <ErrorBoundary fallback={sessionErrorFallback}>{sessionPanelContent()}</ErrorBoundary>
+                </SessionPanelFrame>
+              </Show>
             </Show>
-            <Show when={windowDragEnabled(platform)}>
+            <Show when={!hud && windowDragEnabled(platform)}>
               <SessionHeaderDrag pane={chat} gap={headerGap()} />
             </Show>
 
             {/* Hidden rather than unmounted: removing it makes the transcript frame the last child, and structural
                 selectors in the transcript then restyle every element in it as the side panel starts to close. */}
             <div classList={{ hidden: !screen.panel.resizable() }} onPointerDown={(event) => screen.size.start(event)}>
-              <ResizeHandle
-                class="-end-1"
-                direction="horizontal"
-                size={screen.panel.resizedWidth()}
-                min={SESSION_PANEL_WIDTH_MIN}
-                max={screen.panel.max()}
-                onResize={(width) => {
-                  screen.size.touch()
-                  screen.panel.resize(width)
-                }}
-                onDraggingChange={setPanelResizing}
-              />
+              <Show when={!hud}>
+                <ResizeHandle
+                  class="-end-1"
+                  direction="horizontal"
+                  size={screen.panel.resizedWidth()}
+                  min={SESSION_PANEL_WIDTH_MIN}
+                  max={screen.panel.max()}
+                  onResize={(width) => {
+                    screen.size.touch()
+                    screen.panel.resize(width)
+                  }}
+                  onDraggingChange={setPanelResizing}
+                />
+              </Show>
             </div>
           </div>
 
-          <Show when={sideMotion.mounted()}>
+          <Show when={!hud && sideMotion.mounted()}>
             <div
               ref={sidePresence}
               data-slot="session-side-panel-presence"
@@ -540,7 +564,7 @@ function SessionScreenContent(props: {
         </div>
 
         {/* Hidden rather than unmounted while the user hides it, so its terminals keep their screens. */}
-        <Show when={isDesktop() && !!session.identity.params.id && bottomTabs()}>
+        <Show when={!hud && isDesktop() && !!session.identity.params.id && bottomTabs()}>
           <div
             data-slot="session-bottom-pane"
             class="relative shrink-0 min-h-0"

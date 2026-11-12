@@ -315,6 +315,9 @@ export const OpenAIChatDelta = Schema.StructWithRest(
     // GitHub Copilot's opaque reasoning state, which must be replayed for multi-turn reasoning.
     reasoning_opaque: optionalNull(Schema.String),
     tool_calls: optionalNull(Schema.Array(OpenAIChatToolCallDelta)),
+    // Grounding citations produced by gateways in front of Gemini (groundingMetadata
+    // projected onto the OpenAI `url_citation` annotation shape).
+    annotations: optionalNull(Schema.Array(Schema.Record(Schema.String, Schema.Unknown))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
@@ -379,6 +382,13 @@ export interface ParserState {
   readonly latestToolIndex?: number
   readonly nextToolIndex: number
   readonly requireFinishReason: boolean
+  /** Grounding citations seen so far, deduplicated by URL and flushed at the end of the stream. */
+  readonly citations: ReadonlyArray<Citation>
+}
+
+export interface Citation {
+  readonly url: string
+  readonly title?: string
 }
 
 // =============================================================================
@@ -1149,6 +1159,24 @@ const step = (state: ParserState, event: OpenAIChatEvent) =>
       : state.finishReason
     const delta = choice?.delta
     const toolDeltas = delta?.tool_calls ?? []
+    // Citations can arrive on the same chunk as the final text, so they are collected
+    // here and flushed once at the end instead of being interleaved into the answer.
+    let citations = state.citations
+    if (delta?.annotations?.length) {
+      const seen = new Set(citations.map((citation) => citation.url))
+      const found: Citation[] = []
+      for (const annotation of delta.annotations) {
+        const web = annotation["url_citation"]
+        if (typeof web !== "object" || web === null) continue
+        const record = web as Record<string, unknown>
+        const url = record["url"]
+        if (typeof url !== "string" || url.length === 0 || seen.has(url)) continue
+        seen.add(url)
+        const title = record["title"]
+        found.push({ url, title: typeof title === "string" && title.length > 0 ? title : undefined })
+      }
+      if (found.length > 0) citations = [...citations, ...found]
+    }
     let tools = state.tools
     let pendingTools = state.pendingTools
     let customCalls = state.customCalls
@@ -1306,6 +1334,7 @@ const step = (state: ParserState, event: OpenAIChatEvent) =>
         latestToolIndex,
         nextToolIndex,
         requireFinishReason: state.requireFinishReason,
+        citations,
       },
       events,
     ] as const
@@ -1358,7 +1387,21 @@ export const finishEvents = Effect.fnUntraced(function* (state: ParserState) {
         )
       : state.lifecycle
   const ended = Lifecycle.reasoningEnd(started, events, "reasoning-0", metadata)
-  const lifecycle = toolCallEvents.length ? Lifecycle.stepStart(ended, events) : ended
+  // Sources are flushed as a trailing text block: clients that do not render
+  // annotations still show where the answer came from. Titles are preferred because
+  // gateway URLs are long redirect links.
+  const sourced =
+    state.citations.length === 0
+      ? ended
+      : Lifecycle.textDelta(
+          ended,
+          events,
+          "text-0",
+          `\n\n来源：\n${state.citations
+            .map((citation, index) => `${index + 1}. ${citation.title ?? citation.url}`)
+            .join("\n")}`,
+        )
+  const lifecycle = toolCallEvents.length ? Lifecycle.stepStart(sourced, events) : sourced
   events.push(...toolCallEvents)
   Lifecycle.finish(lifecycle, events, { reason, usage: state.usage })
   return events
@@ -1396,6 +1439,7 @@ export const protocol = Protocol.make({
       reasoningEmitted: false,
       nextToolIndex: 0,
       requireFinishReason: request.model.compatibility?.requireFinishReason ?? true,
+      citations: [],
     }),
     step: (state: ParserState, event) => (event === DONE ? Effect.succeed([state, []] as const) : step(state, event)),
     terminal: (event) => event === DONE,

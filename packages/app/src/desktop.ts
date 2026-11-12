@@ -4,6 +4,8 @@ export { useCommand } from "./shell/commands/command"
 
 export { currentRoute, type LayoutRoute, useCurrentRoute } from "./shell/state/layout"
 
+export { sessionHref } from "./shell/routes/session"
+
 export { loadLocaleDict, normalizeLocale, type Locale, useLanguage } from "./runtime/i18n/language"
 
 export { type FatalRendererErrorLog, type Platform, PlatformProvider } from "./runtime/platform/platform"

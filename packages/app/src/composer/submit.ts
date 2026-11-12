@@ -1,6 +1,8 @@
 import { SessionMessage } from "@opencode/schema/session-message"
 import type { SessionMessageUser } from "@opencode/client/promise"
+import { uuid } from "@opencode/util/uuid"
 import { createEffect, createSignal, onCleanup, untrack, type Accessor } from "solid-js"
+import { readHudContext, withHudNote } from "@/hud/hud-attachment"
 import type { PromptComment } from "./comment-note"
 import type { PromptHistoryComment } from "./history/entry"
 import { isCommentItem, type ContextItem, type ImageAttachmentPart, type Prompt } from "./state"
@@ -315,6 +317,25 @@ function snapshot(input: ComposerSubmitInput, alternate: boolean, first = false)
     return { ...item, selection: item.selection ? { ...item.selection } : undefined }
   })
 
+  // A HUD screen capture belongs to this send, not to the draft: it is attached to the submission's
+  // images so retries and the optimistic message carry it, without showing it in the composer.
+  const hudImage = (() => {
+    const image = readHudContext()?.image
+
+    if (mode !== "normal" || text.trimStart().startsWith("/") || !image) return
+
+    const id = uuid()
+
+    return {
+      type: "image" as const,
+      id,
+      filename: image.name,
+      mime: image.mime,
+      blob: { id, url: image.dataUrl },
+      dataUrl: image.dataUrl,
+    }
+  })()
+
   return {
     draft: {
       initial: target,
@@ -342,6 +363,7 @@ function snapshot(input: ComposerSubmitInput, alternate: boolean, first = false)
     clientCommand: mode === "normal" ? input.clientCommand?.(text) : undefined,
     comments: input.comments.capture(),
     session: input.adapter.kind === "active-session" ? input.adapter.session() : undefined,
+    hudImage,
   }
 }
 
@@ -782,6 +804,11 @@ async function sendPrompt(
   track: ModelSelection["trackSessionCommit"] | undefined,
 ) {
   const request = await buildSubmissionRequest(session, value)
+  const hud = readHudContext()
+
+  // The HUD note reaches the model on the user message while `displayText` keeps the transcript
+  // showing exactly what the user typed. The note is per-turn and never touches the draft.
+  request.text = withHudNote(hud?.note, request.text)
 
   // Switching agent or model reconfigures the session immediately, and with it
   // the remainder of a running turn. A steer targets that turn, so its

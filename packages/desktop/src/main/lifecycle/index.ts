@@ -8,6 +8,9 @@ import { DesktopLogging, scoped } from "../native/logging"
 import { DesktopStorage } from "../storage"
 import { safeWebContentsURL } from "../windows/state"
 import { getLastFocusedWindow, mainWindows } from "../windows"
+import { registerHudShortcuts } from "../native/shortcuts"
+import type { HudController } from "../windows/hud"
+import { presentWindow } from "../windows/present"
 import type { Scope } from "@opencode/plugin/gui/host"
 import { marks } from "./marks"
 import {
@@ -33,6 +36,8 @@ export interface Interface {
   readonly restart: (keep: Scope, handoff?: Handoff) => Promise<void>
   readonly createWindow: () => BrowserWindow
   readonly restoreWindows: () => BrowserWindow[]
+  /** The one floating HUD window, if this build exposes it. */
+  readonly hud: HudController
 }
 
 export class Service extends Context.Service<Service, Interface>()("opencode/desktop/ApplicationLifecycle") {}
@@ -91,13 +96,10 @@ const runtime = Layer.effect(
 
     const createWindow = windows.create
     const restoreWindows = windows.restore
+    const unregisterHudShortcuts = registerHudShortcuts(windows.hud)
 
     const focusWindow = (win: BrowserWindow | null) => {
-      if (!win) return
-
-      if (win.isMinimized()) win.restore()
-      win.show()
-      win.focus()
+      if (win) presentWindow(win)
     }
 
     const deepLinks = yield* DeepLinks.make(focusWindow)
@@ -124,7 +126,12 @@ const runtime = Layer.effect(
       driver.dispatch({ type: "before.quit" })
     }
 
-    const willQuit = () => driver.dispatch({ type: "will.quit" })
+    const willQuit = () => {
+      // The HUD is never restored and must not survive a quit; destroy it before the rest of the
+      // shutdown so a top-most window cannot outlive the app.
+      windows.hud.dispose()
+      driver.dispatch({ type: "will.quit" })
+    }
 
     const childProcessGone = (_event: Event, details: Electron.Details) => {
       runFork(scoped("utility", Effect.logError("child process gone", { details })))
@@ -174,6 +181,7 @@ const runtime = Layer.effect(
         app.off("activate", activate)
         process.off("SIGINT", signal)
         process.off("SIGTERM", signal)
+        unregisterHudShortcuts()
         exits.forEach(clearImmediate)
         exits.clear()
       }),
@@ -185,6 +193,7 @@ const runtime = Layer.effect(
       state: driver.state,
       restart: driver.restart,
       createWindow,
+      hud: windows.hud,
       restoreWindows: () => {
         // A quit that started while the layers loaded (the user closed the first window) opens no new window.
         if (!restoresWindows(driver.state())) return []

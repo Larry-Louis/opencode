@@ -790,6 +790,31 @@ describe("ConfigNormalize", () => {
     expect(result.encoded.providers).not.toHaveProperty(["untouched", "compatibility"])
   })
 
+  test("carries an explicit compatibility block through the legacy provider and model migration", () => {
+    const result = normalized({
+      provider: {
+        gateway: {
+          npm: "@ai-sdk/openai-compatible",
+          compatibility: { supportsStore: false },
+          options: { baseURL: "http://127.0.0.1:8080/v1" },
+          models: {
+            "gemini-3.5-flash-lite": { compatibility: { supportsStore: false } },
+            untouched: {},
+          },
+        },
+        plain: { options: { baseURL: "https://plain.test/v1" } },
+      },
+    })
+    expect(result.encoded.providers).toMatchObject({
+      gateway: {
+        compatibility: { supportsStore: false },
+        models: { "gemini-3.5-flash-lite": { compatibility: { supportsStore: false } } },
+      },
+    })
+    expect(result.encoded.providers).not.toHaveProperty(["gateway", "models", "untouched", "compatibility"])
+    expect(result.encoded.providers).not.toHaveProperty(["plain", "compatibility"])
+  })
+
   test("invalid legacy provider overlays skip only that provider", () => {
     const result = normalized({
       provider: {

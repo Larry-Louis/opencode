@@ -24,6 +24,7 @@ import { ServerConnection } from "@/runtime/server/registry"
 import { DraftTabItem, TabNavItem, type TabCloseActions } from "@/shell/titlebar/tab-nav"
 import { useGlobal, useServerCtx, type ServerCtx } from "@/runtime/server/runtime"
 import { useLanguage } from "@/runtime/i18n/language"
+import { isNoProjectDirectory } from "@/workspaces/no-project"
 import { useCommand } from "@/shell/commands/command"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
@@ -31,6 +32,8 @@ import { createTabComposerState } from "@/composer/persistence"
 import { base64Encode } from "@opencode/util/encode"
 import { showToast } from "@/shell/notifications/toast"
 import { adjacentTabKey, mergeVisibleTabOrder } from "./tab-order"
+import { flattenGroups, groupTabs, directoryLabel } from "./tab-groups"
+import { pathKey } from "@/workspaces/path-key"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
@@ -607,6 +610,8 @@ export function TitlebarTabStrip(props: {
     if (vertical()) createResizeObserver([scrollRef, listRef], measureFade)
   })
   const [unread, setUnread] = createStore<Record<string, boolean>>({})
+  // Clicking a directory header folds its tabs; the list remembers it until the view is rebuilt.
+  const [collapsedGroups, setCollapsedGroups] = createStore<Record<string, boolean>>({})
   const [tabLoads, setTabLoads] = createSignal(INITIAL_SESSION_TAB_LOADS_STATE)
   const loadTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
@@ -718,7 +723,39 @@ export function TitlebarTabStrip(props: {
     displayTabs().filter((tab) => tab.type === "draft" || !!views().get(tabKey(tab))?.visible),
   )
 
-  const visibleTabIds = () => visibleTabs().map(tabKey)
+  // Sidebar tabs are grouped by the directory they belong to so tabs opened from
+  // different projects stay separated instead of interleaving by open order.
+  // Groups keep first-appearance order and tabs keep their relative order inside a group.
+  // Session tabs do not carry a directory of their own: prefer the persisted tab
+  // record and fall back to the loaded session before grouping degenerates.
+  const directoryOf = (tab: Tab) => {
+    if (tab.type === "draft") return pathKey(tab.worktree ?? tab.directory)
+
+    const key = tabKey(tab)
+
+    return pathKey(appTabs.info[key]?.directory ?? views().get(key)?.session?.location.directory ?? "")
+  }
+
+  const directoryLabelOf = (path: string) => directoryLabel(path) || "—"
+
+  const tabGroups = createMemo(() => {
+    const groups = groupTabs(visibleTabs(), directoryOf, directoryLabelOf)
+
+    // Sessions opened without a project share one folder; they read as their own group, always last.
+    const own = groups.filter((group) => !isNoProjectDirectory(group.key))
+
+    const none = groups
+      .filter((group) => isNoProjectDirectory(group.key))
+      .map((group) => ({ ...group, label: language.t("sidebar.noProject") }))
+
+    return [...own, ...none]
+  })
+
+  // Visual order for the sidebar. Indices, numbering, adjacency and drag all read
+  // this list so they agree with what is on screen.
+  const orderedVisibleTabs = createMemo(() => flattenGroups(tabGroups()))
+
+  const visibleTabIds = () => orderedVisibleTabs().map(tabKey)
 
   // Tells the closed sidebar's toggle whether any row here shows its unread dot, which the current tab never does.
   createEffect(() => {
@@ -899,6 +936,17 @@ export function TitlebarTabStrip(props: {
 
             // Sections are contiguous, so a move within one keeps every position's section.
             if (sections() && next.some((key, i) => sectionOf().get(key) !== sectionOf().get(current[i]))) return
+
+            // Grouping owns the layout: a tab can only be reordered inside its own
+            // directory, otherwise the drop would be undone by the next regroup.
+            if (!sections()) {
+              const ordered = orderedVisibleTabs()
+              const moved = ordered[initialIndex]
+              const landing = ordered[index]
+
+              if (!moved || !landing || directoryOf(moved) !== directoryOf(landing)) return
+            }
+
             props.onReorder(mergeVisibleTabOrder(props.tabs.map(tabKey), current, next))
           }}
         >
@@ -909,7 +957,45 @@ export function TitlebarTabStrip(props: {
             classList={{ "flex-row items-center": !vertical(), "flex-col items-stretch": vertical() }}
             ref={listRef}
           >
-            <Show when={sections()} fallback={<For each={props.tabs}>{(tab) => renderTab(tab)}</For>}>
+            <Show
+              when={sections()}
+              fallback={
+                <Show
+                  when={vertical() && tabGroups().length > 1}
+                  fallback={<For each={props.tabs}>{(tab) => renderTab(tab)}</For>}
+                >
+                  <For each={tabGroups()}>
+                    {(group) => (
+                      <div data-tab-group={group.key} class="flex w-full min-w-0 flex-col">
+                        <button
+                          type="button"
+                          data-tab-group-header
+                          data-no-project={isNoProjectDirectory(group.key) ? "" : undefined}
+                          aria-expanded={!collapsedGroups[group.key]}
+                          class="flex h-6 min-w-0 shrink-0 cursor-pointer items-center gap-1.5 px-2 text-start text-[12px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-muted focus-visible:outline-none"
+                          classList={{ "text-v2-text-text-accent italic": isNoProjectDirectory(group.key) }}
+                          title={group.key}
+                          onClick={() => setCollapsedGroups(group.key, (value) => !value)}
+                        >
+                          <Show when={isNoProjectDirectory(group.key)}>
+                            <span class="size-1 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                          </Show>
+                          <span class="min-w-0 truncate" dir="auto">
+                            {group.label}
+                          </span>
+                          <span class="shrink-0 tabular-nums opacity-60">{group.tabs.length}</span>
+                        </button>
+                        <Show when={!collapsedGroups[group.key]}>
+                          <div data-tab-group-tabs class="flex w-full min-w-0 flex-col ps-2">
+                            <For each={group.tabs}>{(tab) => renderTab(tab)}</For>
+                          </div>
+                        </Show>
+                      </div>
+                    )}
+                  </For>
+                </Show>
+              }
+            >
               {(list) => (
                 <Key each={list()} by={(section) => section.key}>
                   {(section) => (

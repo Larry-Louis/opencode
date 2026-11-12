@@ -1,4 +1,5 @@
 import { $ } from "bun"
+import electronPath from "electron"
 import { constants, setPriority } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -29,6 +30,15 @@ async function prepareDesktop() {
   ])
 
   if (process.platform === "darwin") process.env.ELECTRON_EXEC_PATH = await prepareDevElectron()
+  if (process.platform === "win32") await registerToastAnchor()
+}
+
+// Blue Topaz fork: registers the Start Menu anchor that lets Windows route notification clicks back
+// to this source run. A shortcut's implicit AUMID is its target path, so the anchor points at the dev
+// electron.exe - matching app.setAppUserModelId(process.execPath) in src/main/lifecycle/configure.ts.
+async function registerToastAnchor() {
+  const appDir = join(import.meta.dirname, "..")
+  await $`powershell -NoProfile -ExecutionPolicy Bypass -File ${join(import.meta.dirname, "dev-toast-link.ps1")} -ElectronPath ${electronPath} -AppDir ${appDir} -ShortcutName ${"OpenCode Dev (source v2)"}`
 }
 
 function selectOptions(): DevOptions {

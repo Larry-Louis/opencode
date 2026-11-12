@@ -11,8 +11,10 @@ import {
   setZoomLevel,
   updateTitlebar,
 } from "../windows"
+import { isHudWindow } from "../windows/kinds"
 import { storedZoomLevel } from "../windows/defaults"
-import { focusWindow, showWindow } from "../windows/focus"
+import { focusWindow } from "../windows/focus"
+import { presentWindow } from "../windows/present"
 import { sender } from "./context"
 
 export const windowHandlers = WindowRpcs.toLayer(
@@ -33,6 +35,16 @@ export const windowHandlers = WindowRpcs.toLayer(
           const win = BrowserWindow.fromWebContents(sender(handoff, context))
 
           if (!win) throw new Error("Window not found")
+
+          // The HUD has no reveal driver; showing it once its theme is applied avoids an empty
+          // transparent window while the renderer hydrates.
+          if (isHudWindow(win)) {
+            win.show()
+            win.focus()
+
+            return
+          }
+
           setWindowThemeReady(win)
         }),
       WindowGetFocused: (_args, context) =>
@@ -42,7 +54,11 @@ export const windowHandlers = WindowRpcs.toLayer(
       WindowSetFocus: (_args, context) =>
         Effect.sync(() => focusWindow(BrowserWindow.fromWebContents(sender(handoff, context)), app)),
       WindowShow: (_args, context) =>
-        Effect.sync(() => showWindow(BrowserWindow.fromWebContents(sender(handoff, context)))),
+Effect.sync(() => {
+          const win = BrowserWindow.fromWebContents(sender(handoff, context))
+
+          if (win) presentWindow(win)
+        }),
       WindowGetZoomFactor: (_args, context) => Effect.sync(() => sender(handoff, context).getZoomFactor()),
       WindowSetZoomFactor: ({ factor }, context) =>
         Effect.sync(() => {

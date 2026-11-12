@@ -151,9 +151,28 @@ export function isOpen(state: State, id: string) {
 export function readError(state: State, id: string) {
   const entry = state.status === "active" ? state.entries.get(id) : undefined
 
+  // Concurrent reads never reach here: the caller serializes them per tunnel. A pending read is
+  // not a refusal, because refusing one kills the desktop's tunnel mid-response.
   if (entry?.status !== "open") return new Error("Browser tunnel is closed or unknown.")
+}
 
-  if (entry.reading) return new Error("Only one read may be pending per browser tunnel.")
+/** A short diagnostic for a rejected call: what the tunnel was doing at the time. */
+export function describe(state: State, id: string) {
+  if (state.status === "disposed") return "disposed"
+
+  const entry = state.entries.get(id)
+  if (!entry) return "missing"
+  if (entry.status === "connecting") return "connecting"
+  if (entry.error) return `open errored (${entry.error.message})`
+
+  return [
+    "open",
+    entry.reading ? "reading" : undefined,
+    entry.readEnded ? "read ended" : undefined,
+    entry.writeEnded ? "write ended" : undefined,
+  ]
+    .filter((part): part is string => part !== undefined)
+    .join(", ")
 }
 
 /** Why `write` cannot start on `id`, if it cannot. */

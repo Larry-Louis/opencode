@@ -1,20 +1,27 @@
 #!/bin/sh
 set -e
-# Check if bun version matches package.json
+# Checks are gated on the pinned bun version: `bun run check` calls `bun check`,
+# which only exists in newer bun releases. When the local bun does not satisfy the
+# pin we warn and skip instead of blocking the push — a toolchain mismatch should
+# not train people to pass --no-verify.
 # keep in sync with packages/script/src/index.ts semver qualifier
-bun -e '
+supported=$(bun -e '
 import { semver } from "bun";
 const pkg = await Bun.file("package.json").json();
-const expectedBunVersion = pkg.packageManager?.split("@")[1];
-if (!expectedBunVersion) {
-  throw new Error("packageManager field not found in root package.json");
+const pinned = pkg.packageManager?.split("@")[1];
+if (!pinned) {
+  console.warn("Warning: packageManager field not found in root package.json");
+  process.stdout.write("0");
+} else {
+  const range = `^${pinned}`;
+  const ok = semver.satisfies(process.versions.bun, range);
+  if (!ok) console.warn(`Warning: repository pins bun@${range}, running ${process.versions.bun}`);
+  else if (process.versions.bun !== pinned) console.warn(`Warning: bun ${process.versions.bun} differs from pinned ${pinned}`);
+  process.stdout.write(ok ? "1" : "0");
 }
-const expectedBunVersionRange = `^${expectedBunVersion}`;
-if (!semver.satisfies(process.versions.bun, expectedBunVersionRange)) {
-  throw new Error(`This script requires bun@${expectedBunVersionRange}, but you are using bun@${process.versions.bun}`);
-}
-if (process.versions.bun !== expectedBunVersion) {
-  console.warn(`Warning: Bun version ${process.versions.bun} differs from expected ${expectedBunVersion}`);
-}
-'
-bun run check
+')
+if [ "$supported" = "1" ]; then
+  bun run check
+else
+  echo "Skipping bun run check: local bun does not satisfy the pinned version."
+fi

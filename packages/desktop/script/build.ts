@@ -2,7 +2,7 @@
 import { $ } from "bun"
 import { exists } from "node:fs/promises"
 import path from "node:path"
-import { copyBuiltCliToResources, downloadCliToResources, getCurrentCli, resolveChannel } from "./utils"
+import { copyBuiltCliToResources, downloadCliToResources, getCurrentCli, resolveChannel, windowsify } from "./utils"
 import { verifyBundles } from "./verify-bundles"
 
 // Prepares resources/ (icons, metainfo, the bundled CLI) for OPENCODE_CHANNEL and builds the app into out/.
@@ -27,7 +27,8 @@ if (channel === "prod" && !built)
 
 if (built) await copyBuiltCliToResources(cli)
 
-if (!built) await downloadCliToResources(channel === "beta" ? "beta" : undefined)
+if (!built && !(await exists(windowsify("resources/opencode-cli"))))
+  await downloadCliToResources(channel === "beta" ? "beta" : undefined)
 
 await $`bunx electron-vite build`
 

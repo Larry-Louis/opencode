@@ -1,0 +1,522 @@
+/* The floating HUD is a transparent, frameless window. The document root must stay clear so the
+   rounded bar is the only visible surface; the bar paints the themed background itself. */
+:root[data-hud],
+:root[data-hud] body,
+:root[data-hud] #root {
+  background: transparent !important;
+}
+
+:root[data-hud] {
+  --shell-inline-inset: 0px;
+  --shell-bottom-inset: 0px;
+  --shell-top-inset: 0px;
+  --session-header-inset-end: 8px;
+
+  /* Fallback is the dark HUD; the theme blocks below choose the actual glass. */
+  --hud-ink: #f7f8fa;
+  --hud-ink-muted: rgb(247 248 250 / 0.76);
+  --hud-ink-faint: rgb(247 248 250 / 0.54);
+  --hud-glass: rgb(12 14 18 / 0.58);
+  --hud-glass-strong: rgb(12 14 18 / 0.76);
+  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-hairline: rgb(255 255 255 / 0.13);
+  --hud-frame-bg: rgb(12 14 18 / 0.3);
+  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-user: #ffcf6b;
+  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+}
+
+/* The theme's own tokens are set on html[data-color-scheme][data-theme], which
+   outranks a plain :root[data-hud]. These blocks carry the extra attribute so
+   the HUD's glass tokens actually win, and follow the app's light/dark choice. */
+html[data-hud][data-theme][data-color-scheme="dark"] {
+  --v2-text-text-base: #f7f8fa;
+  --v2-text-text-muted: rgb(247 248 250 / 0.76);
+  --v2-text-text-faint: rgb(247 248 250 / 0.54);
+  --v2-text-text-contrast: #fff;
+  --v2-text-text-accent: #ffcf6b;
+  --v2-text-text-accent-hover: #ffe1a0;
+  --v2-text-text-code-accent: #ffd88a;
+  --v2-text-text-code-path: #9fd0ff;
+  --v2-icon-icon-base: #f7f8fa;
+  --v2-icon-icon-muted: rgb(247 248 250 / 0.76);
+  --v2-icon-icon-faint: rgb(247 248 250 / 0.54);
+  --v2-icon-icon-contrast: #fff;
+  --v2-icon-icon-accent: #ffcf6b;
+  --v2-icon-icon-accent-hover: #ffe1a0;
+  --v2-border-border-base: rgb(255 255 255 / 0.13);
+  --v2-border-border-muted: rgb(255 255 255 / 0.08);
+  --v2-border-border-strong: rgb(255 255 255 / 0.22);
+  --v2-border-border-focus: #ffcf6b;
+  --v2-overlay-simple-overlay-hover: rgb(255 255 255 / 0.08);
+  --v2-overlay-simple-overlay-pressed: rgb(255 255 255 / 0.14);
+  --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.45);
+  --v2-background-bg-base: transparent;
+  --v2-background-bg-deep: transparent;
+  --v2-background-bg-layer-01: rgb(12 14 18 / 0.55);
+  --v2-background-bg-layer-02: rgb(12 14 18 / 0.66);
+  --v2-background-bg-layer-03: rgb(12 14 18 / 0.74);
+  --v2-background-bg-layer-04: rgb(12 14 18 / 0.82);
+
+  --hud-ink: #f7f8fa;
+  --hud-ink-muted: rgb(247 248 250 / 0.76);
+  --hud-ink-faint: rgb(247 248 250 / 0.54);
+  --hud-glass: rgb(12 14 18 / 0.58);
+  --hud-glass-strong: rgb(12 14 18 / 0.76);
+  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-hairline: rgb(255 255 255 / 0.13);
+  --hud-frame-bg: rgb(12 14 18 / 0.3);
+  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-user: #ffcf6b;
+  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+}
+
+html[data-hud][data-theme][data-color-scheme="light"] {
+  --v2-text-text-base: #171a1f;
+  --v2-text-text-muted: rgb(23 26 31 / 0.72);
+  --v2-text-text-faint: rgb(23 26 31 / 0.5);
+  --v2-text-text-contrast: #0b0d10;
+  --v2-text-text-accent: #9a5b00;
+  --v2-text-text-accent-hover: #7a4600;
+  --v2-text-text-code-accent: #8a4b00;
+  --v2-text-text-code-path: #1d4ed8;
+  --v2-icon-icon-base: #171a1f;
+  --v2-icon-icon-muted: rgb(23 26 31 / 0.72);
+  --v2-icon-icon-faint: rgb(23 26 31 / 0.5);
+  --v2-icon-icon-contrast: #0b0d10;
+  --v2-icon-icon-accent: #9a5b00;
+  --v2-icon-icon-accent-hover: #7a4600;
+  --v2-border-border-base: rgb(20 23 28 / 0.12);
+  --v2-border-border-muted: rgb(20 23 28 / 0.07);
+  --v2-border-border-strong: rgb(20 23 28 / 0.2);
+  --v2-border-border-focus: #9a5b00;
+  --v2-overlay-simple-overlay-hover: rgb(0 0 0 / 0.06);
+  --v2-overlay-simple-overlay-pressed: rgb(0 0 0 / 0.12);
+  --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.2);
+  --v2-background-bg-base: transparent;
+  --v2-background-bg-deep: transparent;
+  --v2-background-bg-layer-01: rgb(255 255 255 / 0.55);
+  --v2-background-bg-layer-02: rgb(255 255 255 / 0.68);
+  --v2-background-bg-layer-03: rgb(255 255 255 / 0.78);
+  --v2-background-bg-layer-04: rgb(255 255 255 / 0.88);
+
+  --hud-ink: #171a1f;
+  --hud-ink-muted: rgb(23 26 31 / 0.72);
+  --hud-ink-faint: rgb(23 26 31 / 0.5);
+  --hud-glass: rgb(252 252 253 / 0.72);
+  --hud-glass-strong: rgb(255 255 255 / 0.88);
+  --hud-glass-band: rgb(250 251 253 / 0.76);
+  --hud-hairline: rgb(20 23 28 / 0.12);
+  --hud-frame-bg: rgb(255 255 255 / 0.32);
+  --hud-pill-bg: rgb(255 255 255 / 0.58);
+  --hud-user: #9a5b00;
+  --hud-text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+
+/* If the theme has not stamped its attributes yet, keep the dark fallback readable. */
+html[data-hud][data-color-scheme="light"]:not([data-theme]) {
+  --v2-text-text-base: #171a1f;
+  --v2-text-text-muted: rgb(23 26 31 / 0.72);
+  --v2-text-text-faint: rgb(23 26 31 / 0.5);
+  --v2-icon-icon-base: #171a1f;
+  --v2-background-bg-base: transparent;
+}
+
+[data-component="hud-frame"] {
+  /* The frame is scaffolding only; the band and composer are the visible and
+     hit-testable surfaces. Clicks in the empty region fall through to the app
+     behind on platforms that can hand the pointer back. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  pointer-events: none;
+  transition: background-color 180ms ease;
+}
+
+/* While the band is up, the window's own gaps join the same smoked sheet so a
+   native macOS frost never shows as a bare rectangle between surfaces. */
+:root[data-hud] [data-component="hud-frame"][data-hud-typing],
+:root[data-hud] [data-component="hud-frame"][data-hud-recent],
+:root[data-hud] [data-component="hud-frame"][data-hud-working],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] {
+  background: var(--hud-frame-bg);
+}
+
+[data-component="hud-frame"] [data-hud-drag],
+[data-component="hud-frame"] button,
+[data-component="hud-frame"] [data-component="composer"],
+[data-component="hud-frame"] [data-hud-resize] {
+  pointer-events: auto;
+}
+
+/* The transcript band: a smoked sheet hugging the composer, shown while the
+   worker is writing or the composer has focus. It is the only painted surface
+   above the bar, so idle HUD mode is just the bar. */
+:root[data-hud] [data-hud-transcript] {
+  border-radius: 12px 12px 0 0;
+  background: var(--hud-glass-band);
+  color: var(--hud-ink);
+  text-shadow: var(--hud-text-shadow);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    background-color 180ms ease;
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+}
+
+:root[data-hud] [data-slot="session-turn-message-content"] {
+  color: var(--hud-user);
+}
+
+/* The session title bar is a surface too; without its own tint a bright app
+   behind the transparent header reads as a white strip above the dark band. */
+:root[data-hud] [data-session-title] > div:first-child {
+  border-bottom: 1px solid var(--hud-hairline);
+  background: var(--hud-glass) !important;
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+:root[data-hud] [data-component="hud-frame"]:not([data-hud-clickthrough]) [data-hud-transcript] {
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
+  background: var(--hud-glass-strong);
+  pointer-events: auto;
+}
+
+/* While the model writes, the transcript stays fully readable for the bottom
+   60% of the band and ramps out over the top 40%, so streaming text dissolves
+   under the title bar instead of being cut off. A finished turn gets the whole
+   band back: no mask while focused. */
+:root[data-hud]
+  [data-hud-transcript][data-hud-transcript-working]
+  [data-slot="session-timeline-scroll"]
+  > .scroll-view__viewport {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+:root[data-hud] [data-hud-transcript] :is(button, a[href], [role="button"], [role="link"]) {
+  pointer-events: auto;
+}
+
+/* A hidden band participates in nothing: its controls would otherwise be
+   invisible click targets floating over the app behind. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-working]):not(
+    [data-hud-focused]
+  )
+  [data-hud-transcript]
+  :is(button, a[href], [role="button"], [role="link"]) {
+  pointer-events: none;
+}
+
+/* The band follows the turn and the window: while the model writes it stays up
+   on every platform; otherwise the window's focus alone shows it. On platforms
+   with forwarded mouse moves, an unfocused idle band is fully hidden. */
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]) [data-hud-transcript] {
+  opacity: 0;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-working] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-focused] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The composer bar is the one persistent solid surface. It gets more opaque
+   when the caret is in it, matching Hermes' `data-hud-typing` step. */
+:root[data-hud] [data-component="composer"] {
+  background: var(--hud-glass) !important;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 12px;
+  box-shadow:
+    0 12px 36px rgb(0 0 0 / 0.4),
+    0 0 0 0.5px rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  color: var(--hud-ink);
+  transition: background-color 160ms ease;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-component="composer"] {
+  background: var(--hud-glass-strong) !important;
+}
+
+:root[data-hud] [data-slot="session-chat-panel"],
+:root[data-hud] [data-slot="session-chat-panel"] > *,
+:root[data-hud] [data-component="session-composer-dock"],
+:root[data-hud] [data-slot="composer-touch-bar-mount"] {
+  background: transparent !important;
+}
+
+/* Popovers live outside the frame's pointer-events tree; they are still part of
+   the HUD and need the same smoked surface as the bar. */
+:root[data-hud] [data-component="composer-suggestions"],
+:root[data-hud] [data-component="menu-v2-content"],
+:root[data-hud] [data-slot="dialog-content"] {
+  background: var(--hud-glass-strong) !important;
+  border: 1px solid var(--hud-hairline);
+  color: var(--hud-ink);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-hud-drag] {
+  margin: 4px 8px 0;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 10px;
+  background: var(--hud-pill-bg);
+  color: var(--hud-ink-faint);
+  text-shadow: var(--hud-text-shadow);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  transition: opacity 160ms ease;
+}
+
+/* The project rail is the normal window's sidebar in its locked icon form: project
+   avatars on the right edge, never wider than the rail. Each avatar opens that
+   project's recent sessions in a menu instead of widening the bar. */
+:root[data-hud] [data-hud-rail] {
+  display: flex;
+  width: 44px;
+  flex: none;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  padding: 5px 0;
+  border: 1px solid var(--hud-hairline);
+  border-radius: 10px;
+  background: var(--hud-pill-bg);
+  color: var(--hud-ink-muted);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  transition:
+    opacity 160ms ease,
+    background-color 160ms ease;
+}
+
+:root[data-hud] [data-slot="hud-project-rail-list"] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+:root[data-hud] [data-slot="hud-project-rail-list"]::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-hud] [data-hud-project] {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 8px;
+  color: inherit;
+  cursor: default;
+  transition: background-color 120ms ease;
+}
+
+:root[data-hud] [data-hud-project]:is(:hover, [data-expanded], :focus-visible) {
+  background: var(--v2-overlay-simple-overlay-hover);
+  outline: none;
+}
+
+:root[data-hud] [data-hud-project][data-active] {
+  background: var(--v2-overlay-simple-overlay-pressed);
+  box-shadow: inset 0 0 0 1px var(--hud-hairline);
+}
+
+:root[data-hud] [data-hud-project][data-pending] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+:root[data-hud] [data-slot="hud-project-menu"] {
+  min-width: 13rem;
+  max-height: min(280px, 70vh);
+  overflow-y: auto;
+}
+
+:root[data-hud] [data-slot="hud-project-menu-empty"] {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--hud-ink-faint);
+}
+
+:root[data-hud] [data-slot="hud-project-session"][data-active] {
+  color: var(--v2-text-text-accent);
+}
+
+/* Idle HUD is the composer alone. The controls and the rail return when the
+   window is focused, a turn is recent, or the caret is in the composer. On
+   solid X11 / Wayland windows they stay visible because there is no
+   click-through to fall back on. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
+    [data-hud-typing]
+  ):not([data-hud-working]):not([data-hud-locked])
+  [data-hud-rail] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+/* Idle HUD is the composer alone. The controls return when the window is
+   focused, a turn is recent, or the caret is in the composer. On solid X11 /
+   Wayland windows they stay visible because there is no click-through to fall
+   back on. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
+    [data-hud-typing]
+  ):not([data-hud-locked])
+  [data-hud-drag] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+:root[data-hud] [data-hud-transcript]::selection,
+:root[data-hud] [data-hud-transcript] *::selection {
+  background: color-mix(in srgb, var(--hud-user) 28%, transparent);
+}
+
+[data-component="hud-frame"] [data-hud-drag] {
+  /* Pointer events drive the move from the renderer; a native drag region would swallow them. */
+  touch-action: none;
+}
+
+/* Native Wayland: the compositor owns the move, so the session and strip are drag regions.
+   Controls and the editor must opt out or they would stop taking clicks. */
+[data-hud] [data-hud-native-drag] {
+  -webkit-app-region: drag;
+}
+
+[data-hud] [data-hud-native-drag] button,
+[data-hud] [data-hud-native-drag] a,
+[data-hud] [data-hud-native-drag] input,
+[data-hud] [data-hud-native-drag] textarea,
+[data-hud] [data-hud-native-drag] select,
+[data-hud] [data-hud-native-drag] [contenteditable],
+[data-hud] [data-hud-native-drag] [role="button"],
+[data-hud] [data-hud-native-drag] [role="link"],
+/* The transcript reads and selects; the title strip keeps the drag. */
+[data-hud] [data-hud-native-drag] [data-hud-transcript] {
+  -webkit-app-region: no-drag;
+}
+
+[data-hud] [data-hud-grabbing] {
+  user-select: none;
+}
+
+/* A HUD shows one session; docked panels belong to the full shell. */
+[data-hud] [data-slot="session-side-panel-presence"],
+[data-hud] [data-slot="session-bottom-pane"],
+[data-hud] [data-slot="session-review-toggle"],
+[data-hud] [data-slot="session-header-drag"],
+[data-hud] [data-component="resize-handle"],
+[data-hud] [data-slot="session-mobile-view-navigation"],
+[data-hud] [data-slot="session-mobile-view-tabs"] {
+  display: none !important;
+}
+
+[data-hud] [data-pane-row] {
+  gap: 0;
+}
+
+[data-hud] [data-slot="session-chat-panel"] {
+  padding: 0;
+}
+
+[data-hud] [data-hud-resize] {
+  position: absolute;
+  z-index: 80;
+  -webkit-app-region: no-drag;
+}
+
+[data-hud] [data-hud-resize="n"],
+[data-hud] [data-hud-resize="s"] {
+  right: 12px;
+  left: 12px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+[data-hud] [data-hud-resize="n"] {
+  top: 28px;
+}
+
+[data-hud] [data-hud-resize="s"] {
+  bottom: 0;
+}
+
+[data-hud] [data-hud-resize="e"],
+[data-hud] [data-hud-resize="w"] {
+  top: 12px;
+  bottom: 12px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+[data-hud] [data-hud-resize="e"] {
+  right: 0;
+}
+
+[data-hud] [data-hud-resize="w"] {
+  left: 0;
+}
+
+[data-hud] [data-hud-resize="ne"],
+[data-hud] [data-hud-resize="nw"],
+[data-hud] [data-hud-resize="se"],
+[data-hud] [data-hud-resize="sw"] {
+  width: 12px;
+  height: 12px;
+}
+
+[data-hud] [data-hud-resize="ne"] {
+  top: 28px;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+[data-hud] [data-hud-resize="nw"] {
+  top: 28px;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+[data-hud] [data-hud-resize="se"] {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+[data-hud] [data-hud-resize="sw"] {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+/* The composer sits at the bottom of a short window; drop the wide-window bottom inset. */
+[data-hud] [data-slot="session-chat-panel"] > div {
+  border-radius: 0 0 12px 12px;
+}

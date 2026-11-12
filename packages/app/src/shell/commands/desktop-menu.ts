@@ -18,6 +18,7 @@ export type DesktopMenuAction =
   | "view.zoomIn"
   | "view.zoomOut"
   | "view.toggleFullscreen"
+  | "view.toggleHud"
   | "window.new"
   | "window.close"
   | "window.minimize"
@@ -199,6 +200,11 @@ export const DESKTOP_MENU: DesktopMenu[] = [
         labelKey: "desktop.menu.toggleTerminal",
         command: "terminal.toggle",
         accelerator: { macos: "Ctrl+`" },
+      },
+      {
+        type: "item",
+        labelKey: "desktop.menu.toggleHud",
+        action: "view.toggleHud",
       },
       { type: "separator" },
       { type: "item", labelKey: "desktop.menu.reload", action: "view.reload", role: "reload" },

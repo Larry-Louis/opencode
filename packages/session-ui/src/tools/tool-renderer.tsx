@@ -84,6 +84,13 @@ import {
   type SubagentRunState,
 } from "./run-machine"
 import { LinkedText } from "../components/linked-text"
+import { tokenizeShellText } from "../components/bash-highlight"
+
+function shellTokens(text: string) {
+  return tokenizeShellText(text).map((token) =>
+    token.cls ? <span class={token.cls}>{token.text}</span> : <span>{token.text}</span>,
+  )
+}
 
 export function ShellSubmessage(props: { text: string; animate?: boolean }) {
   let widthRef: HTMLSpanElement | undefined
@@ -1193,6 +1200,7 @@ export function FileTool(props: ToolProps & { title: string; count: number; chil
       onOpenChange={undefined}
       locked
       icon="code-lines"
+      kind="edit"
       hasContent
       defer={false}
       rail={false}
@@ -1867,7 +1875,7 @@ export function ConsoleOutput(props: { command?: string; output: string }) {
             <div data-slot="bash-command">
               <ConsoleCopy text={command()} label={i18n.t("ui.message.copy")} />
               <pre data-slot="bash-pre">
-                <code>{command()}</code>
+                <code>{shellTokens(command())}</code>
               </pre>
             </div>
           )}
@@ -1993,6 +2001,7 @@ ToolRegistry.register({
           <Show when={owner() === -1 && error()}>{(text) => <ExecuteCallRow error={text()} />}</Show>
           <Show when={output()}>{(value) => <ExecuteOutputRow output={value()} />}</Show>
         </div>
+
       </BasicTool>
     )
   },
@@ -2284,7 +2293,7 @@ ToolRegistry.register({
         onCleanup(follower.dispose)
       })
 
-      return <ConsoleOutput command={view().command} output={view().output} />
+return <ConsoleOutput command={view().command} output={view().output} />
     }
 
     return (
@@ -2292,6 +2301,7 @@ ToolRegistry.register({
         {...props}
         status={view().basicStatus}
         icon="console"
+        kind="shell"
         rail={false}
         hasContent
         compact
@@ -2629,6 +2639,7 @@ ToolRegistry.register({
         {...props}
         defaultOpen={completed()}
         icon="bubble-5"
+        kind="question"
         trigger={{
           title: i18n.t("ui.tool.questions"),
           subtitle: subtitle(),

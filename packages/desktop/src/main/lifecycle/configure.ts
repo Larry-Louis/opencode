@@ -5,7 +5,7 @@ import { homedir, tmpdir } from "node:os"
 import path from "node:path"
 import { app } from "electron"
 import { debugBuild, memoryLogInterval } from "@opencode/gui-plugins/debug/options"
-import { APP_ID, APP_NAME, CHANNEL } from "../constants"
+import { APP_ID, APP_NAME, APP_USER_MODEL_ID, CHANNEL } from "../constants"
 import { remoteDebuggingPort } from "../diagnostics/options"
 
 const testOnboarding = process.env.OPENCODE_TEST_ONBOARDING === "1"
@@ -23,7 +23,10 @@ export function configureApplication() {
   process.env.OPENCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
   app.setName(APP_NAME)
-  app.setAppUserModelId(APP_ID)
+  // Blue Topaz fork: APP_USER_MODEL_ID, not APP_ID - see its comment in ../constants. Packaged builds
+  // follow the channel id that electron-builder puts on the Start Menu shortcut; source runs anchor on
+  // the dev electron.exe registered by scripts/dev.ts.
+  app.setAppUserModelId(APP_USER_MODEL_ID)
   app.commandLine.appendSwitch("proxy-bypass-list", "<-loopback>")
   const features = app.commandLine.getSwitchValue("enable-features")
   app.commandLine.appendSwitch("enable-features", features ? `${jsCallStackFeature},${features}` : jsCallStackFeature)

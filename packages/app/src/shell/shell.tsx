@@ -49,13 +49,24 @@ export default function Layout(props: ParentProps) {
     tabsAside: HTMLElement | undefined
     tabsPanel: HTMLElement | undefined
   }>({
-    tabsWidth: 240,
+    tabsWidth: 136,
     tabsMount: undefined,
     tabsAside: undefined,
     tabsPanel: undefined,
   })
 
   const verticalTabs = () => preferences.appearance.tabLayout() !== "horizontal" && !mobile()
+
+  // Dragging narrower than the usual minimum snaps the sidebar to an icon rail; there is no size in between.
+  const COMPACT_TABS_WIDTH = 44
+  const MIN_TABS_WIDTH = 136
+  const compactTabs = () => state.tabsWidth <= COMPACT_TABS_WIDTH
+
+  const resizeTabs = (width: number) =>
+    setState(
+      "tabsWidth",
+      width < (MIN_TABS_WIDTH + COMPACT_TABS_WIDTH) / 2 ? COMPACT_TABS_WIDTH : Math.max(MIN_TABS_WIDTH, width),
+    )
 
   const organizedSidebar = () =>
     preferences.appearance.tabLayout() === "vertical" && preferences.general.sidebarOrganize() !== "list"
@@ -245,6 +256,7 @@ export default function Layout(props: ParentProps) {
             data-slot="vertical-tabs-sidebar"
             data-state={preferences.appearance.sidebarOpen() ? "open" : "closed"}
             data-peek={peek.shown() ? "" : undefined}
+            data-compact={compactTabs() ? "" : undefined}
             style={{ "--sidebar-peek-width": `${state.tabsWidth}px` }}
             ref={(element) => setState("tabsAside", element)}
             class="relative z-10 h-full min-h-0 shrink-0"
@@ -288,9 +300,9 @@ export default function Layout(props: ParentProps) {
               <ResizeHandle
                 direction="horizontal"
                 size={state.tabsWidth}
-                min={136}
+                min={COMPACT_TABS_WIDTH}
                 max={640}
-                onResize={(width) => setState("tabsWidth", width)}
+                onResize={resizeTabs}
                 onDraggingChange={setPanelResizing}
               />
             </Show>

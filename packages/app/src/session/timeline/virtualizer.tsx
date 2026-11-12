@@ -58,6 +58,7 @@ import {
   needsEndProbe,
   ZOOM_SLACK,
 } from "./machine"
+import { TurnNavigator, type TurnNavigatorItem } from "./turn-navigator"
 
 const fallbackItemSize = 60
 
@@ -125,6 +126,8 @@ type Input = {
   setScrollToEnd?: (fn: (behavior?: ScrollBehavior) => void) => void
   /** Pages the timeline for keys pressed outside it, such as PageUp in the composer. */
   setPage?: (fn: (direction: 1 | -1) => void) => void
+  /** One entry per user turn for the conversation navigator. */
+  history?: Accessor<readonly TurnNavigatorItem[]>
   reveal?: TimelineRouteReveal
 }
 
@@ -611,6 +614,18 @@ export function createTimelineVirtualizer(input: Input) {
       if (virtualContent) virtualContent.style.height = `${virtualizer.getTotalSize()}px`
       elementScroll(Math.max(0, root.scrollTop + adjustment), {}, virtualizer)
     })
+  }
+
+  // A navigator dot lands its prompt below the sticky header and stops following, so the reply streaming below
+  // does not pull the reader back to the end.
+  function jumpToMessage(id: string) {
+    if (!active()) return
+    const index = rows().findIndex((row) => Predicate.isTagged(row, "UserMessage") && row.userMessageID === id)
+
+    if (index < 0) return
+    prepareNavigation()
+    input.follow.dispatch({ type: "detach" })
+    virtualizer.scrollToIndex(index, { align: "start" })
   }
 
   const virtualItemByKey = createMemo(
@@ -1221,6 +1236,14 @@ export function createTimelineVirtualizer(input: Input) {
           class="pointer-events-none absolute inset-x-0 top-0"
           style={{ bottom: `${bottomInset()}px` }}
         />
+        <Show when={isDesktop() && (input.history?.().length ?? 0) > 1}>
+          <TurnNavigator
+            items={input.history?.() ?? []}
+            scroller={listRoot}
+            bottomInset={bottomInset()}
+            onSelect={jumpToMessage}
+          />
+        </Show>
       </div>
     )
   }

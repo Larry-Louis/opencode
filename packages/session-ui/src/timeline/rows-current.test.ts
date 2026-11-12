@@ -1176,7 +1176,12 @@ describe("current session timeline rows", () => {
     {
       name: "default",
       grouped: false,
-      groups: [["context", "read", "grep"], ["part", "agent_1"], ["part", "agent_2"], ["context", "glob", "read_2"]],
+      groups: [
+        ["context", "read", "grep"],
+        ["part", "agent_1"],
+        ["part", "agent_2"],
+        ["context", "glob", "read_2"],
+      ],
     },
     { name: "opted in", grouped: true, groups: [["context", "read", "grep", "agent_1", "agent_2", "glob", "read_2"]] },
   ])("gives each subagent its own row unless subagent grouping is enabled ($name)", (input) => {
@@ -1794,5 +1799,94 @@ describe("current session timeline rows", () => {
         Predicate.isTagged(row, "TurnDiff"),
       ),
     ).toBe(false)
+  })
+
+  test("folds a finished turn's work into one disclosure ahead of its answer", () => {
+    const source = [
+      { id: "msg_fold_user", type: "user", text: "do it", time: { created: 1 } },
+      {
+        id: "msg_fold_assistant",
+        type: "assistant",
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content: [
+          { type: "reasoning", text: "thinking" },
+          storyTool("call_fold", "read", "completed", { filePath: "src/a.ts" }),
+          { type: "text", text: "done" },
+        ],
+        time: { created: 2, completed: 3 },
+      },
+    ] satisfies SessionMessageInfo[]
+
+    const settled = Timeline.constructSessionMessageRows(
+      source,
+      true,
+      { type: "idle" },
+      undefined,
+      false,
+      false,
+      undefined,
+      timelinePresets[2].value,
+    )
+    const assistant = settled.rows.filter((row) => Predicate.isTagged(row, "AssistantPart"))
+
+    expect(assistant.length).toBe(2)
+    expect(assistant[0]!.group.type).toBe("context")
+    expect(assistant[1]!.group.type).toBe("part")
+
+    if (assistant[0]!.group.type !== "context") throw new Error("expected a folded group")
+
+    expect(assistant[0]!.group.refs.length).toBe(2)
+  })
+
+  test("keeps the answer of every step when a finished turn answered twice", () => {
+    const step = (id: string, content: SessionMessageAssistant["content"]) =>
+      ({
+        id,
+        type: "assistant",
+        agent: "build",
+        model: { id: "model", providerID: "provider" },
+        content,
+        time: { created: 2, completed: 3 },
+      }) satisfies SessionMessageInfo
+
+    const source = [
+      { id: "msg_again_user", type: "user", text: "go", time: { created: 1 } },
+      step("msg_again_1", [
+        { type: "reasoning", text: "first" },
+        storyTool("call_again_1", "read", "completed", { filePath: "src/a.ts" }),
+        { type: "text", text: "first answer" },
+      ]),
+      step("msg_again_2", [
+        { type: "reasoning", text: "second" },
+        storyTool("call_again_2", "read", "completed", { filePath: "src/b.ts" }),
+        { type: "text", text: "second answer" },
+      ]),
+    ] satisfies SessionMessageInfo[]
+
+    const rows = Timeline.constructSessionMessageRows(
+      source,
+      true,
+      { type: "idle" },
+      undefined,
+      false,
+      false,
+      undefined,
+      timelinePresets[2].value,
+    ).rows
+
+    const assistant = rows.filter((row) => Predicate.isTagged(row, "AssistantPart"))
+
+    // Work, answer, work, answer: the second answer never swallows the first.
+    expect(assistant.map((row) => row.group.type)).toEqual(["context", "part", "context", "part"])
+    expect(assistant.filter((row) => row.group.type === "context").map((row) => row.spacing)).toEqual([
+      "content",
+      "content",
+    ])
+    expect(
+      assistant.flatMap((row) =>
+        row.group.type === "part" ? [`${row.group.ref.messageID}:${row.group.ref.partID}`] : [],
+      ),
+    ).toEqual(["msg_again_1:msg_again_1:text:0", "msg_again_2:msg_again_2:text:0"])
   })
 })

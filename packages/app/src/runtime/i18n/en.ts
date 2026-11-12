@@ -1,6 +1,21 @@
 import { DESKTOP_NATIVE_ENGLISH } from "./desktop-native"
 
 export const dict = {
+  "hud.label": "HUD",
+  "hud.close": "Exit HUD",
+  "hud.reset": "Reset HUD layout",
+  "hud.drag": "Drag to move",
+  "hud.resize": "Resize HUD",
+  "hud.context.enable": "Include the screen behind the HUD with each message",
+  "hud.context.disable": "Stop including the screen behind the HUD",
+  "hud.context.refresh": "Refresh the screen context",
+  "hud.lock": "Keep the HUD on screen when it loses focus",
+  "hud.unlock": "Let the HUD idle when it loses focus",
+  "hud.rail.projects": "Projects",
+  "hud.rail.loading": "Loading sessions…",
+  "hud.rail.empty": "No sessions yet",
+  "hud.rail.failed": "Could not load sessions",
+  "hud.failed": "The floating HUD could not open.",
   "experiment.voiceCalls": "Voice calls",
   "voice.call": "Call",
   "voice.mute": "Mute",
@@ -47,6 +62,7 @@ export const dict = {
   "command.category.workspace": "Worktree",
   "command.category.settings": "Settings",
   "command.logs.export": "Export logs",
+  "command.hud.toggle": "Toggle HUD",
 
   "theme.scheme.system": "System",
   "theme.scheme.light": "Light",
@@ -705,6 +721,8 @@ export const dict = {
   "session.new.project.new": "New project",
   "session.new.project.search": "Search projects",
   "session.new.project.add": "Add project",
+  "session.new.project.none": "No project",
+  "sidebar.noProject": "Regular sessions",
   "session.new.project.trigger.tooltip": "Choose project",
   "session.new.worktree.creating": "Creating worktree",
   "session.new.starting": "Starting session",

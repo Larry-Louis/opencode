@@ -1,4 +1,5 @@
-import { describe, expect, jest, test } from "bun:test"
+import { afterEach, describe, expect, jest, test } from "bun:test"
+import { setHudContext } from "@/hud/hud-attachment"
 import type { ModelSelection } from "@/providers/models/selection"
 import type { SessionMessageHandoff } from "@/session/handoff"
 import { Skill } from "@opencode/schema/skill"
@@ -192,6 +193,41 @@ function text(state: ComposerStateTarget) {
 }
 
 describe("Composer submission", () => {
+  afterEach(() => setHudContext(null))
+
+  test("a HUD message carries its context without changing the draft", async () => {
+    const state = createMemoryComposerState({ prompt: "what is this?" }).capture()
+    const calls: string[] = []
+    let received: Parameters<ComposerSession["data"]["session"]["prompt"]>[0] | undefined
+
+    const image =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2n1cAAAAASUVORK5CYII="
+
+    setHudContext({ note: "[HUD NOTE]", image: { dataUrl: image, mime: "image/png", name: "hud-screen.png" } })
+
+    const sent = Promise.withResolvers<void>()
+
+    const adapter = active(
+      state,
+      session({
+        calls,
+        prompt: async (value) => {
+          received = value
+          sent.resolve()
+        },
+      }),
+    )
+
+    await submitInput(adapter).submit(new Event("submit"))
+    await sent.promise
+
+    expect(received?.text).toBe("[HUD NOTE]\n\nwhat is this?")
+    // The transcript keeps showing what the user typed; the note only reaches the model.
+    expect(received?.metadata?.displayText).toBe("what is this?")
+    expect(received?.files?.some((file) => file.uri === image)).toBe(true)
+    expect(state.current().some((part) => part.type === "image")).toBe(false)
+  })
+
   test("retains the submitting session before waiting for server admission", async () => {
     const calls: string[] = []
 

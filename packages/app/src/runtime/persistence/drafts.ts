@@ -646,6 +646,11 @@ function referenced(json: string) {
 // A `media:` ref goes out only when no bytes are reachable here; the server still resolves it if it can.
 export async function blobDataUrl(blob: BlobReference, mime: string) {
   const kept = selectRetainedBlob(retention, blob.id)
+
+  // A data URL already carries its bytes; forwarding it avoids a fetch/FileReader round trip and
+  // keeps sources that cannot fetch data: URLs (tests, some embeds) working.
+  if (!kept && blob.url?.startsWith("data:")) return blob.url
+
   const url = kept ? undefined : await resolveBlobUrl(blob)
 
   if (!kept && !url && mediaHashFromUri(blob.id)) return blob.id

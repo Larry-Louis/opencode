@@ -105,6 +105,7 @@ import { IdentityPlugin } from "./identity.js"
 import { ForkNoticePlugin } from "./fork-notice.js"
 import { PlanPlugin } from "./plan.js"
 import { GoalPlugin } from "./goal.js"
+import { HudPlugin } from "./hud.js"
 import { ModelsDevPlugin } from "./models-dev.js"
 import { McpCodeModeDefaultsPlugin } from "./mcp-codemode-defaults.js"
 import { ProviderPlugins } from "./provider.js"
@@ -275,6 +276,7 @@ const pre = [
   McpResourceTools.Plugin,
   QuestionTool.Plugin,
   ReadTool.Plugin,
+  HudPlugin.Plugin,
   ArtifactTools.Plugin,
   ScheduleTools.Plugin,
   ShellTool.Plugin,

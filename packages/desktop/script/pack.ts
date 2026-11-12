@@ -56,10 +56,15 @@ if (!app && os === "mac") {
 }
 
 if (!app && os === "win") {
-  await $`bunx electron-builder ${flags} --dir`
+  await $`bunx electron-builder ${flags}`
   const unpacked = path.join("dist", cli.cpu === "arm64" ? "win-arm64-unpacked" : "win-unpacked")
   await writeUpdateConfig(path.join(unpacked, "resources"))
   await cp(unpacked, path.join(out, "app"), { recursive: true })
+  const installer = `opencode-desktop-win-${cli.cpu}.exe`
+  const installerPath = path.join("dist", installer)
+  if (await Bun.file(installerPath).exists()) {
+    await cp(installerPath, path.join(out, installer))
+  }
 }
 
 // electron-builder writes resources/app-update.yml only for dmg, zip and nsis targets, not for --dir builds.

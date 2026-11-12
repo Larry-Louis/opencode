@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from "url"
 import type { ConfigPluginSource } from "../config/plugin/source.js"
 import type { Generation } from "../plugin.js"
 import { PluginPromise } from "./promise.js"
+import { PluginLegacy } from "./legacy.js"
 import { Config } from "../config.js"
 import { ManagedPolicy } from "../managed-policy.js"
 import { Watcher } from "../filesystem/watcher.js"
@@ -126,7 +127,7 @@ const load = Effect.fn("PluginModule.load")(function* (
   // A package with only a GUI part (and maybe a TUI part) has nothing to run here: its id is its package name, and its
   // other parts load from this listing.
   const server = entrypoint
-    ? yield* loadServer(entrypoint, local ? sources : undefined, installed?.revision)
+    ? yield* loadServer(entrypoint, local ? sources : undefined, installed?.revision, operation.target)
     : undefined
   const plugin = server?.plugin ?? {
     id: Host.packageID(installed ?? { directory: operation.target }),
@@ -169,18 +170,33 @@ const loadServer = Effect.fn("PluginModule.loadServer")(function* (
   entrypoint: string,
   sources: ReturnType<typeof createPluginSources> | undefined,
   revision: string | undefined,
+  target: string,
 ) {
   const loaded = yield* Effect.promise(() =>
     sources ? sources.read(entrypoint) : Host.load(entrypoint).then((module) => ({ module, version: revision })),
   )
-  const value = (yield* Schema.decodeUnknownEffect(Module)(loaded.module).pipe(
-    Effect.mapError(
-      (cause) =>
-        new LoadError({
+  // Blue Topaz fork: V2 dropped the V1 plugin API on purpose, so plugins written for V1 (a default
+  // export of `{ id, server }` or of the plugin function itself) fail the schema below. Adapt those
+  // onto the V2 domains instead of failing the load. `adapt` only inspects module shape and returns
+  // undefined for anything it does not recognise, so the stock error path still runs. See ./legacy.ts.
+  const legacy = PluginLegacy.adapt(loaded.module as Record<string, unknown>, target)
+  const decoded = yield* Schema.decodeUnknownEffect(Module)(loaded.module).pipe(Effect.result)
+  const resolved = decoded._tag === "Success"
+    ? (() => {
+        const value = decoded.success.default
+        return "effect" in value ? value : PluginPromise.fromPromise(value)
+      })()
+    : legacy !== undefined
+      ? PluginPromise.fromPromise(legacy)
+      : yield* new LoadError({
           message: "Plugin must export a default definition with an id and an effect or setup function.",
-          cause,
-        }),
-    ),
-  )).default
-  return { plugin: "effect" in value ? value : PluginPromise.fromPromise(value), version: loaded.version }
+          cause: decoded.failure,
+        })
+  return {
+    plugin: resolved as unknown as {
+      readonly id: string
+      readonly effect: (host: Record<string, unknown>) => Effect.Effect<void>
+    },
+    version: loaded.version,
+  }
 })

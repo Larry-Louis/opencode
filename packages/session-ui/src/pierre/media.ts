@@ -51,6 +51,21 @@ export function mediaKindFromPath(path: string | undefined): MediaKind | undefin
   if (audioExtensions.has(ext)) return "audio"
 }
 
+export function publicAssetUrl(path: string | undefined) {
+  if (!path) return
+  const normalized = path.replaceAll("\\", "/")
+  const marker = "/packages/app/public/"
+  const index = normalized.lastIndexOf(marker)
+  const relative =
+    index >= 0
+      ? normalized.slice(index + marker.length)
+      : normalized.startsWith("packages/app/public/")
+        ? normalized.slice("packages/app/public/".length)
+        : undefined
+  if (!relative) return
+  return `/${relative.split("/").map(encodeURIComponent).join("/")}`
+}
+
 export function isBinaryContent(value: MediaValue) {
   return mediaRecord(value)?.type === "binary"
 }

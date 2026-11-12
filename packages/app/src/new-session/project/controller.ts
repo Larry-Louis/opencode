@@ -1,5 +1,6 @@
-import { createMemo } from "solid-js"
+import { createEffect, createMemo } from "solid-js"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
+import { isNoProjectDirectory, loadNoProjectDirectory } from "@/workspaces/no-project"
 import { type ServerCtx, useGlobal } from "@/runtime/server/runtime"
 import { useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
@@ -20,6 +21,11 @@ export function createComposerProjectControls(props: { draftId: string; worktree
   const projectServer = () => serverSDK.server
   const projectServerCtx = useServer().ctx
 
+  // A draft may run in the shared "No project" folder; that path is not a project to offer.
+  createEffect(() => {
+    loadNoProjectDirectory(() => serverSDK.api.location.get())
+  })
+
   // Every server project, one per directory, marked as used by this client or not; the selector orders them.
   const listed = (ctx: ServerCtx, server?: PromptServer) => {
     const used = ctx.projects.used()
@@ -31,7 +37,7 @@ export function createComposerProjectControls(props: { draftId: string; worktree
         .unique()
         .filter((project) => !ids.has(project.id))
         .map((project) => ({ ...project, used: false, server })),
-    ]
+    ].filter((project) => !isNoProjectDirectory(project.worktree))
   }
 
   function promptServer(connection: ServerConnection.Any): PromptServer {
@@ -48,8 +54,7 @@ export function createComposerProjectControls(props: { draftId: string; worktree
   const ready = createMemo(() =>
     servers.list.filter(
       (connection) =>
-        !!ServerConnection.http(connection) &&
-        !isServerFailed(global.servers.health[ServerConnection.key(connection)]),
+        !!ServerConnection.http(connection) && !isServerFailed(global.servers.health[ServerConnection.key(connection)]),
     ),
   )
 

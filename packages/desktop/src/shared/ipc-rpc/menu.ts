@@ -17,6 +17,7 @@ const DesktopMenuAction = Schema.Literals([
   "view.zoomIn",
   "view.zoomOut",
   "view.toggleFullscreen",
+  "view.toggleHud",
   "window.new",
   "window.close",
   "window.minimize",
