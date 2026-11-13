@@ -27,12 +27,12 @@
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 0.88);
-  --hud-glass-strong: rgb(12 14 18 / 0.9);
+  --hud-glass: rgb(12 14 18 / 1);
+  --hud-glass-strong: rgb(12 14 18 / 1);
   --hud-glass-band: rgb(12 14 18 / 0.9);
   --hud-hairline: rgb(255 255 255 / 0.13);
   --hud-frame-bg: rgb(12 14 18 / 0.45);
-  --hud-pill-bg: rgb(12 14 18 / 0.9);
+  --hud-pill-bg: rgb(12 14 18 / 1);
   --hud-user: #ffcf6b;
   --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
 }
@@ -64,20 +64,20 @@ html[data-hud][data-theme][data-color-scheme="dark"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.45);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(16 18 22 / 0.9);
-  --v2-background-bg-layer-02: rgb(20 22 26 / 0.9);
-  --v2-background-bg-layer-03: rgb(23 25 30 / 0.9);
-  --v2-background-bg-layer-04: rgb(27 29 34 / 0.9);
+  --v2-background-bg-layer-01: rgb(16 18 22 / 1);
+  --v2-background-bg-layer-02: rgb(20 22 26 / 1);
+  --v2-background-bg-layer-03: rgb(23 25 30 / 1);
+  --v2-background-bg-layer-04: rgb(27 29 34 / 1);
 
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 0.88);
-  --hud-glass-strong: rgb(12 14 18 / 0.9);
+  --hud-glass: rgb(12 14 18 / 1);
+  --hud-glass-strong: rgb(12 14 18 / 1);
   --hud-glass-band: rgb(12 14 18 / 0.9);
   --hud-hairline: rgb(255 255 255 / 0.13);
   --hud-frame-bg: rgb(12 14 18 / 0.45);
-  --hud-pill-bg: rgb(12 14 18 / 0.9);
+  --hud-pill-bg: rgb(12 14 18 / 1);
   --hud-user: #ffcf6b;
   --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
 }
@@ -106,20 +106,20 @@ html[data-hud][data-theme][data-color-scheme="light"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.2);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(255 255 255 / 0.9);
-  --v2-background-bg-layer-02: rgb(253 253 254 / 0.9);
-  --v2-background-bg-layer-03: rgb(250 251 252 / 0.9);
-  --v2-background-bg-layer-04: rgb(247 248 250 / 0.9);
+  --v2-background-bg-layer-01: rgb(255 255 255 / 1);
+  --v2-background-bg-layer-02: rgb(253 253 254 / 1);
+  --v2-background-bg-layer-03: rgb(250 251 252 / 1);
+  --v2-background-bg-layer-04: rgb(247 248 250 / 1);
 
   --hud-ink: #171a1f;
   --hud-ink-muted: rgb(23 26 31 / 0.72);
   --hud-ink-faint: rgb(23 26 31 / 0.5);
-  --hud-glass: rgb(252 252 253 / 0.88);
-  --hud-glass-strong: rgb(255 255 255 / 0.9);
+  --hud-glass: rgb(252 252 253 / 1);
+  --hud-glass-strong: rgb(255 255 255 / 1);
   --hud-glass-band: rgb(250 251 253 / 0.9);
   --hud-hairline: rgb(20 23 28 / 0.12);
   --hud-frame-bg: rgb(255 255 255 / 0.5);
-  --hud-pill-bg: rgb(255 255 255 / 0.9);
+  --hud-pill-bg: rgb(255 255 255 / 1);
   --hud-user: #9a5b00;
   --hud-text-shadow: 0 1px 1px rgb(255 255 255 / 0.85), 0 0 3px rgb(255 255 255 / 0.95);
 }
@@ -175,6 +175,15 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 
 /* The history dots live in the band's first 20px; shift the transcript rows past
    them so text never sits under the rail. */
+/* HUD: the activity lane hangs below the composer instead of over the title bar. */
+:root[data-hud] [data-component="session-composer-lane"] {
+  bottom: auto;
+  top: 100%;
+  align-items: flex-start;
+  padding-top: 4px;
+  padding-bottom: 0;
+}
+
 :root[data-hud] [data-hud-transcript] [data-timeline-key] {
   left: 20px !important;
   width: calc(100% - 20px) !important;
@@ -192,8 +201,28 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   background: var(--hud-pill-bg);
 }
 
+/* Tool cards mix their surface with transparency in the shared timeline CSS; the
+   HUD keeps every capsule at full opacity. */
+:root[data-hud] [data-component="task-tool-card"] {
+  background: var(--v2-background-bg-layer-02) !important;
+}
+
+:root[data-hud] [data-component="task-tool-card"]:is(:hover, :focus-visible) {
+  background: var(--v2-background-bg-layer-03) !important;
+}
+
 /* The session title bar is a surface too; without its own tint a bright app
    behind the transparent header reads as a white strip above the dark band. */
+:root[data-hud] [data-session-title] {
+  padding-bottom: 0;
+}
+
+/* HUD: the title bar and the composer form one sticky block. */
+:root[data-hud] [data-hud-composer-divider] {
+  padding-top: 6px;
+  pointer-events: auto;
+}
+
 :root[data-hud] [data-session-title] > div:first-child {
   border-bottom: 1px solid var(--hud-hairline);
   background: var(--hud-glass) !important;
@@ -207,7 +236,6 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 
 :root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-transcript],
 :root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
-  background: var(--hud-glass-strong);
   pointer-events: auto;
 }
 
@@ -238,7 +266,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
     [data-hud-hold]
   )
-  [data-hud-transcript] {
+  [data-hud-transcript]
+  [data-slot="session-timeline-scroll"] {
   opacity: 1;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
   mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
@@ -252,7 +281,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   [data-component="hud-frame"][data-hud-clickthrough][data-hud-working]:not([data-hud-locked]):not(
     [data-hud-focused]
   ):not([data-hud-hold]):not([data-hud-lock-hover])
-  [data-hud-transcript] {
+  [data-hud-transcript]
+  [data-slot="session-timeline-scroll"] {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -278,7 +308,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   background: transparent;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-session-title] > div:first-child,
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-transcript] [data-slot="session-timeline-scroll"],
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-rail] {
   opacity: 0 !important;
   visibility: hidden !important;
@@ -312,6 +343,39 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   -webkit-backdrop-filter: blur(22px) saturate(1.2);
   color: var(--hud-ink);
   transition: background-color 160ms ease;
+  position: relative;
+}
+
+/* HUD: one row inside the card. The editor takes the width; the icon controls sit
+   at the end, so an empty composer is exactly one line tall. */
+:root[data-hud] [data-component="composer"] {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+:root[data-hud] [data-slot="composer-content"] {
+  flex: 1;
+  min-width: 0;
+}
+
+:root[data-hud] [data-slot="composer-toolbar"] {
+  position: static;
+  height: 34px;
+  flex: none;
+  padding: 0 4px;
+  background: transparent;
+  justify-content: flex-end;
+}
+
+:root[data-hud] [data-slot="composer-controls"] {
+  flex: none;
+  margin-inline-end: 2px;
+}
+
+:root[data-hud] [data-slot="composer-controls"] button {
+  min-width: 0 !important;
+  padding-inline: 6px;
 }
 
 /* The composer sits on the window's bottom edge: round that edge too, and keep
@@ -333,6 +397,14 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud] [data-component="session-composer-dock"],
 :root[data-hud] [data-slot="composer-touch-bar-mount"] {
   background: transparent !important;
+}
+
+/* Popovers and dialogs float over the app behind the window; they must never
+   inherit the transparent page background. */
+:root[data-hud] [data-slot="dialog-container"],
+:root[data-hud] [data-component="menu-v2-content"],
+:root[data-hud] [data-slot="select-v2-content"] {
+  --v2-background-bg-base: var(--hud-glass-strong);
 }
 
 /* Popovers live outside the frame's pointer-events tree; they are still part of
@@ -518,7 +590,12 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
    the pointer brings everything back. */
 :root[data-hud]
   [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
-  [data-hud-transcript],
+  [data-hud-transcript]
+  [data-slot="session-timeline-scroll"],
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-session-title]
+  > div:first-child,
 :root[data-hud]
   [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
   [data-hud-rail],

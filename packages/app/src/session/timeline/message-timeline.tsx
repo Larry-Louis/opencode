@@ -74,6 +74,8 @@ export function BackgroundMoveHint(props: { keybind?: string[]; onMove?: () => v
 
 type MessageTimelineProps = {
   hideHeader?: boolean
+  /** HUD: the composer is rendered inside the sticky header, under the title bar. */
+  hudComposer?: JSX.Element
   /** Hands the header's empty gap to the pane's window drag area. */
   registerHeaderGap?: (gap: HTMLElement) => () => void
   active?: boolean
@@ -824,6 +826,9 @@ function MessageTimelineView(
                 <SessionHeaderGap active={props.active !== false} register={props.registerHeaderGap} />
               </Show>
             </SessionHeaderLayout>
+            <Show when={props.hudComposer}>
+              <div data-hud-composer-divider>{props.hudComposer}</div>
+            </Show>
           </SessionTitleHeader>
         </Show>
       }

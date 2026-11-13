@@ -8,6 +8,7 @@ import type { ShellOutputInput, ShellOutputOutput } from "@opencode/client/promi
 import { stripAnsi } from "@opencode/session-ui/tools/ansi"
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
+import { useHudMode } from "@/hud/hud-context"
 import { useSettings } from "@/settings/model"
 import { composerLanePlacement, useComposerLaneAlignment } from "./composer-lane"
 import { createShellPanel, createShellTail } from "./shell-panel"
@@ -63,6 +64,7 @@ export function SessionActivityChips(props: {
 }) {
   const language = useLanguage()
   const settings = useSettings()
+  const hud = useHudMode()
 
   const rows = new Map<string, HTMLElement>()
   let content: HTMLElement | undefined
@@ -170,7 +172,12 @@ export function SessionActivityChips(props: {
   return (
     <Show when={active()}>
       <div data-component="session-activity-chips" class="flex min-w-0 shrink items-center">
-        <Menu gutter={8} placement={composerLanePlacement(alignment())} open={view().open} onOpenChange={panel.toggle}>
+        <Menu
+          gutter={8}
+          placement={composerLanePlacement(alignment(), hud)}
+          open={view().open}
+          onOpenChange={panel.toggle}
+        >
           <Menu.Trigger
             as="button"
             type="button"

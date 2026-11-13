@@ -12,6 +12,7 @@ import { DialogSelectModel, ModelSelectorDrawer } from "@/providers/models/selec
 import { DialogSelectModelUnpaid } from "@/providers/models/unpaid"
 import { formatKeybind, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
+import { useHudMode } from "@/hud/hud-context"
 import type { ComposerModel } from "./model"
 import type { ComposerModelLabel } from "./model-label"
 import {
@@ -104,6 +105,7 @@ function ComposerModelControl(props: {
   const shouldAnimate = createMemo<boolean>((previous) => previous ?? (props.loading && !props.preview))
   const mobile = createMediaQuery("(max-width: 767px)")
   const dialog = useDialog()
+  const hud = useHudMode()
 
   const open = (detail: number) => {
     if (!props.paid) return props.onUnpaidClick()
@@ -157,25 +159,28 @@ function ComposerModelControl(props: {
 
   onCleanup(() => dispatch({ type: "disposed" }))
 
-  const content = () => (
-    <>
-      <span class="flex min-w-0 whitespace-nowrap leading-4">
-        <Show when={props.label.provider}>
-          {(name) => (
-            <>
-              <bdi class="min-w-0 shrink-[2] truncate text-v2-text-text-faint">{name()}</bdi>
-              <Slash />
-              <span class="sr-only">{" / "}</span>
-            </>
-          )}
-        </Show>
-        <bdi class="min-w-0 truncate">{props.label.model}</bdi>
-      </span>
-      <span class="-ml-0.5 -mr-1 flex shrink-0">
-        <Icon name="chevron-down" />
-      </span>
-    </>
-  )
+  const content = () =>
+    hud ? (
+      <Icon name="outline-brain" />
+    ) : (
+      <>
+        <span class="flex min-w-0 whitespace-nowrap leading-4">
+          <Show when={props.label.provider}>
+            {(name) => (
+              <>
+                <bdi class="min-w-0 shrink-[2] truncate text-v2-text-text-faint">{name()}</bdi>
+                <Slash />
+                <span class="sr-only">{" / "}</span>
+              </>
+            )}
+          </Show>
+          <bdi class="min-w-0 truncate">{props.label.model}</bdi>
+        </span>
+        <span class="-ml-0.5 -mr-1 flex shrink-0">
+          <Icon name="chevron-down" />
+        </span>
+      </>
+    )
 
   return (
     <Show when={!props.loading || props.preview}>

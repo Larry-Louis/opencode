@@ -46,6 +46,7 @@ import type {
   ComposerSuggestion,
 } from "../types"
 import type { ComposerEditorModel, ComposerSelectControl } from "./interaction"
+import { useHudMode } from "@/hud/hud-context"
 import { isAttachment, promptLength } from "../prompt-parts"
 import { editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
 import {
@@ -102,6 +103,7 @@ export type ComposerEditorProps = {
 export function ComposerEditor(props: ComposerEditorProps) {
   const i18n = useI18n()
   const markdown = useMarkdown()
+  const hud = useHudMode()
   const state = props.controller.state
   const view = props.controller.view
   const suggestionsID = createUniqueId()
@@ -441,7 +443,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
         </div>
 
-        <div class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
+        <div data-slot="composer-toolbar" class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
           <Show when={!touch()}>
             <div
               class="flex shrink-0 items-center"
@@ -480,7 +482,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             style={buttons()}
           >
             <div ref={controlsContent} class="flex h-full w-max min-w-full items-center gap-0.5">
-              <Show when={view.agent} keyed>
+              <Show when={hud ? undefined : view.agent} keyed>
                 {(control) => (
                   <ComposerEditorConfiguredSelect
                     fitMenuToOptions
@@ -510,7 +512,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
           <Show when={!touch()}>
             <div data-slot="composer-actions" class="flex shrink-0 items-center">
-              <Show when={mode() === "normal"}>
+              <Show when={!hud && mode() === "normal"}>
                 <ComposerEditorAlternateDelivery
                   controller={props.controller}
                   keybind={props.alternateKeybind ?? ["Mod", "Enter"]}
@@ -1106,6 +1108,7 @@ function ComposerEditorSelect(props: {
   onSelect: (id: string) => void
 }) {
   const mobile = createMediaQuery("(max-width: 767px)")
+  const hud = useHudMode()
   const [store, setStore] = createStore({ open: false, loaded: false })
   const focus = pointerFocusReturn()
   let trigger: HTMLButtonElement | undefined
@@ -1121,17 +1124,20 @@ function ComposerEditorSelect(props: {
     if (!mobile() && store.open) setOpen(false)
   })
 
-  const content = () => (
-    <>
-      {props.currentIcon}
-      <span class="truncate capitalize leading-5">
-        {props.options.find((option) => option.id === props.current)?.label ?? props.current}
-      </span>
-      <span class="-ms-0.5 -me-1 flex shrink-0">
-        <Icon name="chevron-down" />
-      </span>
-    </>
-  )
+  const content = () =>
+    hud ? (
+      props.currentIcon ?? <Icon name="outline-sliders" />
+    ) : (
+      <>
+        {props.currentIcon}
+        <span class="truncate capitalize leading-5">
+          {props.options.find((option) => option.id === props.current)?.label ?? props.current}
+        </span>
+        <span class="-ms-0.5 -me-1 flex shrink-0">
+          <Icon name="chevron-down" />
+        </span>
+      </>
+    )
 
   return (
     <Tooltip

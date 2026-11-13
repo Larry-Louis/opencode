@@ -19,8 +19,10 @@ export function useComposerLaneAlignment() {
 }
 
 /** Where a pill's popover opens: above it, from the lane's aligned edge. */
-export function composerLanePlacement(alignment: "center" | "start" | "end") {
-  return ({ center: "top", start: "top-start", end: "top-end" } as const)[alignment]
+export function composerLanePlacement(alignment: "center" | "start" | "end", below = false) {
+  return below
+    ? ({ center: "bottom", start: "bottom-start", end: "bottom-end" } as const)[alignment]
+    : ({ center: "top", start: "top-start", end: "top-end" } as const)[alignment]
 }
 
 // The pills float out of flow in a lane the timeline reserves at its tail, so coming and going never resizes the

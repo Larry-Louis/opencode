@@ -277,6 +277,30 @@ function SessionScreenContent(props: {
     return () => setHeaderGap((current) => (current === gap ? undefined : current))
   }
 
+  // HUD puts the composer inside the sticky title block; everywhere else it overlays the
+  // timeline from a zero-height row at the bottom.
+  const composerRow = () => (
+    <div
+      class={
+        hud
+          ? "relative z-[70] flex shrink-0 flex-col"
+          : "relative z-[70] flex h-0 shrink-0 flex-col justify-end"
+      }
+    >
+      <Show when={composer.active()} keyed>
+        {(model) => (
+          <ActiveSessionComposerRegion
+            session={session}
+            view={props.view}
+            screen={props.screen}
+            model={model}
+            suggestionBoundary={timeline.visible}
+          />
+        )}
+      </Show>
+    </div>
+  )
+
   const timelineView = createTimelineCache(
     session,
     (source, active) => {
@@ -298,6 +322,7 @@ function SessionScreenContent(props: {
           <MessageTimeline
             active={active()}
             hideHeader={!isDesktop()}
+            hudComposer={hud ? composerRow() : undefined}
             registerHeaderGap={registerHeaderGap}
             session={source}
             view={own()}
@@ -314,7 +339,7 @@ function SessionScreenContent(props: {
             centered={screen.centered()}
             reserveReviewToggle={!sideVisible()}
             onContentResize={timeline.view.contentResized}
-            bottomInset={timeline.inset()}
+            bottomInset={hud ? 0 : timeline.inset()}
             setVisibleRef={timeline.view.setVisibleRef}
             anchor={timeline.view.anchor}
             setRevealMessage={timeline.view.setRevealMessage}
@@ -437,20 +462,8 @@ function SessionScreenContent(props: {
 
       {/* The composer region overflows this zero-height row upward, over a timeline that scrolls on underneath it. It
           stays shallower than the timeline's observed elements, so their resizes from its inset arrive in the same
-          ResizeObserver pass. */}
-      <div class="relative z-[70] flex h-0 shrink-0 flex-col justify-end">
-        <Show when={composer.active()} keyed>
-          {(model) => (
-            <ActiveSessionComposerRegion
-              session={session}
-              view={props.view}
-              screen={props.screen}
-              model={model}
-              suggestionBoundary={timeline.visible}
-            />
-          )}
-        </Show>
-      </div>
+          ResizeObserver pass. The HUD renders it inside the title header instead. */}
+      <Show when={!hud}>{composerRow()}</Show>
       <Show when={!isDesktop() && !!session.identity.params.id && bottomMobileTabs()}>{mobileTabs()}</Show>
     </>
   )
