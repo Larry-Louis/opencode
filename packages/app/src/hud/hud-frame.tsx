@@ -3,7 +3,7 @@ import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
-import { HUD_NOTE, readHudLocked, readIncludeScreen, setHudContext, writeHudLocked, writeIncludeScreen, type HudContext } from "./hud-attachment"
+import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
 import "./hud.css"
 
 const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
@@ -40,7 +40,14 @@ export function HudFrame(props: ParentProps) {
   const api = platform.hud
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
-  const [locked, setLocked] = createSignal(readHudLocked())
+  const [lockMode, setLockMode] = createSignal<HudLockMode>(readHudLockMode())
+  const [hovering, setHovering] = createSignal(false)
+  // A finished turn stays on screen until the user has focused the HUD at least
+  // once, so the answer never fades the instant streaming stops.
+  const [holdUntilFocus, setHoldUntilFocus] = createSignal(false)
+  const locked = () => lockMode() === "show"
+  const chromeHidden = () => lockMode() === "hide"
+  const hoverMode = () => lockMode() === "hover"
   const [windowing, setWindowing] = createSignal<HudWindowing>(defaultWindowing())
   const [typing, setTyping] = createSignal(false)
   const [recent, setRecent] = createSignal(true)
@@ -88,7 +95,7 @@ export function HudFrame(props: ParentProps) {
   // Native macOS frost is the whole window rectangle; it follows the band's
   // visibility so an idle HUD is not a blurred slab.
   createEffect(() => {
-    void api.setFrost(typing() || recent() || working() || locked()).catch(() => undefined)
+    void api.setFrost(!chromeHidden() && (typing() || recent() || working() || locked())).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
 
@@ -137,7 +144,12 @@ export function HudFrame(props: ParentProps) {
       const next = root.querySelector('[data-hud-transcript][data-hud-transcript-working]') !== null
       setWorking(next)
 
-      if (wasWorking && !next) hold()
+      if (wasWorking && !next) {
+        hold()
+
+        // Keep the finished answer up until the user engages with the HUD once.
+        if (!document.hasFocus()) setHoldUntilFocus(true)
+      }
 
       wasWorking = next
     }
@@ -151,6 +163,7 @@ export function HudFrame(props: ParentProps) {
 
     const focusIn = () => {
       setFocused(true)
+      setHoldUntilFocus(false)
       syncTyping()
       hold()
     }
@@ -159,6 +172,7 @@ export function HudFrame(props: ParentProps) {
 
     const windowFocus = () => {
       setFocused(true)
+      setHoldUntilFocus(false)
       syncTyping()
       hold()
     }
@@ -275,11 +289,13 @@ export function HudFrame(props: ParentProps) {
 
     const move = (event: MouseEvent) => {
       point = { x: event.clientX, y: event.clientY }
+      setHovering(true)
       apply()
     }
 
     const lost = () => {
       point = null
+      setHovering(false)
 
       if (!windowing().clickThrough) return
 
@@ -337,9 +353,10 @@ export function HudFrame(props: ParentProps) {
   }
 
   const toggleLock = () => {
-    const next = !locked()
-    setLocked(next)
-    writeHudLocked(next)
+    const next: HudLockMode =
+      lockMode() === "auto" ? "show" : lockMode() === "show" ? "hide" : lockMode() === "hide" ? "hover" : "auto"
+    setLockMode(next)
+    writeHudLockMode(next)
   }
 
   // A snap or reset happens in main and moves the native window without telling this renderer;
@@ -568,6 +585,10 @@ export function HudFrame(props: ParentProps) {
       data-hud-working={working() ? "" : undefined}
       data-hud-focused={focused() ? "" : undefined}
       data-hud-locked={locked() ? "" : undefined}
+      data-hud-lock-hidden={chromeHidden() ? "" : undefined}
+      data-hud-lock-hover={hoverMode() ? "" : undefined}
+      data-hud-hold={holdUntilFocus() ? "" : undefined}
+      data-hud-hover={hovering() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
@@ -611,18 +632,38 @@ export function HudFrame(props: ParentProps) {
         </Show>
         <button
           type="button"
-          aria-label={language.t(locked() ? "hud.unlock" : "hud.lock")}
-          title={language.t(locked() ? "hud.unlock" : "hud.lock")}
-          aria-pressed={locked()}
+          aria-label={language.t(
+            lockMode() === "auto"
+              ? "hud.lock.show"
+              : lockMode() === "show"
+                ? "hud.lock.hide"
+                : lockMode() === "hide"
+                  ? "hud.lock.hover"
+                  : "hud.lock.auto",
+          )}
+          title={language.t(
+            lockMode() === "auto"
+              ? "hud.lock.show"
+              : lockMode() === "show"
+                ? "hud.lock.hide"
+                : lockMode() === "hide"
+                  ? "hud.lock.hover"
+                  : "hud.lock.auto",
+          )}
+          aria-pressed={lockMode() === "show" ? true : lockMode() === "hide" ? "mixed" : false}
           class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
           classList={{
-            "text-v2-text-text-accent hover:text-v2-text-text-accent-hover": locked(),
-            "text-v2-text-text-faint hover:text-v2-text-text-base": !locked(),
+            "text-v2-text-text-accent hover:text-v2-text-text-accent-hover": lockMode() === "show",
+            "text-v2-text-text-base": lockMode() === "hide" || lockMode() === "hover",
+            "text-v2-text-text-faint hover:text-v2-text-text-base": lockMode() === "auto",
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={toggleLock}
         >
-          <Icon name="lock" size="small" />
+          <Icon
+            name={lockMode() === "hide" ? "outline-eye-slash" : lockMode() === "hover" ? "outline-eye" : "lock"}
+            size="small"
+          />
         </button>
         <button
           type="button"

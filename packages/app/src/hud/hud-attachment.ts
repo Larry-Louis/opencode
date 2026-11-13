@@ -69,19 +69,30 @@ export function writeIncludeScreen(enabled: boolean) {
   } catch {}
 }
 
-const LOCKED_KEY = "opencode.hud.locked"
+const LOCK_MODE_KEY = "opencode.hud.lock-mode"
 
-/** A locked HUD keeps the band, the rail and its controls on screen when it loses focus. */
-export function readHudLocked() {
+const LEGACY_LOCKED_KEY = "opencode.hud.locked"
+
+export type HudLockMode = "auto" | "show" | "hide" | "hover"
+
+/** The lock button cycles four states: the HUD's own focus rules, chrome pinned
+ *  on screen, chrome hidden so only the composer stays, and pointer-driven
+ *  visibility that ignores whether the model is running. */
+export function readHudLockMode(): HudLockMode {
   try {
-    return localStorage.getItem(LOCKED_KEY) === "1"
+    const value = localStorage.getItem(LOCK_MODE_KEY)
+
+    if (value === "show" || value === "hide" || value === "hover" || value === "auto") return value
+
+    // Builds before the tri-state lock stored the pinned state as a boolean.
+    return localStorage.getItem(LEGACY_LOCKED_KEY) === "1" ? "show" : "auto"
   } catch {
-    return false
+    return "auto"
   }
 }
 
-export function writeHudLocked(locked: boolean) {
+export function writeHudLockMode(mode: HudLockMode) {
   try {
-    localStorage.setItem(LOCKED_KEY, locked ? "1" : "0")
+    localStorage.setItem(LOCK_MODE_KEY, mode)
   } catch {}
 }

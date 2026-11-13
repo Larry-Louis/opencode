@@ -9,8 +9,6 @@ export const dict = {
   "hud.context.enable": "随每条消息附带 HUD 背后的屏幕",
   "hud.context.disable": "停止附带 HUD 背后的屏幕",
   "hud.context.refresh": "刷新屏幕上下文",
-  "hud.lock": "锁定 HUD：失焦后保持显示",
-  "hud.unlock": "解除锁定：失焦后进入闲置状态",
   "hud.rail.projects": "项目",
   "hud.rail.loading": "正在加载会话…",
   "hud.rail.empty": "还没有会话",

@@ -10,6 +10,7 @@ import { isScrollKeyTarget, scrollKey, scrollKeyOwner, ScrollView } from "@openc
 import { Predicate } from "effect"
 import { Timeline, TimelineRow } from "@opencode/session-ui/timeline/projection"
 import { useLanguage } from "@/runtime/i18n/language"
+import { useHudMode } from "@/hud/hud-context"
 import {
   batch,
   createEffect,
@@ -146,6 +147,7 @@ type ViewProps = {
 
 export function createTimelineVirtualizer(input: Input) {
   const language = useLanguage()
+  const hud = useHudMode()
   const active = () => input.active?.() !== false
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const topOffset = () => (input.showHeader() ? 64 : isDesktop() ? 0 : 16)
@@ -153,7 +155,7 @@ export function createTimelineVirtualizer(input: Input) {
   // activity pill and its 10px composer gap. Without hover the pill grows from 32px to its 44px touch size
   // (composer-lane.css), and the tail grows with it. Both come and go inside it, so neither moves the rows above.
   const touch = createMediaQuery("(hover: none)")
-  const tailSize = () => (touch() ? 104 : 92)
+  const tailSize = () => (hud ? 12 : touch() ? 104 : 92)
   const ownerSessionKey = input.sessionKey()
   const entry = cache.get(ownerSessionKey)
   const cached = entry?.presentationKey === input.presentationKey?.() ? entry : undefined
@@ -1236,7 +1238,7 @@ export function createTimelineVirtualizer(input: Input) {
           class="pointer-events-none absolute inset-x-0 top-0"
           style={{ bottom: `${bottomInset()}px` }}
         />
-        <Show when={isDesktop() && (input.history?.().length ?? 0) > 1}>
+        <Show when={(isDesktop() || hud) && (input.history?.().length ?? 0) > 1}>
           <TurnNavigator
             items={input.history?.() ?? []}
             scroller={listRoot}
