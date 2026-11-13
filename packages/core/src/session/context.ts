@@ -103,9 +103,10 @@ const layer = Layer.effect(
         Effect.orElseSucceed(() => undefined),
       )
       const candidate = yield* Effect.gen(function* () {
+        // A title only names a session, so it carries no thinking level unless the agent asks for one.
         if (agent.model) {
           const info = yield* model.get(agent.model.providerID, agent.model.id)
-          return info && { info, variant: agent.model.variant ?? minimalVariant(info) }
+          return info && { info, variant: agent.model.variant }
         }
         if (!primary) return
         const small = yield* model.small(primary.ref.providerID)
@@ -200,9 +201,6 @@ const layer = Layer.effect(
 
 /** Variant IDs that minimize reasoning output, in preference order. */
 const MINIMAL_REASONING_VARIANTS = ["none", "minimal", "low"].map((id) => Model.VariantID.make(id))
-
-const minimalVariant = (info: Model.Info) =>
-  MINIMAL_REASONING_VARIANTS.find((id) => info.variants.some((item) => item.id === id))
 
 /**
  * `none` and `minimal` always reduce reasoning. `low` can enable reasoning on a model whose default

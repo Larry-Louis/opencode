@@ -349,7 +349,42 @@ it.effect("uses a small model from the primary provider", () =>
     yield* title.generate(sessionID)
 
     expect(requests.map((request) => String(request.model.id))).toEqual(["title-small"])
-    expect(selections[1]?.variant).toBe(Model.VariantID.make("none"))
+    expect(selections[1]?.variant).toBeUndefined()
+    const store = yield* SessionStore.Service
+    expect((yield* store.get(sessionID))?.title).toBe("Generated Title")
+  }),
+)
+
+it.effect("keeps an explicitly configured title model at its default variant", () =>
+  Effect.gen(function* () {
+    selectedPrimary = primaryInfo(["low", "high"])
+    const agents = yield* Agent.Service
+    yield* agents.transform((editor) => {
+      editor.update(Agent.ID.make("title"), (agent) => {
+        agent.mode = "primary"
+        agent.hidden = true
+        agent.model = Model.Ref.make({
+          providerID: Provider.ID.make("test"),
+          id: Model.ID.make("title-model"),
+        })
+      })
+    })
+    const sessionID = Session.ID.make("ses_title_configured_model")
+    yield* insertSession(sessionID)
+    yield* prompt(sessionID, "Name this session without a thinking level")
+
+    const attempted: Model.Ref[] = []
+    const hooks = yield* PluginHooks.Service
+    yield* hooks.register("session", "model.request", (event) =>
+      Effect.sync(() => {
+        attempted.push(event.model)
+      }),
+    )
+
+    const title = yield* SessionTitle.Service
+    yield* title.generate(sessionID)
+
+    expect(attempted.map((model) => model.variant)).toEqual([undefined])
     const store = yield* SessionStore.Service
     expect((yield* store.get(sessionID))?.title).toBe("Generated Title")
   }),
@@ -386,7 +421,7 @@ it.effect("falls back to the primary model when the small model fails", () =>
     yield* title.generate(sessionID)
 
     expect(requests.map((request) => String(request.model.id))).toEqual(["title-small", "title-model"])
-    expect(attempted.map((model) => String(model.variant))).toEqual(["low", "high"])
+    expect(attempted.map((model) => model.variant)).toEqual([undefined, Model.VariantID.make("high")])
     const store = yield* SessionStore.Service
     expect((yield* store.get(sessionID))?.title).toBe("Generated Title")
   }),
