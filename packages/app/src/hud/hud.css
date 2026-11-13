@@ -162,7 +162,7 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
    above the bar, so idle HUD mode is just the bar. */
 :root[data-hud] [data-hud-transcript] {
   border-radius: 12px 12px 0 0;
-  background: transparent;
+  background: var(--hud-glass-band);
   color: var(--hud-ink);
   text-shadow: var(--hud-text-shadow);
   pointer-events: none;
