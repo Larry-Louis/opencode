@@ -3,7 +3,6 @@
   "globalDependencies": [
     "patches/**",
     "bunfig.toml",
-    ".npmrc",
     ".github/actions/setup-bun/**",
     ".github/workflows/check-test.yml",
     "package.json"

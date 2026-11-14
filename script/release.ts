@@ -12,10 +12,8 @@ const root = path.resolve(import.meta.dir, "..")
 // Commits that only touch these folders, such as the console, the data site, services, docs, websites, and infra, are
 // left out of the changelog.
 const changelogExclusions = [
-  ":(exclude)packages/console",
   ":(exclude)packages/data",
   ":(exclude)services",
-  ":(exclude)infra",
 ]
 const review = path.join(root, "RELEASE_REVIEW.md")
 const { values, positionals } = parseArgs({
