@@ -56,6 +56,8 @@ export function HudRoutes() {
   return (
     <Route component={HudLayout}>
       <Route path="/server/:serverKey/session/:id" component={HudSessionPage} />
+      {/* The project rail starts new conversations; the draft screen shares the HUD frame. */}
+      <Route path="/new-session" component={DraftRoute} />
     </Route>
   )
 }

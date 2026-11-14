@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, test } from "bun:test"
 import {
   HUD_NOTE,
   readHudContext,
-  readHudLocked,
+  readHudLockMode,
   readIncludeScreen,
   setHudContext,
   withHudNote,
-  writeHudLocked,
+  writeHudLockMode,
   writeIncludeScreen,
 } from "./hud-attachment"
 
@@ -31,12 +31,21 @@ describe("HUD attachment", () => {
     expect(readIncludeScreen()).toBe(true)
   })
 
-  test("the lock survives a reopen", () => {
-    writeHudLocked(false)
-    expect(readHudLocked()).toBe(false)
+  test("the lock mode survives a reopen", () => {
+    writeHudLockMode("show")
+    expect(readHudLockMode()).toBe("show")
 
-    writeHudLocked(true)
-    expect(readHudLocked()).toBe(true)
+    writeHudLockMode("hide")
+    expect(readHudLockMode()).toBe("hide")
+
+    writeHudLockMode("auto")
+    expect(readHudLockMode()).toBe("auto")
+  })
+
+  test("a HUD pinned by the older boolean lock reads as shown", () => {
+    localStorage.removeItem("opencode.hud.lock-mode")
+    localStorage.setItem("opencode.hud.locked", "1")
+    expect(readHudLockMode()).toBe("show")
   })
 
   test("the base note tells the model the bar is the context", () => {

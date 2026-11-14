@@ -15,6 +15,8 @@ import NewSession from "@/new-session/screen"
 import { ServerSignedOutPanel, ServerUnavailablePanel } from "@/session/server-unavailable-panel"
 import { ErrorPage } from "@/shell/errors/error"
 import { SessionPanelFrame, SessionRouteFrame } from "@/session/session-frame"
+import { useHudMode } from "@/hud/hud-context"
+import { HudRail } from "@/hud/hud-rail"
 
 export function DraftRoute() {
   const [search] = useSearchParams<{ draftId?: string }>()
@@ -60,6 +62,7 @@ function ResolvedDraftRoute(props: { draft: DraftTab }) {
 function ResolvedDraftContent(props: { draft: DraftTab }) {
   const server = useServer()
   const tabs = useTabs()
+  const hud = useHudMode()
 
   return (
     <Show
@@ -92,7 +95,15 @@ function ResolvedDraftContent(props: { draft: DraftTab }) {
           <LocationProvider directory={props.draft.directory}>
             <SessionUIProvider directory={props.draft.directory} server={props.draft.server}>
               <DraftProviders>
-                <NewSession draftId={props.draft.draftID} />
+                <Show when={hud} fallback={<NewSession draftId={props.draft.draftID} />}>
+                  {/* A HUD draft keeps the project rail beside the new conversation. */}
+                  <div class="flex min-h-0 min-w-0 flex-1 flex-row gap-1.5">
+                    <div data-slot="hud-session-pane" class="flex min-h-0 min-w-0 flex-1 flex-col">
+                      <NewSession draftId={props.draft.draftID} />
+                    </div>
+                    <HudRail />
+                  </div>
+                </Show>
               </DraftProviders>
             </SessionUIProvider>
           </LocationProvider>

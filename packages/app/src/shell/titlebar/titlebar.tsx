@@ -8,7 +8,8 @@ import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { Tooltip } from "@opencode/ui/tooltip"
 
-import { useLayout } from "@/shell/state/layout"
+import { useLayout, useCurrentRoute } from "@/shell/state/layout"
+import { sessionHref } from "@/shell/routes/session"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -200,6 +201,13 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
         <Match when>
           {(_) => {
             const layout = useLayout()
+  const route = useCurrentRoute()
+
+  const openHud = () => {
+    const current = route()
+
+    void platform.hud?.toggle(current.type === "session" ? sessionHref(current.server, current.sessionId) : undefined)
+  }
             const global = useGlobal()
 
             const tabs = useTabs()
@@ -841,6 +849,19 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 </Show>
                 <Show when={!props.verticalTabs}>
                   <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
+                    <Show when={platform.hud}>
+                      <Tooltip placement="bottom" value={language.t("command.hud.toggle")} class="shrink-0">
+                        <IconButton
+                          type="button"
+                          variant="ghost-muted"
+                          size="large"
+                          class="!w-9 shrink-0"
+                          icon={<Icon name="monitor" />}
+                          onClick={openHud}
+                          aria-label={language.t("command.hud.toggle")}
+                        />
+                      </Tooltip>
+                    </Show>
                     <TitlebarItems items={titlebarItems} />
                   </div>
                 </Show>

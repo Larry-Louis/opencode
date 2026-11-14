@@ -6,6 +6,17 @@
   background: transparent !important;
 }
 
+/* The HUD window is rectangular; clip the page to the bar's rounded corners so a
+   composer that overflows the viewport cannot paint a square bottom edge. */
+:root[data-hud] {
+  clip-path: inset(0 round 12px);
+}
+
+:root[data-hud] body,
+:root[data-hud] #root {
+  overflow: hidden;
+}
+
 :root[data-hud] {
   --shell-inline-inset: 0px;
   --shell-bottom-inset: 0px;
@@ -16,14 +27,14 @@
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 0.58);
-  --hud-glass-strong: rgb(12 14 18 / 0.76);
-  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-glass: rgb(12 14 18 / 0.88);
+  --hud-glass-strong: rgb(12 14 18 / 0.9);
+  --hud-glass-band: rgb(12 14 18 / 0.9);
   --hud-hairline: rgb(255 255 255 / 0.13);
-  --hud-frame-bg: rgb(12 14 18 / 0.3);
-  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-frame-bg: rgb(12 14 18 / 0.45);
+  --hud-pill-bg: rgb(12 14 18 / 0.9);
   --hud-user: #ffcf6b;
-  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+  --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
 }
 
 /* The theme's own tokens are set on html[data-color-scheme][data-theme], which
@@ -53,29 +64,29 @@ html[data-hud][data-theme][data-color-scheme="dark"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.45);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(12 14 18 / 0.55);
-  --v2-background-bg-layer-02: rgb(12 14 18 / 0.66);
-  --v2-background-bg-layer-03: rgb(12 14 18 / 0.74);
-  --v2-background-bg-layer-04: rgb(12 14 18 / 0.82);
+  --v2-background-bg-layer-01: rgb(16 18 22 / 0.9);
+  --v2-background-bg-layer-02: rgb(20 22 26 / 0.9);
+  --v2-background-bg-layer-03: rgb(23 25 30 / 0.9);
+  --v2-background-bg-layer-04: rgb(27 29 34 / 0.9);
 
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 0.58);
-  --hud-glass-strong: rgb(12 14 18 / 0.76);
-  --hud-glass-band: rgb(12 14 18 / 0.62);
+  --hud-glass: rgb(12 14 18 / 0.88);
+  --hud-glass-strong: rgb(12 14 18 / 0.9);
+  --hud-glass-band: rgb(12 14 18 / 0.9);
   --hud-hairline: rgb(255 255 255 / 0.13);
-  --hud-frame-bg: rgb(12 14 18 / 0.3);
-  --hud-pill-bg: rgb(12 14 18 / 0.4);
+  --hud-frame-bg: rgb(12 14 18 / 0.45);
+  --hud-pill-bg: rgb(12 14 18 / 0.9);
   --hud-user: #ffcf6b;
-  --hud-text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 6px rgb(0 0 0 / 0.55);
+  --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
 }
 
 html[data-hud][data-theme][data-color-scheme="light"] {
   --v2-text-text-base: #171a1f;
   --v2-text-text-muted: rgb(23 26 31 / 0.72);
   --v2-text-text-faint: rgb(23 26 31 / 0.5);
-  --v2-text-text-contrast: #0b0d10;
+  --v2-text-text-contrast: #fff;
   --v2-text-text-accent: #9a5b00;
   --v2-text-text-accent-hover: #7a4600;
   --v2-text-text-code-accent: #8a4b00;
@@ -83,7 +94,7 @@ html[data-hud][data-theme][data-color-scheme="light"] {
   --v2-icon-icon-base: #171a1f;
   --v2-icon-icon-muted: rgb(23 26 31 / 0.72);
   --v2-icon-icon-faint: rgb(23 26 31 / 0.5);
-  --v2-icon-icon-contrast: #0b0d10;
+  --v2-icon-icon-contrast: #fff;
   --v2-icon-icon-accent: #9a5b00;
   --v2-icon-icon-accent-hover: #7a4600;
   --v2-border-border-base: rgb(20 23 28 / 0.12);
@@ -95,22 +106,22 @@ html[data-hud][data-theme][data-color-scheme="light"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.2);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(255 255 255 / 0.55);
-  --v2-background-bg-layer-02: rgb(255 255 255 / 0.68);
-  --v2-background-bg-layer-03: rgb(255 255 255 / 0.78);
-  --v2-background-bg-layer-04: rgb(255 255 255 / 0.88);
+  --v2-background-bg-layer-01: rgb(255 255 255 / 0.9);
+  --v2-background-bg-layer-02: rgb(253 253 254 / 0.9);
+  --v2-background-bg-layer-03: rgb(250 251 252 / 0.9);
+  --v2-background-bg-layer-04: rgb(247 248 250 / 0.9);
 
   --hud-ink: #171a1f;
   --hud-ink-muted: rgb(23 26 31 / 0.72);
   --hud-ink-faint: rgb(23 26 31 / 0.5);
-  --hud-glass: rgb(252 252 253 / 0.72);
-  --hud-glass-strong: rgb(255 255 255 / 0.88);
-  --hud-glass-band: rgb(250 251 253 / 0.76);
+  --hud-glass: rgb(252 252 253 / 0.88);
+  --hud-glass-strong: rgb(255 255 255 / 0.9);
+  --hud-glass-band: rgb(250 251 253 / 0.9);
   --hud-hairline: rgb(20 23 28 / 0.12);
-  --hud-frame-bg: rgb(255 255 255 / 0.32);
-  --hud-pill-bg: rgb(255 255 255 / 0.58);
+  --hud-frame-bg: rgb(255 255 255 / 0.5);
+  --hud-pill-bg: rgb(255 255 255 / 0.9);
   --hud-user: #9a5b00;
-  --hud-text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+  --hud-text-shadow: 0 1px 1px rgb(255 255 255 / 0.85), 0 0 3px rgb(255 255 255 / 0.95);
 }
 
 /* If the theme has not stamped its attributes yet, keep the dark fallback readable. */
@@ -133,11 +144,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition: background-color 180ms ease;
 }
 
-/* While the band is up, the window's own gaps join the same smoked sheet so a
-   native macOS frost never shows as a bare rectangle between surfaces. */
-:root[data-hud] [data-component="hud-frame"][data-hud-typing],
-:root[data-hud] [data-component="hud-frame"][data-hud-recent],
-:root[data-hud] [data-component="hud-frame"][data-hud-working],
+/* The pinned HUD joins the window's gaps into one smoked sheet. Unpinned modes
+   leave the gaps clear so a hidden top half shows the app behind, not a tint. */
 :root[data-hud] [data-component="hud-frame"][data-hud-locked] {
   background: var(--hud-frame-bg);
 }
@@ -165,8 +173,23 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 
+/* The history dots live in the band's first 20px; shift the transcript rows past
+   them so text never sits under the rail. */
+:root[data-hud] [data-hud-transcript] [data-timeline-key] {
+  left: 20px !important;
+  width: calc(100% - 20px) !important;
+}
+
 :root[data-hud] [data-slot="session-turn-message-content"] {
   color: var(--hud-user);
+}
+
+/* The working label sits on bare content; a hairline keeps it legible. */
+:root[data-hud] [data-component="session-working"] {
+  border: 1px solid var(--hud-hairline);
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: var(--hud-pill-bg);
 }
 
 /* The session title bar is a surface too; without its own tint a bright app
@@ -188,21 +211,9 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: auto;
 }
 
-/* While the model writes, the transcript stays fully readable for the bottom
-   60% of the band and ramps out over the top 40%, so streaming text dissolves
-   under the title bar instead of being cut off. A finished turn gets the whole
-   band back: no mask while focused. */
-:root[data-hud]
-  [data-hud-transcript][data-hud-transcript-working]
-  [data-slot="session-timeline-scroll"]
-  > .scroll-view__viewport {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 40%, #000 100%);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-}
+/* The band's own unfocused mask is the only fade. The scroll viewport stays
+   unmasked so the two gradients never multiply: at 40% the band must already be
+   at the full 90%, not 90% of a second ramp. */
 
 :root[data-hud] [data-hud-transcript] :is(button, a[href], [role="button"], [role="link"]) {
   pointer-events: auto;
@@ -219,18 +230,73 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: none;
 }
 
-/* The band follows the turn and the window: while the model writes it stays up
-   on every platform; otherwise the window's focus alone shows it. On platforms
-   with forwarded mouse moves, an unfocused idle band is fully hidden. */
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]) [data-hud-transcript] {
-  opacity: 0;
+/* Unfocused the band dims to 90% at most: the top 50% stays hidden and the bottom
+   50% fades in, for the hover lock and for the default lock while the session is
+   idle. While the model writes, the default lock ramps over the top 40% and holds
+   90% for the bottom 60%. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
+    [data-hud-hold]
+  )
+  [data-hud-transcript] {
+  opacity: 1;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
+  mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-working] [data-hud-transcript],
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough][data-hud-working]:not([data-hud-locked]):not(
+    [data-hud-focused]
+  ):not([data-hud-hold]):not([data-hud-lock-hover])
+  [data-hud-transcript] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 0.9) 40%,
+    rgb(0 0 0 / 0.9) 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.9) 40%, rgb(0 0 0 / 0.9) 100%);
+}
+
 :root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-focused] [data-hud-transcript],
 :root[data-hud] [data-component="hud-frame"][data-hud-locked] [data-hud-transcript] {
   opacity: 1;
   pointer-events: auto;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* The lock button's third state leaves only the composer on screen: the band, the
+   rail and the title strip go away. The strip returns while the pointer rests on
+   it (or the composer has the caret) so the mode can always be cycled back. The
+   idle rules above are highly specific, so the forced state overrides them. */
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] {
+  background: transparent;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-transcript],
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-rail] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-drag] {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  opacity: 0 !important;
+  transition: opacity 140ms ease;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-drag]:hover,
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden]:focus-within [data-hud-drag] {
+  opacity: 1 !important;
 }
 
 /* The composer bar is the one persistent solid surface. It gets more opaque
@@ -248,21 +314,34 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition: background-color 160ms ease;
 }
 
+/* The composer sits on the window's bottom edge: round that edge too, and keep
+   the dock and the frame's bottom corners matching it. */
+:root[data-hud] [data-component="hud-frame"],
+:root[data-hud] [data-component="session-composer-dock"],
+:root[data-hud] [data-component="composer"] > *:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
 :root[data-hud] [data-component="hud-frame"][data-hud-typing] [data-component="composer"] {
   background: var(--hud-glass-strong) !important;
 }
 
 :root[data-hud] [data-slot="session-chat-panel"],
-:root[data-hud] [data-slot="session-chat-panel"] > *,
+/* The transcript is a direct child too: it must keep its own band background. */
+:root[data-hud] [data-slot="session-chat-panel"] > :not([data-hud-transcript]),
 :root[data-hud] [data-component="session-composer-dock"],
 :root[data-hud] [data-slot="composer-touch-bar-mount"] {
   background: transparent !important;
 }
 
 /* Popovers live outside the frame's pointer-events tree; they are still part of
-   the HUD and need the same smoked surface as the bar. */
+   the HUD and need an opaque surface. Dialogs and menus would otherwise inherit
+   the transparent page color and let the app behind the window show through. */
 :root[data-hud] [data-component="composer-suggestions"],
 :root[data-hud] [data-component="menu-v2-content"],
+:root[data-hud] [data-slot="select-v2-content"],
+:root[data-hud] [data-slot="dialog-container"],
 :root[data-hud] [data-slot="dialog-content"] {
   background: var(--hud-glass-strong) !important;
   border: 1px solid var(--hud-hairline);
@@ -273,7 +352,7 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 }
 
 :root[data-hud] [data-hud-drag] {
-  margin: 4px 8px 0;
+  margin: 4px 8px 6px;
   border: 1px solid var(--hud-hairline);
   border-radius: 10px;
   background: var(--hud-pill-bg);
@@ -322,6 +401,7 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 }
 
 :root[data-hud] [data-hud-project] {
+  position: relative;
   display: grid;
   place-items: center;
   width: 34px;
@@ -336,6 +416,36 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud] [data-hud-project]:is(:hover, [data-expanded], :focus-visible) {
   background: var(--v2-overlay-simple-overlay-hover);
   outline: none;
+}
+
+/* The main window's compact tab rail rings the project avatar while its session
+   works or waits on the user; the HUD rail carries the same signal for the open
+   session: a pulsing accent ring, warning while input is pending. */
+:root[data-hud] [data-hud-project][data-status]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid var(--v2-text-text-accent);
+  border-radius: 9px;
+  pointer-events: none;
+}
+
+:root[data-hud] [data-hud-project][data-status="attention"]::after {
+  border-color: var(--v2-state-fg-warning);
+}
+
+:root[data-hud] [data-hud-project][data-status="busy"]::after {
+  animation: hud-rail-ring-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes hud-rail-ring-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+:root[data-motion="reduce"][data-hud] [data-hud-project]::after {
+  animation: none;
 }
 
 :root[data-hud] [data-hud-project][data-active] {
@@ -371,7 +481,7 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
     [data-hud-typing]
-  ):not([data-hud-working]):not([data-hud-locked])
+  ):not([data-hud-working]):not([data-hud-locked]):not([data-hud-hold])
   [data-hud-rail] {
   opacity: 0;
   visibility: hidden;
@@ -386,12 +496,40 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
     [data-hud-typing]
-  ):not([data-hud-locked])
+  ):not([data-hud-locked]):not([data-hud-hold])
   [data-hud-drag] {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: none;
+}
+
+/* Hover lock: the pointer decides whether the rail and the title strip are shown;
+   the band itself uses the same unfocused fade as the default lock. */
+
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hover][data-hud-hover] [data-hud-rail],
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hover][data-hud-hover] [data-hud-drag] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Hover lock away from the HUD: only the composer stays, like the hide lock, and
+   the pointer brings everything back. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-hud-transcript],
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-hud-rail],
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-hud-drag] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 :root[data-hud] [data-hud-transcript]::selection,

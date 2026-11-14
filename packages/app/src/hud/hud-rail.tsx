@@ -8,27 +8,41 @@ import { useServer } from "@/runtime/server/current"
 import type { Project } from "@/runtime/server/types"
 import { sessionHref } from "@/shell/routes/session"
 import { ProjectIcon } from "@/shell/layout/project-icon"
+import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
 import { sessionLabel } from "@/session/title"
+import { useTabs } from "@/shell/tabs/tabs"
 import { useLanguage } from "@/runtime/i18n/language"
 
 const SESSION_LIMIT = 24
 
 /**
  * The normal window's project sidebar, pinned to its icon rail: project avatars on the right
- * edge, never wider than the rail. Each avatar opens that project's recent sessions, so
- * switching projects never grows the bar.
+ * edge, never wider than the rail. Each avatar opens that project's recent sessions, with a
+ * new conversation as the first row, so switching projects never grows the bar.
  */
 export function HudRail() {
   const server = useServer()
   const language = useLanguage()
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const tabs = useTabs()
+
+  const sessionId = () => params.id ?? ""
 
   const current = createMemo(() => {
-    const info = server.ctx.data.session.get(params.id)
+    const info = server.ctx.data.session.get(sessionId())
 
     return info ? server.ctx.projects.forSession(info) : undefined
   })
+
+  // The same avatar state the main window's tab rail uses: a pulsing ring while the
+  // session works, a warning ring while it waits on the user.
+  const avatar = useSessionTabAvatarState(
+    () => server.key,
+    sessionId,
+    () => true,
+  )
+  const status = () => (avatar.attention() ? "attention" : avatar.loading() ? "busy" : undefined)
 
   // The rail keeps its last populated list while the server reloads, so navigation never
   // collapses the bar to nothing mid-session.
@@ -78,6 +92,11 @@ export function HudRail() {
     navigate(sessionHref(server.key, session.id))
   }
 
+  const start = (project: Project) => {
+    server.ctx.projects.touch(project.worktree)
+    void tabs.newDraft({ server: server.key, directory: project.worktree })
+  }
+
   const switchTo = (project: Project) => {
     const known = state.sessions[project.id]?.[0]
 
@@ -92,9 +111,17 @@ export function HudRail() {
       .then((response) => {
         const session = response.data[0]
 
-        if (session) open(session)
+        if (session) return open(session)
+
+        // Nothing to switch to: show the project's menu so the new-conversation
+        // row is still reachable.
+        setOpenFor(project.id)
+        load(project)
       })
-      .catch(() => undefined)
+      .catch(() => {
+        setOpenFor(project.id)
+        load(project)
+      })
       .finally(() => setSwitching(undefined))
   }
 
@@ -121,6 +148,10 @@ export function HudRail() {
                   onOpenChange={(open) => {
                     if (!open) return setOpenFor(undefined)
 
+                    // The menu already opened for this project (a project with no sessions
+                    // opens it from switchTo); opening again would re-run the switch.
+                    if (openFor() === project.id) return
+
                     if (!active()) return switchTo(project)
 
                     setOpenFor(project.id)
@@ -132,6 +163,7 @@ export function HudRail() {
                     type="button"
                     data-hud-project
                     data-active={active() ? "" : undefined}
+                    data-status={active() ? status() : undefined}
                     data-pending={switching() === project.id ? "" : undefined}
                     aria-label={displayName(project)}
                     title={displayName(project)}
@@ -142,37 +174,22 @@ export function HudRail() {
                     <Menu.Content class="max-w-80 min-w-56" data-slot="hud-project-menu">
                       <Menu.Group>
                         <Menu.GroupLabel>{displayName(project)}</Menu.GroupLabel>
-                        <Show
-                          when={sessions()}
-                          fallback={
-                            <div data-slot="hud-project-menu-empty">
-                              {language.t(
-                                state.pending[project.id]
-                                  ? "hud.rail.loading"
-                                  : state.failed[project.id]
-                                    ? "hud.rail.failed"
-                                    : "hud.rail.empty",
-                              )}
-                            </div>
-                          }
-                        >
+                        <Menu.Item data-slot="hud-project-new" onSelect={() => start(project)}>
+                          {language.t("command.session.new")}
+                        </Menu.Item>
+                        <Show when={sessions()}>
                           {(list) => (
-                            <Show
-                              when={list().length > 0}
-                              fallback={<div data-slot="hud-project-menu-empty">{language.t("hud.rail.empty")}</div>}
-                            >
-                              <For each={list()}>
-                                {(session) => (
-                                  <Menu.Item
-                                    data-slot="hud-project-session"
-                                    data-active={session.id === params.id ? "" : undefined}
-                                    onSelect={() => open(session)}
-                                  >
-                                    <span class="min-w-0 flex-1 truncate">{sessionLabel(session)}</span>
-                                  </Menu.Item>
-                                )}
-                              </For>
-                            </Show>
+                            <For each={list()}>
+                              {(session) => (
+                                <Menu.Item
+                                  data-slot="hud-project-session"
+                                  data-active={session.id === params.id ? "" : undefined}
+                                  onSelect={() => open(session)}
+                                >
+                                  <span class="min-w-0 flex-1 truncate">{sessionLabel(session)}</span>
+                                </Menu.Item>
+                              )}
+                            </For>
                           )}
                         </Show>
                       </Menu.Group>
