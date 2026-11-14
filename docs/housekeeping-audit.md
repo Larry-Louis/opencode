@@ -142,7 +142,7 @@
 | 2 | **turbo 全局依赖指向不存在的文件**：`.npmrc` 在仓库里根本不存在，导致 turbo 的 global hash 白算一个不存在的输入（缓存失效判断失真） | `turbo.json` → `globalDependencies` 里的 `".npmrc"` | 中 |
 | 3 | **release 脚本里的死路径**：`packages/console`（已被删除的包）和 `infra`（仓库里不存在） | `script/release.ts:14-18` `changelogExclusions` | 中 |
 | 4 | **sst 时代残渣**：sst 已整体移除（`36f559b0c6`、`5fc7a62b00`），但仍有一个被跟踪的 `sst-env.d.ts`，且 prettier 还在为它写忽略规则 | `packages/app/src/sst-env.d.ts`；`.prettierignore:1` | 中 |
-| 5 | **`bunfig.toml` 的 test root 指向不存在的目录**：从根跑 `bun test` 会走到一个空路径 | 根 `bunfig.toml` → `[test] root = "./do-not-run-tests-from-root"`（该目录不存在且未被跟踪） | 中 |
+| 5 | **`bunfig.toml` 的 test root 指向不存在的目录**（**不是问题，别修**）：这是故意的护栏——配合根 `package.json` 的 `"test": "echo 'do not run tests from root' && exit 1"`，让误从根跑 `bun test` 时找不到测试而不是跑到全仓 | 根 `bunfig.toml` → `[test] root = "./do-not-run-tests-from-root"`（该目录不存在且未被跟踪） | 忽略 |
 | 6 | **无人引用的根目录截图**：`git grep` 全仓零命中 | `screenshot-uk.png`（根目录，被跟踪） | 低 |
 | 7 | **陈旧 worktree 指针**：60 字节的 gitdir 备份文件，指向 `F:/AI/agent/opencode-src/.git/worktrees/opencode-v2`（另一份检出），未跟踪也未忽略 | 根目录 `.git.worktree_bak` | 低 |
 | 8 | **垃圾 npm script**：占位脚本留在正式 `package.json` 里 | 根 `package.json:32` `"random": "echo 'Random script'"` | 低 |
