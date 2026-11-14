@@ -84,6 +84,42 @@ test.describe("timeline history", () => {
     expect(requests).toEqual([undefined, "older", "oldest"])
   })
 
+  test("pages older turns only when the reader reaches for the navigator", async ({ page }) => {
+    const id = "ses_navigator_lazy"
+    const turns = Array.from({ length: 6 }, (_, index) => [
+      userMessage([textPart(`prt_lazy_user_${index}`, `Prompt ${index}`)], {
+        id: `msg_lazy_user_${index}`,
+        created: index * 2 + 1,
+      }),
+      assistantMessage([textPart(`prt_lazy_assistant_${index}`, `Answer ${index}.`)], {
+        id: `msg_lazy_assistant_${index}`,
+        created: index * 2 + 2,
+      }),
+    ]).flat()
+
+    const requests: (string | undefined)[] = []
+    await openSession(page, {
+      name: "NavigatorLazy",
+      sessions: [{ id }],
+      pageMessages: (_session, _limit, before) => {
+        requests.push(before)
+
+        if (before === "older") return { items: turns.slice(0, 4) }
+
+        return { items: turns.slice(4), cursor: "older" }
+      },
+    })
+    await expect(page.locator("[data-timeline-virtual-content]")).toHaveCSS("visibility", "visible")
+    // The last answer is formatted: the mount is settled, which is when the rail used to page in the whole history.
+    await expect(page.getByText("Answer 5.", { exact: true })).toBeVisible()
+    const navigator = page.locator("[data-component='turn-navigator']")
+    await expect(navigator).toBeVisible()
+    expect(requests.filter((before) => before !== undefined)).toEqual([])
+
+    await navigator.hover()
+    await expect.poll(() => requests.filter((before) => before !== undefined)).toEqual(["older"])
+  })
+
   test("keeps visible rows fixed while an older page prepends", async ({ page }) => {
     const older = Promise.withResolvers<void>()
     const requests: { before?: string; phase: "start" | "end" }[] = []
