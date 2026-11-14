@@ -874,6 +874,7 @@ export const dict = {
   "sidebar.recent.moveDown": "Move down",
   "sidebar.project.recentSessions": "Recent sessions",
   "sidebar.project.clearNotifications": "Clear notifications",
+  "sidebar.project.hide": "Remove from sidebar",
 
   "settings.section.server": "Server",
   "settings.backToApp": "Back to app",

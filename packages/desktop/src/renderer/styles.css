@@ -552,10 +552,23 @@ html[data-color-scheme="light"][data-theme] [data-component="bash-output"] .bt-t
  * 与暗色 2c 同构：框只落 markdown-code 外层，
  * 内层 pre 必须透明，否则其 #fcfcfc 底会盖住外层浅蓝
  * ------------------------------------------------ */
+/* 代码框的上下留白由外层框统一给。
+ * 之前这里把 pre.shiki 的 margin 清零，而内层的 16px（.highlights 的 margin-block、
+ * markdown-code-content 的 margin-block）恰好就是框里的上留白：一旦 shiki 类名命中，
+ * 那 16px 消失、代码文字贴住框顶；还没高亮或插件内容的块仍保留 16px——表现成
+ * "有时候上边距不见了"。现在框自己的 padding 提供留白，内层不再参与。 */
 [data-component="markdown-code"] {
+  padding-block: 12px;
   margin-top: 0 !important;
   margin-bottom: 10px !important;
   transition: background-color 0.2s ease;
+}
+
+[data-component="markdown-code"] > pre,
+[data-component="markdown-code"] > [data-slot="markdown-code-content"],
+pre.shiki.OpenCode {
+  margin-block: 0 !important;
+  padding-block: 0 !important;
 }
 html[data-color-scheme="light"][data-theme] [data-component="markdown-code"] {
   background: hsl(200 45% 92%) !important;
@@ -882,3 +895,140 @@ html[data-color-scheme="dark"][data-theme] .bt-think-collapse {
   background: hsl(30 25% 15% / 0.94);
   border-color: hsl(36 90% 60% / 0.45);
 }
+
+/* ---------- 8. 胶囊表面统一：底色只由胶囊本体承载 ----------
+ * 读取 / 写入 / 编辑这类文件工具曾经把底色画在内层
+ * [data-slot="basic-tool-tool-trigger-content"]、[data-slot="apply-patch-trigger-content"]
+ * 上，而胶囊本体仍保留 padding: 2px 14px 2px 12px 与 border-radius: 999px，
+ * 于是看起来"背景只填了中间一块，没有铺满整个胶囊"。
+ * 这里统一成一种做法：几何和底色都归最外层胶囊，内层一律透明，
+ * 任何越界内容都被裁成胶囊形状。展开吸顶的实底规则特异性更高，仍由第 4b 节接管。
+ * ------------------------------------------------------------------ */
+[data-component="tool-trigger"][data-pill-kind] {
+  overflow: clip;
+}
+
+[data-component="tool-trigger"][data-pill-kind]
+  :is(
+    [data-slot="basic-tool-tool-trigger-content"],
+    [data-slot="basic-tool-tool-info"],
+    [data-slot="basic-tool-tool-info-structured"],
+    [data-slot="basic-tool-tool-info-main"],
+    [data-slot="bt-pill-preview"]
+  ) {
+  background: none;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* 文件类工具：胶囊几何落在最外层可点区域 */
+[data-component="edit-tool"] [data-component="tool-trigger"][data-pill-kind],
+[data-component="write-tool"] [data-slot="accordion-trigger"],
+[data-component="apply-patch-tool"] [data-slot="accordion-trigger"],
+[data-component="read-tool-group"] {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 14px 2px 12px;
+  border: 1px solid hsl(208 64% 49% / 0.35);
+  border-radius: 999px;
+  background: hsl(208 64% 49% / 0.08);
+  color: hsl(208 64% 35%);
+}
+
+html[data-color-scheme="dark"][data-theme] [data-component="edit-tool"] [data-component="tool-trigger"][data-pill-kind],
+html[data-color-scheme="dark"][data-theme] [data-component="write-tool"] [data-slot="accordion-trigger"],
+html[data-color-scheme="dark"][data-theme] [data-component="apply-patch-tool"] [data-slot="accordion-trigger"],
+html[data-color-scheme="dark"][data-theme] [data-component="read-tool-group"] {
+  border-color: hsl(208 64% 49% / 0.4);
+  background: hsl(208 64% 49% / 0.12);
+  color: hsl(208 64% 65%);
+}
+
+/* 内层不再自带底色、边框和留白 */
+[data-component="write-tool"] [data-slot="apply-patch-trigger-content"],
+[data-component="apply-patch-tool"] [data-slot="apply-patch-trigger-content"],
+[data-component="write-tool"] [data-slot="apply-patch-file-info"],
+[data-component="apply-patch-tool"] [data-slot="apply-patch-file-info"] {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+[data-component="read-tool-group"] > [data-component="tool-trigger"] {
+  width: fit-content;
+  max-width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* apply_patch（暗色）：底色挪回胶囊本体，内层只留文字 */
+html[data-color-scheme="dark"][data-theme]
+  [data-component="apply-patch-tool"]
+  > [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-trigger"]
+  > [data-component="tool-trigger"]
+  > [data-slot="basic-tool-tool-trigger-content"] {
+  color: inherit;
+  background: none;
+  border-color: transparent;
+}
+
+/* 上下文收集组：胶囊本体承载黄色底色，内层只留文字 */
+[data-component="context-tool-group-list"]
+  > [data-slot="context-tool-group-item"]
+  > [data-component="tool-trigger"] {
+  padding: 2px 10px;
+  border: 1px solid rgb(234 179 8 / 0.42);
+  border-radius: 999px;
+  background: rgb(251 242 105 / 34%);
+  color: hsl(45 75% 30%);
+}
+
+html[data-color-scheme="dark"][data-theme]
+  [data-component="context-tool-group-list"]
+  > [data-slot="context-tool-group-item"]
+  > [data-component="tool-trigger"] {
+  border-color: rgb(234 179 8 / 0.45);
+  background: rgb(234 179 8 / 0.13);
+  color: hsl(48 90% 62%);
+}
+
+[data-component="context-tool-group-list"]
+  > [data-slot="context-tool-group-item"]
+  > [data-component="tool-trigger"]
+  > [data-slot="basic-tool-tool-trigger-content"] {
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* ---------- 9. HUD 右侧图标组：呼吸环与正式模式侧边栏图标模式同色 ----------
+ * 正式模式（图标侧栏）用 --v2-text-text-accent 画环；HUD 为了自身排版把这个 token
+ * 改成了琥珀色，于是同一个会话在 HUD 里是黄色呼吸、在主窗口里是蓝色呼吸。
+ * 这里把环和未读圆点取回 BT 强调色，等待输入 / 失败仍走各自 state token。
+ * -------------------------------------------------------------------------- */
+html[data-theme][data-hud][data-color-scheme="dark"] [data-hud-project][data-status="busy"]::after,
+html[data-theme][data-hud][data-color-scheme="dark"] [data-hud-project][data-status="unread"]::before {
+  border-color: hsl(208 64% 55%);
+  background-color: hsl(208 64% 55%);
+}
+
+html[data-theme][data-hud][data-color-scheme="light"] [data-hud-project][data-status="busy"]::after,
+html[data-theme][data-hud][data-color-scheme="light"] [data-hud-project][data-status="unread"]::before {
+  border-color: hsl(207 77% 42%);
+  background-color: hsl(207 77% 42%);
+}
+
+/* The same accent for a finished run still unread, listed per session in the menu. */
+html[data-theme][data-hud][data-color-scheme="dark"] [data-slot="hud-project-session-dot"] {
+  background: hsl(208 64% 55%);
+}
+
+html[data-theme][data-hud][data-color-scheme="light"] [data-slot="hud-project-session-dot"] {
+  background: hsl(207 77% 42%);
+}
+

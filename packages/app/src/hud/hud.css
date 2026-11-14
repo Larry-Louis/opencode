@@ -173,6 +173,14 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 
+/* A draft has no band behind it, and the HUD's base surface is transparent by
+   design, so the new-session panel painted nothing and the window looked gone.
+   It takes the band's smoked sheet: the same opacity the transcript reads on. */
+:root[data-hud] [data-component="new-session"] {
+  background: var(--hud-glass-band);
+  box-shadow: none;
+}
+
 /* The history dots live in the band's first 20px; shift the transcript rows past
    them so text never sits under the rail. */
 :root[data-hud] [data-hud-transcript] [data-timeline-key] {
@@ -420,7 +428,16 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 
 /* The main window's compact tab rail rings the project avatar while its session
    works or waits on the user; the HUD rail carries the same signal for the open
-   session: a pulsing accent ring, warning while input is pending. */
+   session: a pulsing accent ring, warning while input is pending, danger after a
+   failed run, and the same dot (not a ring) for a finished run still unread, so
+   "running" and "done" never look the same. */
+/* The ring is a halo around the avatar, not a lid over it: the icon paints above it,
+   so a resting or hovered avatar never sits under its own status ring. */
+:root[data-hud] [data-hud-project] > * {
+  position: relative;
+  z-index: 1;
+}
+
 :root[data-hud] [data-hud-project][data-status]::after {
   content: "";
   position: absolute;
@@ -434,8 +451,40 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   border-color: var(--v2-state-fg-warning);
 }
 
+:root[data-hud] [data-hud-project][data-status="failed"]::after {
+  border-color: var(--v2-state-fg-danger);
+}
+
 :root[data-hud] [data-hud-project][data-status="busy"]::after {
   animation: hud-rail-ring-pulse 1.4s ease-in-out infinite;
+}
+
+/* Unread keeps the dot the compact tab rail uses instead of a ring. */
+:root[data-hud] [data-hud-project][data-status="unread"]::after {
+  content: none;
+}
+
+:root[data-hud] [data-hud-project][data-status="unread"]::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--v2-text-text-accent);
+  pointer-events: none;
+}
+
+/* A finished run one has not read yet is marked per session in the project menu, the way the
+   compact tab rail marks each tab: the same 6px dot, at the end of the row. */
+:root[data-hud] [data-slot="hud-project-session-dot"] {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 8px;
+  border-radius: 999px;
+  background: var(--v2-text-text-accent);
 }
 
 @keyframes hud-rail-ring-pulse {
@@ -489,14 +538,16 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition: none;
 }
 
-/* Idle HUD is the composer alone. The controls return when the window is
-   focused, a turn is recent, or the caret is in the composer. On solid X11 /
-   Wayland windows they stay visible because there is no click-through to fall
-   back on. */
+/* Idle HUD is the composer alone. The title strip returns only when the window is
+   focused, locked, or the caret is in the composer: a streaming turn mutates the
+   transcript constantly, and letting that "recent" hold raise the strip flashed it
+   back on for 1.1s with every new thought while the HUD was unfocused. On solid
+   X11 / Wayland windows the strip stays visible because there is no click-through
+   to fall back on. */
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-recent]):not(
-    [data-hud-typing]
-  ):not([data-hud-locked]):not([data-hud-hold])
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-focused]):not([data-hud-typing]):not(
+    [data-hud-locked]
+  )
   [data-hud-drag] {
   opacity: 0;
   visibility: hidden;
