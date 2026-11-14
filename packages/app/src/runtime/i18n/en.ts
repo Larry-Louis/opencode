@@ -377,6 +377,9 @@ export const dict = {
   "session.child.status.succeeded": "Done",
   "session.child.status.failed": "Failed",
   "session.child.status.interrupted": "Interrupted",
+  "session.stats.label": "Session token usage",
+  "session.stats.summary": "In {{input}} · Out {{output}} · Cache {{cache}}%",
+  "session.stats.summaryReasoning": "In {{input}} · Out {{output}} · Think {{reasoning}} · Cache {{cache}}%",
 
   "prompt.action.attachFile": "Add files",
 

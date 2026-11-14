@@ -51,6 +51,8 @@ import { createSessionRequestModel } from "../requests/model"
 import type { Region } from "@/runtime/plugin/panels"
 import { SessionLocationMissing } from "./location-missing"
 import { SessionPluginPills } from "./plugin-pills"
+import { useHudMode } from "@/hud/hud-context"
+import { SessionTokenStats } from "@/blue-topaz/session-stats"
 import { createTimelineActions, type TimelineActionsView, type TimelinePendingActions } from "./timeline-actions"
 import type { MountedSession, SessionScreen } from "@opencode/plugin/gui"
 
@@ -426,6 +428,8 @@ export function ActiveSessionComposerRegion(props: {
   const server = useServerSDK()
   const language = useLanguage()
   const openRoute = useOpenSessionRoute()
+  const platform = usePlatform()
+  const hud = useHudMode()
 
   // Only the server's LocationNotFoundError for the session's own Location replaces the composer.
   // A refetched session info (on reconnect) must not remount the keyed view and close its open menu.
@@ -574,6 +578,9 @@ export function ActiveSessionComposerRegion(props: {
       above={
         <Show when={!missing() && !props.session.data.isChild()}>
           <SessionComposerLane>
+            <Show when={platform.platform === "desktop" && !hud}>
+              <SessionTokenStats sessionID={props.session.identity.params.id} />
+            </Show>
             <SessionActivityChips
               subagents={subagents()}
               shells={shells()}
