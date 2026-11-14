@@ -114,7 +114,7 @@ const locales = reportAll
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean)
-const failOn = option("fail-on", "zh")
+const failOn = option("fail-on", "zh,zht")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean)

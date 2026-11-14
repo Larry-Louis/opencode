@@ -23,7 +23,7 @@
     "test:effect-simplification-rules": "ast-grep test -c script/ast-grep/effect-simplifications/sgconfig.yml",
     "typecheck": "bun turbo typecheck --concurrency=3",
     "typecheck:tsc": "bun turbo typecheck:tsc --concurrency=3",
-    "check": "bun run lint && bun run typecheck",
+    "check": "bun run lint && bun run typecheck && bun run i18n:audit",
     "typecheck:profile": "bun script/profile-typecheck.ts",
     "typecheck:profile:packages": "bun script/profile-typecheck-packages.ts",
     "pack": "bun run script/pack.ts",
