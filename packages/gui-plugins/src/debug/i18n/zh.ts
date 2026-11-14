@@ -42,4 +42,10 @@ export default {
   "speed.label": "速度",
   "speed.tip": "全局动画速度。点击可在 0.5× 和 0.25× 之间切换，最后回到 1×。",
   "slow.label": "慢速",
-  "slow.tip": "以四分之一速度运行所有已调节的动画。",}
+  "slow.tip": "以四分之一速度运行所有已调节的动画。",
+  // 2026-11-14 补译
+  "session.label": "会话",
+  "session.tip": "{{id}}。点击复制。",
+  "session.none": "未打开会话",
+  "session.copyFailed": "复制会话 ID 失败",
+}

@@ -64,4 +64,9 @@ export default {
   "mcp.error.copyFailed": "无法复制错误详情",
   "mcp.error.disable": "禁用",
   "mcp.timedOut": "{{name}} 响应超时",
-  "mcp.error.details": "MCP 服务器：{{name}}\n状态：失败\n配置：mcp.servers.{{name}}\n错误：{{error}}",}
+  "mcp.error.details": "MCP 服务器：{{name}}\n状态：失败\n配置：mcp.servers.{{name}}\n错误：{{error}}",
+  // 2026-11-14 补译
+  "changesFailed": "无法加载变更",
+  "changesOffline": "无法连接该服务器",
+  "mcp.signIn.syncFailed": "已登录，但无法刷新 {{name}}：{{error}}",
+}

@@ -50,4 +50,9 @@ export default {
   "view.table.copyFailed": "无法复制此单元格。",
   "view.fontSample": "Sphinx of black quartz, judge my vow.",
   "view.properties": "属性",
-  "view.properties.showAll": "显示全部 {{count}} 个属性",}
+  "view.properties.showAll": "显示全部 {{count}} 个属性",
+  // 2026-11-14 补译
+  "search.failed": "无法搜索文件",
+  "search.timeout": "服务器响应超时",
+  "search.offline": "无法连接该服务器",
+}

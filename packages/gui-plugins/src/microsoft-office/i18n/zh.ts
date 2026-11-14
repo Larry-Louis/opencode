@@ -18,4 +18,7 @@ export default {
   "sheet.tabs": "工作表",
   "problem.compound": "此文件受密码保护，或保存为较旧的 Office 格式。",
   "problem.format": "此文件不是有效的 Office 文档。",
+
+  // 2026-11-14 补译：审计后新增的键
+  "document.pageFailed": "无法显示此页面",
 }

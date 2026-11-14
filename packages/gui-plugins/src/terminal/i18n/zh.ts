@@ -23,4 +23,8 @@ export default {
   "quote.addWithComment": "引用并评论",
   "quote.addWithoutComment": "仅引用",
   "quote.tooLong": "所选内容过长",
-  "quote.label": "终端",}
+  "quote.label": "终端",
+  // 2026-11-14 补译
+  "close.failed": "无法关闭终端",
+  "request.timedOut": "服务器响应超时",
+}
