@@ -294,6 +294,9 @@
     padding: 6px 12px;
     border-radius: 6px;
     border: 0.5px solid var(--v2-border-border-base);
+    /* A fenced block sits apart from the prose around it, on the same rhythm as the plugin content that can replace it. */
+    margin-top: 12px;
+    margin-bottom: 24px;
   }
 
   [data-component="markdown-code"] {
