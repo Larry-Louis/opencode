@@ -113,6 +113,9 @@ jobs:
         if: runner.os == 'Linux'
         run: bun run lint:effect-simplifications
 
+      - name: Audit i18n dictionaries
+        run: bun run i18n:audit
+
       - name: Configure git identity
         run: |
           git config --global user.email "bot@opencode.ai"
