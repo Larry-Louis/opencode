@@ -95,6 +95,16 @@ export function BlueTopazThinking() {
   let observer: MutationObserver | undefined
   let resize: ResizeObserver | undefined
   let observedScroller: HTMLElement | null = null
+  let frame = 0
+
+  // Scroll, resize and row churn all land in one frame's measurement.
+  const schedule = () => {
+    if (frame) return
+    frame = requestAnimationFrame(() => {
+      frame = 0
+      update()
+    })
+  }
 
   const buttonAt = (index: number) => {
     const existing = buttons[index]
@@ -113,6 +123,8 @@ export function BlueTopazThinking() {
   function update() {
     ensureRootHost()
     const scroller = findScroller()
+
+    if (scroller !== observedScroller) syncObservers(scroller)
 
     if (!scroller) {
       widgetHost.style.display = "none"
@@ -161,28 +173,44 @@ export function BlueTopazThinking() {
 
     observedScroller = scroller
 
-    if (!scroller) return
+    if (!scroller) {
+      observer?.disconnect()
+      observer = undefined
 
-    scroller.addEventListener("scroll", update, { passive: true })
+      return
+    }
+
+    scroller.addEventListener("scroll", schedule, { passive: true })
     resize?.observe(scroller)
+    // Rows mounting, a turn finishing or a disclosure opening is all this needs. Streaming text is ignored: it changes
+    // on every delta and none of it moves a button.
+    observer?.disconnect()
+    observer = new MutationObserver(schedule)
+    observer.observe(scroller, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-expanded", "data-streaming", "data-pending", "data-timeline-row"],
+    })
   }
 
+  // The chat panel is rebuilt on navigation, which takes the scroller with it. Scroll events bubble here in the capture
+  // phase, so the next gesture re-binds the observers even when the old element is already gone.
   onMount(() => {
-    observer = new MutationObserver(() => {
-      syncObservers(findScroller())
-      update()
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-    resize = new ResizeObserver(() => update())
-    window.addEventListener("resize", update)
+    resize = new ResizeObserver(schedule)
+    window.addEventListener("resize", schedule)
+    document.addEventListener("scroll", schedule, { capture: true, passive: true })
     syncObservers(findScroller())
     update()
 
     onCleanup(() => {
       observer?.disconnect()
       resize?.disconnect()
-      observedScroller?.removeEventListener("scroll", update)
-      window.removeEventListener("resize", update)
+      observedScroller?.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+      document.removeEventListener("scroll", schedule, { capture: true })
+
+      if (frame) cancelAnimationFrame(frame)
 
       for (const button of buttons) button.remove()
     })
