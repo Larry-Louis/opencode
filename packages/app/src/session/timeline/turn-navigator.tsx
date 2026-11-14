@@ -23,6 +23,8 @@ export function TurnNavigator(props: {
   scroller: Accessor<HTMLDivElement | undefined>
   bottomInset: number
   onSelect: (id: string) => void
+  /** The reader reached for the rail: the caller may page in turns the transcript has not loaded. */
+  onIntent?: () => void
 }) {
   const language = useLanguage()
   const [activeID, setActiveID] = createSignal<string>()
@@ -171,6 +173,7 @@ export function TurnNavigator(props: {
       <div
         data-component="turn-navigator"
         style={{ "--turn-navigator-gutter": `${Math.max(56, props.bottomInset + 20)}px` }}
+        onPointerEnter={() => props.onIntent?.()}
       >
         <div data-slot="turn-navigator-scroll" onPointerLeave={close} onScroll={() => setHovered(undefined)}>
           <ul data-slot="turn-navigator-list" data-kind={entries()[0]?.kind ?? "dot"} role="list">
@@ -186,8 +189,14 @@ export function TurnNavigator(props: {
                       setHovered(undefined)
                       props.onSelect(entry.items[0]!.id)
                     }}
-                    onPointerEnter={(event) => open(index(), event.currentTarget)}
-                    onFocus={(event) => open(index(), event.currentTarget)}
+                    onPointerEnter={(event) => {
+                      props.onIntent?.()
+                      open(index(), event.currentTarget)
+                    }}
+                    onFocus={(event) => {
+                      props.onIntent?.()
+                      open(index(), event.currentTarget)
+                    }}
                     onBlur={close}
                   >
                     <span aria-hidden="true" />

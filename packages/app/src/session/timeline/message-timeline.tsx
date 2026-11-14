@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, on, onCleanup, Show, untrack, type Accessor, type JSX } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, Show, untrack, type Accessor, type JSX } from "solid-js"
 import { Predicate } from "effect"
 import type { SessionMessageUser } from "@opencode/client/promise"
 import { abort } from "@opencode/util/abort"
@@ -266,34 +266,29 @@ function MessageTimelineView(
     })
   })
 
-  // The navigator lists every turn of the session, so the transcript pages in the history it would otherwise fetch
-  // only when the reader scrolls up.
-  createEffect(
-    on(
-      () => (props.active !== false ? sessionID() : undefined),
-      (id) => {
-        if (!id) return
-        const controller = new AbortController()
-        let cancelled = false
+  // The navigator covers the history the transcript already loaded. Paging the rest in is the reader's request:
+  // opening the rail asks for older turns, so a session that never visits it pays no requests for a full directory.
+  const navigatorPrefetch = new Set<string>()
 
-        void (async () => {
-          for (let page = 0; page < 12; page++) {
-            if (cancelled || untrack(turnNavigatorEntries).length >= 60) return
+  const loadNavigatorHistory = () => {
+    const id = sessionID()
 
-            if (!server.ctx.data.session.message.more(id)) return
+    if (!id || props.active === false || navigatorPrefetch.has(id)) return
+    navigatorPrefetch.add(id)
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
 
-            await server.ctx.data.session.message.loadMore(id, { signal: controller.signal }).catch(() => undefined)
-            await new Promise((resolve) => setTimeout(resolve, 140))
-          }
-        })()
+    void (async () => {
+      for (let page = 0; page < 12; page++) {
+        if (controller.signal.aborted || untrack(turnNavigatorEntries).length >= 60) return
 
-        onCleanup(() => {
-          cancelled = true
-          controller.abort()
-        })
-      },
-    ),
-  )
+        if (!server.ctx.data.session.message.more(id)) return
+
+        await server.ctx.data.session.message.loadMore(id, { signal: controller.signal }).catch(() => undefined)
+        await new Promise((resolve) => setTimeout(resolve, 140))
+      }
+    })()
+  }
 
   const virtualized = createTimelineVirtualizer({
     active: () => props.active !== false,
@@ -367,6 +362,7 @@ function MessageTimelineView(
     setScrollToEnd: props.setScrollToEnd,
     setPage: props.setPage,
     history: turnNavigatorEntries,
+    onHistoryIntent: loadNavigatorHistory,
     reveal: props.reveal,
   })
 

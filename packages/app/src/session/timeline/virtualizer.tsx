@@ -129,6 +129,8 @@ type Input = {
   setPage?: (fn: (direction: 1 | -1) => void) => void
   /** One entry per user turn for the conversation navigator. */
   history?: Accessor<readonly TurnNavigatorItem[]>
+  /** The reader reached for the navigator: load the turns the transcript has not paged in yet. */
+  onHistoryIntent?: () => void
   reveal?: TimelineRouteReveal
 }
 
@@ -1247,6 +1249,7 @@ export function createTimelineVirtualizer(input: Input) {
             scroller={listRoot}
             bottomInset={bottomInset()}
             onSelect={jumpToMessage}
+            onIntent={input.onHistoryIntent}
           />
         </Show>
       </div>
