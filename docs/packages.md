@@ -14,6 +14,8 @@
 
 `console`、`stats`、`enterprise`、`function`、`gui-extensions`、`posts`、`storybook`、`web`
 
+> **2026-11-14 更新**：这 8 个目录连同 `identity`、`effect-drizzle-sqlite` 已在同一轮清理中删除（见 `housekeeping-audit.md` 顶部的执行状态），`packages/` 现在只有 31 个目录且全部是真包。本节保留用于解释它们为什么曾出现在清单里。
+
 另有两个「目录存在但不是常规包」：
 
 - `identity`：只有 6 个品牌图片（`mark.svg`、`mark-*.png`），无 `package.json`。

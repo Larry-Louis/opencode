@@ -1,6 +1,16 @@
 # packages/ 与根目录卫生审计
 
-> 只读审计。**没有删除/移动任何文件，没有执行任何 git 写操作**（add/commit/checkout/stash/rm）。
+> **执行状态（2026-11-14 晚已落地，本文件保留为审计原档）**
+>
+> 下列内容当时只是只读结论，现在**大部分已执行**。看这份文档时请对照现状：
+>
+> - 已完成：`.gitignore` 加 `.bun-cache/`；删 8 个空壳目录；删 `identity`（6 个 blob）与 `effect-drizzle-sqlite`；删 `packages/cli/.bun-cache/`（109.94 MB）；清 turbo 幽灵 `.npmrc`、release 脚本两个死 exclude、`"random"` 占位脚本、`screenshot-uk.png`、`.git.worktree_bak`；`.dockerignore` 补 `.bun-cache`；`timeline-suspense` 复现接进 CI。
+> - 已推翻的结论：`sst-env.d.ts` **不能删**（它携带 `/// <reference types="vite/client" />`，是 app 唯一的 vite 类型来源，删了 app typecheck 炸 200+ 错误，已还原）；`bunfig.toml` 的 `[test] root` **是故意护栏**，不是缺陷。
+> - 仍待处理：`packages/app/e2e/reproduction/timeline-suspense` 的归属（已接 CI，未结案前保留）。
+> - 实际回收：约 110 MB 缓存 + **9.7 GB**（8 个空壳目录里含真实 `node_modules` 树，远超当时按"残留"估算的 0.75 MB）。
+>
+> 下面是当时的只读审计原档，未逐一改写。
+
 > 审计基线：`dev` @ `3baca154bb`（Merge remote-tracking branch 'fork/dev' into dev），2026-11-14。
 > 体积口径：**含目录内残留的 `node_modules`**（要回收的就是磁盘空间），但**"是否被 git 跟踪"**用 `git ls-files` 单独判断，两者在下面分列。
 > 未执行 `bun run pack`（会改写全仓版本号并跑 install）。
