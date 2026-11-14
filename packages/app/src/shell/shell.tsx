@@ -1,4 +1,4 @@
-import { Show, startTransition, Suspense, type ParentProps } from "solid-js"
+import { Show, startTransition, Suspense, createEffect, untrack, type ParentProps } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ResizeHandle } from "@opencode/ui/resize-handle"
@@ -18,6 +18,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useServers } from "@/runtime/server/registry"
 import { useTabs } from "@/shell/tabs/tabs"
+import { useLayout } from "@/shell/state/layout"
 import {
   CollapsedSidebarToggle,
   collapsedSidebarToggleEnd,
@@ -42,6 +43,7 @@ export default function Layout(props: ParentProps) {
   const global = useGlobal()
   const servers = useServers()
   const tabs = useTabs()
+  const layout = useLayout()
   const mobile = createMediaQuery("(max-width: 767px)")
 
   createTipToasts()
@@ -52,10 +54,22 @@ export default function Layout(props: ParentProps) {
     tabsAside: HTMLElement | undefined
     tabsPanel: HTMLElement | undefined
   }>({
-    tabsWidth: 136,
+    tabsWidth: layout.tabRail.width(),
     tabsMount: undefined,
     tabsAside: undefined,
     tabsPanel: undefined,
+  })
+
+  // The rail opens as the icon strip. A stored width arrives with the layout store after mount, and a
+  // drag in this window wins over it.
+  let railTouched = false
+
+  createEffect(() => {
+    const width = layout.tabRail.width()
+
+    if (untrack(() => railTouched)) return
+
+    setState("tabsWidth", width)
   })
 
   const verticalTabs = () => preferences.appearance.tabLayout() !== "horizontal" && !mobile()
@@ -65,11 +79,13 @@ export default function Layout(props: ParentProps) {
   const MIN_TABS_WIDTH = 136
   const compactTabs = () => state.tabsWidth <= COMPACT_TABS_WIDTH
 
-  const resizeTabs = (width: number) =>
+  const resizeTabs = (width: number) => {
+    railTouched = true
     setState(
       "tabsWidth",
       width < (MIN_TABS_WIDTH + COMPACT_TABS_WIDTH) / 2 ? COMPACT_TABS_WIDTH : Math.max(MIN_TABS_WIDTH, width),
     )
+  }
 
   const organizedSidebar = () =>
     preferences.appearance.tabLayout() === "vertical" && preferences.general.sidebarOrganize() !== "list"
@@ -306,7 +322,12 @@ export default function Layout(props: ParentProps) {
                 min={COMPACT_TABS_WIDTH}
                 max={640}
                 onResize={resizeTabs}
-                onDraggingChange={setPanelResizing}
+                onDraggingChange={(dragging) => {
+                  setPanelResizing(dragging)
+
+                  // Persist once the drag settles, so every pointer move does not write storage.
+                  if (!dragging) layout.tabRail.resize(state.tabsWidth)
+                }}
               />
             </Show>
           </aside>
