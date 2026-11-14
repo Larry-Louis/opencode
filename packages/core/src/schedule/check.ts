@@ -74,7 +74,7 @@ export function validate(condition: ScheduleSchema.Condition): Result.Result<voi
       const predicates = [
         condition.is !== undefined,
         condition.matches !== undefined,
-        condition.changes !== undefined,
+        condition.changes === true,
       ].filter(Boolean).length
       if (predicates > 1) return Result.fail("Choose at most one of is, matches or changes")
       if (condition.matches === undefined) return Result.succeed(undefined)
