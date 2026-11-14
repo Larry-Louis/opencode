@@ -39,6 +39,13 @@ import { createBrowserRestoreStore } from "./restore"
 
 type Target = { readonly server: string; readonly session: string; readonly restore?: Browser.State }
 
+/**
+ * Blue Topaz fork: the persistent Chromium partition shared by every browser pane. A `persist:` name makes
+ * Electron store cookies, localStorage and logins under `Partitions/<name>` in userData instead of keeping a
+ * throwaway in-memory session. Bump the suffix to start from an empty jar.
+ */
+const DISK_PARTITION = "persist:opencode-browser-v1"
+
 /** The Electron and Effect handles of one binding; its phase lives in the pane machine. */
 type Handle = {
   window: number
@@ -96,7 +103,9 @@ export function createBrowserPane(input: {
       if (win.isDestroyed() || win.webContents.isDestroyed()) throw new Error("browser.pane.owner.unavailable")
       const sessionID = SessionID.make(target.session)
       const storageKey = `${target.server}\n${sessionID}`
-      const partition = `opencode-browser-${crypto.randomUUID()}`
+      // Blue Topaz fork: keep browser state on disk, shared by every pane. Set OPENCODE_BROWSER_PARTITION to a
+      // name without the `persist:` prefix to get the old isolated, non-persistent behavior back.
+      const partition = process.env.OPENCODE_BROWSER_PARTITION ?? DISK_PARTITION
 
       // Navigation guards cover documents; subresources (img, script, fetch) also must not read
       // file: URLs outside the roots. One listener per partition covers every page in this attachment.
