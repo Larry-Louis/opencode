@@ -4,6 +4,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
 import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
+import { readHudWorking, subscribeHudWorking } from "./hud-working"
 import "./hud.css"
 
 const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
@@ -137,11 +138,10 @@ export function HudFrame(props: ParentProps) {
       timer = setTimeout(() => setRecent(false), 1_100)
     }
 
-    // Session running is rendered by the session screen as a data attribute on
-    // the transcript wrapper. Keep the band up for the whole think/reply, not
-    // just for the 1.1s hold that a message mutation buys.
+    // Session running comes from synced session data through the HUD's own channel, so the frame does not have to
+    // watch an attribute for it. Keep the band up for the whole think/reply, not just for the 1.1s hold a mutation buys.
     const syncWorking = () => {
-      const next = root.querySelector('[data-hud-transcript][data-hud-transcript-working]') !== null
+      const next = readHudWorking()
       setWorking(next)
 
       if (wasWorking && !next) {
@@ -198,8 +198,6 @@ export function HudFrame(props: ParentProps) {
     })
 
     observer.observe(root, {
-      attributes: true,
-      attributeFilter: ["data-hud-transcript-working"],
       childList: true,
       subtree: true,
       characterData: true,
@@ -208,12 +206,14 @@ export function HudFrame(props: ParentProps) {
     root.addEventListener("focusout", focusOut)
     window.addEventListener("focus", windowFocus)
     window.addEventListener("blur", windowBlur)
+    const stopWorking = subscribeHudWorking(syncWorking)
     syncTyping()
     syncWorking()
     hold()
 
     onCleanup(() => {
       observer.disconnect()
+      stopWorking()
       clearTimeout(timer)
 
       if (frame) cancelAnimationFrame(frame)

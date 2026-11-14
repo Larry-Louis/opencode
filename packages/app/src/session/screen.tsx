@@ -51,6 +51,7 @@ import { reviewGlyphFill, SessionReviewToggle } from "./header/session-header-ac
 import { createTimelineCache } from "./timeline/cache"
 import { createPanelMotion, holdLandingWidth, panelOpacity, setPanelResizing } from "@/shell/panel-motion"
 import { useHudMode } from "@/hud/hud-context"
+import { setHudWorking } from "@/hud/hud-working"
 
 export function SessionScreenView(props: { session: SessionModel }) {
   // Link handling for the rest of the screen; each cached timeline provides its own for its session.
@@ -87,6 +88,11 @@ function SessionScreenContent(props: {
   // the mobile media query would otherwise replace the transcript with the
   // Session/Changes mobile tabs at 620px.
   const isDesktop = () => hud || session.isDesktop()
+  // The HUD frame reads whether the run is working from here, instead of watching an attribute on the transcript.
+  createEffect(() => {
+    if (hud) setHudWorking(session.data.working())
+  })
+  onCleanup(() => setHudWorking(false))
   const bottomMobileTabs = () => settings.general.mobileTitlebarPosition() === "bottom"
   const sidebar = createPanelSidebar()
 
@@ -413,7 +419,6 @@ function SessionScreenContent(props: {
       <div
         class="relative isolate flex-1 min-h-0 overflow-hidden"
         data-hud-transcript={hud ? "" : undefined}
-        data-hud-transcript-working={hud && session.data.working() ? "" : undefined}
       >
         <Show when={!isDesktop() && session.identity.params.id}>
           <For each={cachedViews()}>
