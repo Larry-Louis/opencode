@@ -16,6 +16,7 @@ import { PluginSlot } from "@/runtime/plugin/render"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
 import { useServer } from "@/runtime/server/current"
+import { usePlatform } from "@/runtime/platform/platform"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { Timeline } from "@opencode/session-ui/timeline/projection"
 import { createSessionTimelineRowRenderer } from "@opencode/session-ui/timeline/row"
@@ -154,6 +155,7 @@ function MessageTimelineView(
   const command = useCommand()
   const pluginScoped = usePluginScoped()
   const server = useServer()
+  const platform = usePlatform()
   const data = server.ctx.data
   const sdk = useWorkspaceLocation()
   const sessionID = props.data.sessionID
@@ -363,6 +365,7 @@ function MessageTimelineView(
     setPage: props.setPage,
     history: turnNavigatorEntries,
     onHistoryIntent: loadNavigatorHistory,
+    thinkingCollapse: () => platform.platform === "desktop",
     reveal: props.reveal,
   })
 

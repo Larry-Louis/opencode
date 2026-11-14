@@ -131,6 +131,8 @@ type Input = {
   history?: Accessor<readonly TurnNavigatorItem[]>
   /** The reader reached for the navigator: load the turns the transcript has not paged in yet. */
   onHistoryIntent?: () => void
+  /** Show the per-turn "collapse thinking" action; the desktop fork asks for it, the web app does not. */
+  thinkingCollapse?: () => boolean
   reveal?: TimelineRouteReveal
 }
 
@@ -1075,6 +1077,38 @@ export function createTimelineVirtualizer(input: Input) {
   }
 
   function View(props: ViewProps) {
+    // One action per finished turn whose reasoning is still open, placed under that turn's last row. Positions come
+    // from the virtual items, so nothing here measures the DOM or watches it while text streams.
+    const thinkingCollapseActions = createMemo(() => {
+      if (input.thinkingCollapse?.() !== true) return []
+      const items = virtualItemByKey()
+      const list = rows()
+      const lastRow = new Map<string, number>()
+      list.forEach((row, index) => lastRow.set(row.userMessageID, index))
+      const activeMessageID = input.projection.activeMessageID()
+      const actions: Array<{ top: number; parts: string[] }> = []
+
+      for (const [turnID, index] of lastRow) {
+        if (turnID === activeMessageID) continue
+
+        const row = list[index]!
+
+        if (!Predicate.isTagged(row, "AssistantPart")) continue
+
+        const refs = row.group.type === "part" ? [row.group.ref] : row.group.refs
+        const parts = refs.map((ref) => ref.partID).filter((part) => toolOpen[part] === true)
+
+        if (parts.length === 0) continue
+        const item = items.get(TimelineRow.key(row))
+
+        if (!item) continue
+
+        actions.push({ top: item.start - topOffset() - rendering.scrollAdjustment + item.size + 2, parts })
+      }
+
+      return actions
+    })
+
     function VirtualRow(rowProps: { rowKey: string }) {
       let element: HTMLDivElement
       const initialItem = virtualItemByKey().get(rowProps.rowKey)!
@@ -1234,6 +1268,21 @@ export function createTimelineVirtualizer(input: Input) {
             >
               {props.bottomSpacer}
             </div>
+            <Show when={input.thinkingCollapse?.() === true}>
+              <For each={thinkingCollapseActions()}>
+                {(action) => (
+                  <button
+                    type="button"
+                    data-component="thinking-collapse"
+                    class="absolute flex h-5 items-center rounded-full border border-v2-border-border-base bg-v2-background-bg-layer-01/90 px-2 text-[12px] font-[440] leading-[var(--line-height-compact)] text-v2-text-text-muted"
+                    style={{ top: `${action.top}px`, left: "8px" }}
+                    onClick={() => action.parts.forEach((part) => setToolOpen(part, false))}
+                  >
+                    {language.t("session.thinking.collapse")}
+                  </button>
+                )}
+              </For>
+            </Show>
           </div>
           <div aria-hidden="true" data-timeline-inset class="shrink-0" style={{ height: `${bottomInset()}px` }} />
         </ScrollView>

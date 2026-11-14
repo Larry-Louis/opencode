@@ -471,28 +471,6 @@ html[data-color-scheme="dark"][data-theme] [data-component="tool-trigger"][data-
   opacity: 0.75;
 }
 
-/* ============================================================
- * Blue Topaz widgets：每轮折叠思考按钮的宿主与按钮样式
- * （配合 blue-topaz-widgets.tsx；单份定义，勿重复追加）
- * ============================================================ */
-.bt-host-panel {
-  position: relative !important;
-}
-/* widgets 挂在 session-chat-panel 里（blue-topaz-widgets.tsx 的 ensureRootHost）：
- * inset:0 让它铺满面板 —— 面板内所有子元素的 left/top/right/bottom 都是「面板坐标」；
- * overflow:hidden 是兜底：坐标万一没跟上（面板宽度有 240ms 过渡），
- * widgets 也只会被裁在面板内，不会跑到聊天区域外面去。 */
-#bt-widgets-root {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  overflow: hidden;
-  pointer-events: none;
-}
-#bt-widgets-root > * {
-  pointer-events: auto;
-}
-
 /* ---------- bash 命令行语法高亮（$ 行分词着色） ---------- */
 [data-component="bash-output"] .bt-tok-prompt { font-weight: 700; }
 html[data-color-scheme="dark"][data-theme] [data-component="bash-output"] .bt-tok-prompt { color: hsl(118 45% 58%); }
@@ -708,29 +686,4 @@ html[data-color-scheme="dark"][data-theme] [data-component="reasoning-part"] [da
   border-color: hsl(36 95% 60% / 0.45);
 }
 
-/* ---------- 7. 折叠思考：每轮末尾的小按钮 ----------
- * 由 blue-topaz-widgets.tsx 池化创建、按视口坐标钉在该轮末尾左下方；
- * 配色跟第 6 节的思维链橙色同族，一眼看出跟"思考"是一伙的。 */
-.bt-think-collapse {
-  position: absolute;
-  z-index: 57;
-  padding: 1px 9px;
-  font-size: 11px;
-  line-height: 1.7;
-  color: hsl(32 85% 32%);
-  background: hsl(36 100% 97% / 0.94);
-  border: 1px solid hsl(36 90% 55% / 0.45);
-  border-radius: 999px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-}
-.bt-think-collapse:hover {
-  opacity: 1;
-  border-color: hsl(36 90% 50% / 0.9);
-}
-html[data-color-scheme="dark"][data-theme] .bt-think-collapse {
-  color: hsl(36 95% 72%);
-  background: hsl(30 25% 15% / 0.94);
-  border-color: hsl(36 90% 60% / 0.45);
-}
+/* ---------- 7. 折叠思考按钮由 app 时间轴渲染，配色跟随思维链本色 ---------- */

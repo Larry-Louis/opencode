@@ -1056,6 +1056,7 @@ export const dict = {
   "session.stats.label": "会话 token 消耗",
   "session.stats.summary": "输入 {{input}} · 输出 {{output}} · 缓存 {{cache}}%",
   "session.stats.summaryReasoning": "输入 {{input}} · 输出 {{output}} · 思考 {{reasoning}} · 缓存 {{cache}}%",
+  "session.thinking.collapse": "折叠思考",
   "prompt.toast.unqueueable.title": "此提示词无法加入队列",
   "dialog.mcp.search.placeholder": "搜索 MCP",
   "dialog.mcp.search.empty": "未找到 MCP",
