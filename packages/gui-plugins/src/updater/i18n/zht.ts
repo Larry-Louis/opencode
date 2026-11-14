@@ -38,12 +38,4 @@ export default {
   "web.reset.title": "從伺服器重新載入",
   "web.reset.description": "清除應用程式已儲存的副本，並載入伺服器的目前版本",
   "web.reset.action": "從伺服器重新載入",
-  "beta.title": "新功能",
-  "beta.since.one": "自建置 {{build}} 起 · {{count}} 項變更",
-  "beta.since.other": "自建置 {{build}} 起 · {{count}} 項變更",
-  "beta.added": "新增",
-  "beta.fixed": "修正",
-  "beta.viewAll": "檢視全部",
-  "beta.page.description": "此建置中的所有變更。",
-  "beta.github": "在 GitHub 上檢視歷史記錄",
-  "beta.done": "知道了",}
+}
