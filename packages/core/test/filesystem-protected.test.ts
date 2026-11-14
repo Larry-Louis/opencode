@@ -41,10 +41,15 @@ describe("Protected.names", () => {
   test("returns a fresh set so callers cannot corrupt the list", () => {
     const first = Protected.names()
     const size = first.size
-    first.add("Injected")
+
+    // names() is typed ReadonlySet to stop this at compile time, but the runtime
+    // guarantee — every call allocates a new set — is what keeps callers isolated.
+    const mutable = first as Set<string>
+    mutable.add("Injected")
 
     const second = Protected.names()
     expect(second.has("Injected")).toBe(false)
     expect(second.size).toBe(size)
+    expect(second).not.toBe(first)
   })
 })
