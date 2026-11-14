@@ -124,6 +124,7 @@
 | 删 `packages/identity/` | 有 6 个**被跟踪**的 blob → 删除会进 git 历史（一个 commit 删 6 个文件）。图片是品牌素材，虽然与 `packages/ui` favicon 重复，但"是否还要留一份顶层品牌图"是产品/设计决策，不是纯卫生问题。建议先 `git mv` 到 `services/site/public/brand/` 或原样保留 |
 | 删 `.bun-cache` 的时机 | 若这台机器今晚还要跑 Windows baseline 交叉编译（发布前常见），删了会多一次 110 MB 下载。无风险，只是慢 |
 | 把 `docs/`、`i18n-zh-audit.txt` 入库还是忽略 | 这是**未跟踪的工作产物**（见下节），入库与否影响仓库噪音，属策略选择 |
+| `packages/app/e2e/reproduction/timeline-suspense/` | 该目录的 `playwright.config.ts` **没有任何引用**：`packages/app/package.json` 的 e2e 脚本只调 `playwright.config.ts` / `e2e/service-worker/` / `e2e/stability/`，CI 只跑 `e2e/service-worker/playwright.config.ts`（`check-test.yml:303`），`packages/app/test-browser/playwright-config.test.ts:41` 也只枚举主配置与 stability。看起来是调试某个 timeline suspense 问题时的临时脚手架。**若确认已结案可删**，但属"故意的复现目录"还是"遗忘的残渣"，只有作者知道 |
 
 ### 对 CI / 发布的影响
 

@@ -303,6 +303,14 @@ jobs:
         run: bunx playwright test --config e2e/service-worker/playwright.config.ts
         timeout-minutes: 5
 
+      - name: Run timeline suspense reproduction
+        if: matrix.suite.shard == '2/2' && !matrix.quarantine
+        working-directory: packages/app
+        run: bun run test:reproduction
+        env:
+          CI: true
+        timeout-minutes: 5
+
       - name: Run session UI component tests
         if: matrix.suite.id == 'session-ui-components'
         run: bun --cwd packages/session-ui test:components ${{ env.PLAYWRIGHT_ARGS }}
