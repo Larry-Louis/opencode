@@ -355,7 +355,7 @@ it.effect("uses a small model from the primary provider", () =>
   }),
 )
 
-it.effect("keeps an explicitly configured title model at its default variant", () =>
+it.effect("names the session without a thinking level from a configured title model", () =>
   Effect.gen(function* () {
     selectedPrimary = primaryInfo(["low", "high"])
     const agents = yield* Agent.Service
@@ -366,6 +366,7 @@ it.effect("keeps an explicitly configured title model at its default variant", (
         agent.model = Model.Ref.make({
           providerID: Provider.ID.make("test"),
           id: Model.ID.make("title-model"),
+          variant: Model.VariantID.make("high"),
         })
       })
     })
@@ -421,7 +422,7 @@ it.effect("falls back to the primary model when the small model fails", () =>
     yield* title.generate(sessionID)
 
     expect(requests.map((request) => String(request.model.id))).toEqual(["title-small", "title-model"])
-    expect(attempted.map((model) => model.variant)).toEqual([undefined, Model.VariantID.make("high")])
+    expect(attempted.map((model) => model.variant)).toEqual([undefined, undefined])
     const store = yield* SessionStore.Service
     expect((yield* store.get(sessionID))?.title).toBe("Generated Title")
   }),
@@ -457,61 +458,15 @@ const titleAttempts = (sessionID: Session.ID, text: string, variant?: string) =>
     return { attempted: attempted.map((model) => String(model.variant)), title: (yield* store.get(sessionID))?.title }
   })
 
-it.effect("uses the primary model at its lowest variant without a small model", () =>
+it.effect("names the session without a thinking level when no small model exists", () =>
   Effect.gen(function* () {
     selectedPrimary = primaryInfo(["none", "low", "high"])
     const result = yield* titleAttempts(
       Session.ID.make("ses_title_primary_lowest"),
-      "Title with the lowest variant",
+      "Title without a thinking level",
       "high",
     )
-    expect(result.attempted).toEqual(["none"])
-    expect(result.title).toBe("Generated Title")
-  }),
-)
-
-it.effect("falls back to the selected primary variant when the lowest variant fails", () =>
-  Effect.gen(function* () {
-    titleStream = () =>
-      requests.length === 1 ? Stream.fail(providerRejected({ message: "Variant rejected" })) : successfulTitle()
-    selectedPrimary = primaryInfo(["low", "high"])
-    const result = yield* titleAttempts(
-      Session.ID.make("ses_title_primary_fallback"),
-      "Fall back to the selection",
-      "high",
-    )
-    expect(result.attempted).toEqual(["low", "high"])
-    expect(result.title).toBe("Generated Title")
-  }),
-)
-
-it.effect("uses the selected primary variant when no lower variant exists", () =>
-  Effect.gen(function* () {
-    selectedPrimary = primaryInfo(["high", "max"])
-    const result = yield* titleAttempts(Session.ID.make("ses_title_primary_selected"), "No lower variant here", "high")
-    expect(result.attempted).toEqual(["high"])
-    expect(result.title).toBe("Generated Title")
-  }),
-)
-
-it.effect("keeps the primary default variant instead of a low variant that may enable reasoning", () =>
-  Effect.gen(function* () {
-    selectedPrimary = primaryInfo(["low", "high"])
-    const result = yield* titleAttempts(
-      Session.ID.make("ses_title_primary_default"),
-      "Default may not reason",
-      undefined,
-    )
-    expect(result.attempted).toEqual(["default"])
-    expect(result.title).toBe("Generated Title")
-  }),
-)
-
-it.effect("uses the primary none variant from its default variant", () =>
-  Effect.gen(function* () {
-    selectedPrimary = primaryInfo(["none", "low", "high"])
-    const result = yield* titleAttempts(Session.ID.make("ses_title_primary_none"), "Disable reasoning", undefined)
-    expect(result.attempted).toEqual(["none"])
+    expect(result.attempted).toEqual(["undefined"])
     expect(result.title).toBe("Generated Title")
   }),
 )
