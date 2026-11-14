@@ -5,7 +5,7 @@ import "./styles.css"
 import { render } from "solid-js/web"
 import { api } from "./api"
 import { widgetHost } from "./blue-topaz-host"
-import { BlueTopazWidgets } from "./blue-topaz-widgets"
+import { BlueTopazThinking } from "./blue-topaz-widgets"
 import { DesktopApp } from "./desktop-app"
 import { startDesktopMenu } from "./platform/menu"
 import { startDeepLinks } from "./startup/deep-links"
@@ -14,30 +14,39 @@ import { desktopVersion, initializeSentry } from "./startup/sentry"
 
 // Dev console noise filter — silence known harmless warnings (Solid root/ghostty/duplicate commands)
 if (import.meta.env.DEV) {
+  const ignored = [
+    "cleanups created outside a `createRoot`",
+    "computations created outside a `createRoot`",
+    "ghostty-vt",
+    "ignoring CSI t",
+    "unimplemented mode: 9001",
+    "duplicate command id",
+    "Electron Security Warning",
+    "Slow network is detected",
+    "Autofocus processing was blocked",
+    "Blocked aria-hidden",
+  ]
+
   const shouldSuppress = (args: unknown[]) => {
-    const text = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ")
-    return (
-      text.includes("cleanups created outside a `createRoot`") ||
-      text.includes("computations created outside a `createRoot`") ||
-      text.includes("ghostty-vt") ||
-      text.includes("ignoring CSI t") ||
-      text.includes("unimplemented mode: 9001") ||
-      text.includes("duplicate command id") ||
-      text.includes("Electron Security Warning") ||
-      text.includes("Slow network is detected") ||
-      text.includes("Autofocus processing was blocked") ||
-      text.includes("Blocked aria-hidden")
-    )
+    const text = args.map((arg) => String(arg)).join(" ")
+
+    return ignored.some((fragment) => text.includes(fragment))
   }
+
   const wrap =
-    (fn: (...a: unknown[]) => void) =>
+    (write: (...args: unknown[]) => void) =>
     (...args: unknown[]) => {
       if (shouldSuppress(args)) return
-      fn(...args)
+
+      write(...args)
     }
+
+  // SAFETY: a console method takes any arguments and returns nothing, so the wrapper keeps its type.
   console.warn = wrap(console.warn.bind(console)) as typeof console.warn
+  // SAFETY: same wrapper signature as above.
   console.error = wrap(console.error.bind(console)) as typeof console.error
   // ghostty also logs via console.log in some builds
+  // SAFETY: same wrapper signature as above.
   console.log = wrap(console.log.bind(console)) as typeof console.log
 }
 
@@ -59,13 +68,12 @@ render(() => <DesktopApp api={api} version={version} />, root)
 
 void initializeSentry(version)
 
-// Blue Topaz widgets：粘性用户请求徽章 + 序列条 + 会话状态栏 + 折叠思考按钮
-// 这里先挂 documentElement（只为有个挂载点），组件挂载后由 ensureRootHost()
-// 搬进 [data-slot="session-chat-panel"]，让 widgets 跟着聊天面板一起伸缩，
-// 也保证它们不会跑到聊天区域之外（面板被 Solid 重渲染清掉时会自动补挂）。
-// 宿主元素由 blue-topaz-host.ts 持有：面板把整棵子树丢掉后，同一元素的渲染结果还在，
-// ensureRootHost() 直接重新挂回去即可（早先只在元素存在时才搬运，面板一清就永久消失）。
+// Blue Topaz：每轮末尾的「折叠思考」按钮
+// 宿主先挂 documentElement（只为有个挂载点），组件挂载后由 ensureRootHost()
+// 搬进 [data-slot="session-chat-panel"]，让按钮跟着聊天面板一起伸缩。
+// 宿主元素由 blue-topaz-host.ts 持有：面板把整棵子树丢掉后，同一元素上的按钮还在，
+// ensureRootHost() 直接重新挂回去即可。
 if (bootstrap.kind !== "hud") {
   document.documentElement.appendChild(widgetHost)
-  render(() => <BlueTopazWidgets />, widgetHost)
+  render(() => <BlueTopazThinking />, widgetHost)
 }
