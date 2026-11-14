@@ -50,4 +50,10 @@ export default {
   "view.table.copyFailed": "無法複製此儲存格。",
   "view.fontSample": "Sphinx of black quartz, judge my vow.",
   "view.properties": "屬性",
-  "view.properties.showAll": "顯示全部 {{count}} 個屬性",}
+  "view.properties.showAll": "顯示全部 {{count}} 個屬性",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "search.failed": "無法搜尋檔案",
+  "search.timeout": "伺服器回應逾時",
+  "search.offline": "無法連線該伺服器",
+}

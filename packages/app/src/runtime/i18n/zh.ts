@@ -1495,6 +1495,7 @@ export const dict = {
   "settings.extensions.console.manage": "在 Console 中管理 {{name}}",
   "session.markRead": "标记为已读",
   "session.markUnread": "标记为未读",
+  "sidebar.project.hide": "从侧边栏移除",
 } satisfies Partial<Record<Keys, string>>
 
 export default dict

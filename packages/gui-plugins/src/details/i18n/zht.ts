@@ -61,4 +61,10 @@ export default {
   "mcp.error.copyFailed": "無法複製錯誤詳細資料",
   "mcp.error.disable": "停用",
   "mcp.timedOut": "{{name}} 回應逾時",
-  "mcp.error.details": "MCP 伺服器：{{name}}\n狀態：失敗\n設定：mcp.servers.{{name}}\n錯誤：{{error}}",}
+  "mcp.error.details": "MCP 伺服器：{{name}}\n狀態：失敗\n設定：mcp.servers.{{name}}\n錯誤：{{error}}",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "changesFailed": "無法載入變更",
+  "changesOffline": "無法連線該伺服器",
+  "mcp.signIn.syncFailed": "已登入，但無法重新整理 {{name}}：{{error}}",
+}

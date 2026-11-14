@@ -60,4 +60,8 @@ export default {
   "zoom.reset": "重設縮放",
   "zoom.percent": "{{percent}}%",
   "link.copy": "複製連結",
-  "history.clear": "清除歷史記錄",}
+  "history.clear": "清除歷史記錄",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "model.timedOut": "瀏覽器載入時間過長",
+}
