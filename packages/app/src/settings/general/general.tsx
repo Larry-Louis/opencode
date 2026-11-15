@@ -282,6 +282,9 @@ export const SettingsGeneral: Component = () => {
       <h3 class="settings-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsList>
         <InterfaceModeSetting />
+        <Show when={desktop()}>
+          <HudStyleSetting />
+        </Show>
         <LanguageSetting />
 
         <WorkspaceDestinationSetting />
@@ -364,7 +367,6 @@ export const SettingsGeneral: Component = () => {
               />
             </div>
             <TimelineWidthSetting />
-            <HudStyleSetting />
             <BackgroundActivitySetting />
             <SettingsRow
               title={language.t("settings.timeline.row.turnDiffs.title")}
