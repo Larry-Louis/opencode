@@ -48,6 +48,7 @@ import type {
   ComposerSuggestion,
 } from "../types"
 import type { ComposerEditorModel, ComposerSelectControl } from "./interaction"
+import { useHudMode, useHudReverse } from "@/hud/hud-context"
 import { isAttachment, promptLength } from "../prompt-parts"
 import { editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
 import {
@@ -104,6 +105,10 @@ export type ComposerEditorProps = {
 export function ComposerEditor(props: ComposerEditorProps) {
   const i18n = useI18n()
   const markdown = useMarkdown()
+  const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  // The reverse HUD's 44px composer row hides the model/agent/attach controls the dev skin shows.
+  const compact = () => hud && hudReverse
   const state = props.controller.state
   const view = props.controller.view
   const suggestionsID = createUniqueId()
@@ -430,6 +435,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             <Show when={!props.controller.value()}>
               <div
                 dir={mode() === "normal" ? "auto" : "ltr"}
+                data-slot="composer-placeholder"
                 class="pointer-events-none absolute inset-x-0 top-0 ps-4 pe-[var(--composer-scroll-end)] pt-4 text-[13px] font-[440] leading-5 text-v2-text-text-faint"
                 classList={{ "font-mono! tracking-[-0.04px]": mode() === "shell" }}
                 style={{ "unicode-bidi": mode() === "normal" ? "plaintext" : undefined, "text-align": "start" }}
@@ -443,8 +449,8 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
         </div>
 
-        <div class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
-          <Show when={!touch()}>
+        <div data-slot="composer-toolbar" class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
+          <Show when={!touch() && !compact()}>
             <div
               class="flex shrink-0 items-center"
               aria-hidden={mode() === "shell"}
@@ -482,7 +488,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             style={buttons()}
           >
             <div ref={controlsContent} class="flex h-full w-max min-w-full items-center gap-0.5">
-              <Show when={view.agent} keyed>
+              <Show when={compact() ? undefined : view.agent} keyed>
                 {(control) => (
                   <ComposerEditorConfiguredSelect
                     fitMenuToOptions
@@ -492,7 +498,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
                   />
                 )}
               </Show>
-              <Show when={props.modelControlsVisible ?? true}>
+              <Show when={(props.modelControlsVisible ?? true) && !compact()}>
                 {props.modelControl}
                 <Show when={view.variant} keyed>
                   {(control) => (
@@ -512,7 +518,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
           <Show when={!touch()}>
             <div data-slot="composer-actions" class="flex shrink-0 items-center">
-              <Show when={mode() === "normal"}>
+              <Show when={!compact() && mode() === "normal"}>
                 <ComposerEditorAlternateDelivery
                   controller={props.controller}
                   keybind={props.alternateKeybind ?? ["Mod", "Enter"]}
@@ -1108,6 +1114,9 @@ function ComposerEditorSelect(props: {
   onSelect: (id: string) => void
 }) {
   const mobile = createMediaQuery("(max-width: 767px)")
+  const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  const compact = () => hud && hudReverse
   const [store, setStore] = createStore({ open: false, loaded: false })
   const focus = pointerFocusReturn()
   let trigger: HTMLButtonElement | undefined
@@ -1123,17 +1132,20 @@ function ComposerEditorSelect(props: {
     if (!mobile() && store.open) setOpen(false)
   })
 
-  const content = () => (
-    <>
-      {props.currentIcon}
-      <span class="truncate capitalize leading-5">
-        {props.options.find((option) => option.id === props.current)?.label ?? props.current}
-      </span>
-      <span class="-ms-0.5 -me-1 flex shrink-0">
-        <Icon name="chevron-down" />
-      </span>
-    </>
-  )
+  const content = () =>
+    compact() ? (
+      props.currentIcon ?? <Icon name="outline-sliders" />
+    ) : (
+      <>
+        {props.currentIcon}
+        <span class="truncate capitalize leading-5">
+          {props.options.find((option) => option.id === props.current)?.label ?? props.current}
+        </span>
+        <span class="-ms-0.5 -me-1 flex shrink-0">
+          <Icon name="chevron-down" />
+        </span>
+      </>
+    )
 
   return (
     <Tooltip

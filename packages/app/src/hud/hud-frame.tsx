@@ -1,10 +1,13 @@
-import { For, Show, createEffect, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
+import { For, Show, createEffect, createRenderEffect, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
+import { useSettings } from "@/settings/model"
 import { HudModeProvider } from "./hud-context"
+import { createHudGlass } from "./hud-glass"
 import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
-import "./hud.css"
+import reverseCss from "./hud.css?inline"
+import devCss from "./hud-dev.css?inline"
 
 const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
 
@@ -37,7 +40,18 @@ const defaultWindowing = (): HudWindowing => ({
 export function HudFrame(props: ParentProps) {
   const platform = usePlatform()
   const language = useLanguage()
+  const settings = useSettings()
   const api = platform.hud
+  // The Settings switch selects one complete skin: this branch's reverse glass or the dev layout.
+  const style = () => settings.general.hudStyle()
+  const reverse = () => style() !== "dev"
+
+  // The timeline helpers read the skin from the document attribute. A render effect keeps it ahead
+  // of the keyed remount below, so the first measurement in the new skin reads the right layout.
+  createRenderEffect(() => {
+    document.documentElement.dataset.hudStyle = style()
+  })
+
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
   const [lockMode, setLockMode] = createSignal<HudLockMode>(readHudLockMode())
@@ -98,6 +112,14 @@ export function HudFrame(props: ParentProps) {
     void api.setFrost(!chromeHidden() && (typing() || recent() || working() || locked())).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
+
+  // Windows: one native frosted panel behind each 80% surface, so the desktop blurs per card
+  // instead of as one window-wide sheet.
+  createHudGlass({
+    enabled: () => reverse() && !chromeHidden(),
+    topOnly: () => windowing().clickThrough && !focused() && !locked(),
+    send: (panels) => api.setGlassPanels(panels),
+  })
 
   onMount(() => {
     void capture()
@@ -592,6 +614,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
+      <style>{reverse() ? reverseCss : devCss}</style>
       <div
         data-hud-drag
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
@@ -688,12 +711,17 @@ export function HudFrame(props: ParentProps) {
       </div>
       <div
         ref={content}
+        data-hud-content
         class="relative flex min-h-0 flex-1 flex-row gap-1.5 px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
         onClick={onContentClick}
       >
-        <HudModeProvider>{props.children}</HudModeProvider>
+        <Show keyed when={style()}>
+          {(current) => (
+            <HudModeProvider reverse={current !== "dev"}>{props.children}</HudModeProvider>
+          )}
+        </Show>
       </div>
       <For each={resizeEdges()}>
         {(edge) => <div data-hud-resize={edge} aria-hidden="true" onPointerDown={startResize(edge)} />}

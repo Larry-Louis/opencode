@@ -36,6 +36,7 @@ export const hudHandlers = HudRpcs.toLayer(
       HudSetWorkspaceTransfer: ({ enabled }) => Effect.sync(() => lifecycle.hud.setWorkspaceTransfer(enabled)),
       HudSetIgnoreMouse: ({ ignore }) => Effect.sync(() => lifecycle.hud.setIgnoreMouse(ignore)),
       HudSetFrost: ({ enabled }) => Effect.sync(() => lifecycle.hud.setFrost(enabled)),
+      HudSetGlassPanels: ({ panels }) => Effect.sync(() => lifecycle.hud.setGlassPanels(panels)),
     })
   }),
 )
