@@ -5,6 +5,7 @@ import {
   createComputed,
   createContext,
   createSignal,
+  createUniqueId,
   onCleanup,
   Show,
   splitProps,
@@ -76,6 +77,16 @@ const UNTRACKED_MENU: MenuContextValue = {
 }
 
 const MenuAppearanceContext = createContext<MenuContextValue>(UNTRACKED_MENU)
+
+// Kobalte keeps every submenu's open state private, so hovering the next row leaves the previous
+// panel up until a click lands outside it. One open submenu per menu level matches native menus and
+// closes the previous panel as soon as another row opens its own.
+type SubmenuGroup = {
+  active: Accessor<string | undefined>
+  setActive: (id: string | undefined) => void
+}
+
+const SubmenuGroupContext = createContext<SubmenuGroup>()
 
 // One set of window listeners serves every mounted menu. Capture runs before the trigger's own handlers, so while an
 // input event dispatches, `gesture` names the input that may open a menu. It clears once that event's task ends, so a
@@ -255,7 +266,21 @@ export interface MenuSubProps extends ComponentProps<typeof DropdownMenu.Sub> {
 }
 
 function MenuSub(props: MenuSubProps) {
-  return <DropdownMenu.Sub {...props} />
+  const group = useContext(SubmenuGroupContext)
+  const id = createUniqueId()
+  const [s, r] = splitProps(props, ["open", "onOpenChange"])
+
+  return (
+    <DropdownMenu.Sub
+      {...r}
+      open={s.open ?? (group ? group.active() === id : undefined)}
+      onOpenChange={(open) => {
+        if (open) group?.setActive(id)
+        else if (group?.active() === id) group.setActive(undefined)
+        s.onOpenChange?.(open)
+      }}
+    />
+  )
 }
 
 function MenuSubTrigger(props: ParentProps<MenuSubTriggerProps>) {
@@ -279,15 +304,19 @@ function MenuSubTrigger(props: ParentProps<MenuSubTriggerProps>) {
 function MenuSubContent(props: ComponentProps<typeof DropdownMenu.SubContent>) {
   const ctx = useMenuContext()
   const [s, r] = splitProps(props, ["class", "classList"])
+  // Nested submenus coordinate among themselves, not with the level that opened them.
+  const [activeSub, setActiveSub] = createSignal<string>()
 
   return (
-    <DropdownMenu.SubContent
-      {...r}
-      data-kb-top-layer=""
-      data-component="menu-v2-content"
-      data-appearance={ctx.appearance()}
-      classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
-    />
+    <SubmenuGroupContext.Provider value={{ active: activeSub, setActive: setActiveSub }}>
+      <DropdownMenu.SubContent
+        {...r}
+        data-kb-top-layer=""
+        data-component="menu-v2-content"
+        data-appearance={ctx.appearance()}
+        classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
+      />
+    </SubmenuGroupContext.Provider>
   )
 }
 
@@ -330,6 +359,7 @@ function MenuTrigger<T extends ValidComponent = "button">(props: PolymorphicProp
 function MenuContent(props: ComponentProps<typeof DropdownMenu.Content>) {
   const ctx = useMenuContext()
   const [s, r] = splitProps(props, ["class", "classList", "onCloseAutoFocus", "onInteractOutside"])
+  const [activeSub, setActiveSub] = createSignal<string>()
 
   // Kobalte's own rule for when an outside press keeps focus where it landed.
   const onInteractOutside: NonNullable<typeof s.onInteractOutside> = (event) => {
@@ -357,16 +387,18 @@ function MenuContent(props: ComponentProps<typeof DropdownMenu.Content>) {
   }
 
   return (
-    <DropdownMenu.Content
-      {...r}
-      onCloseAutoFocus={onCloseAutoFocus}
-      onInteractOutside={onInteractOutside}
-      // A modal dialog hides what's outside it from assistive tech, and a non-modal menu is portaled outside it.
-      data-kb-top-layer=""
-      data-component="menu-v2-content"
-      data-appearance={ctx.appearance()}
-      classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
-    />
+    <SubmenuGroupContext.Provider value={{ active: activeSub, setActive: setActiveSub }}>
+      <DropdownMenu.Content
+        {...r}
+        onCloseAutoFocus={onCloseAutoFocus}
+        onInteractOutside={onInteractOutside}
+        // A modal dialog hides what's outside it from assistive tech, and a non-modal menu is portaled outside it.
+        data-kb-top-layer=""
+        data-component="menu-v2-content"
+        data-appearance={ctx.appearance()}
+        classList={{ ...s.classList, [s.class ?? ""]: !!s.class }}
+      />
+    </SubmenuGroupContext.Provider>
   )
 }
 
