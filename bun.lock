@@ -342,6 +342,7 @@
       "name": "@opencode/desktop",
       "version": "2.2.7",
       "dependencies": {
+        "@hicccc77/electron-liquid-glass": "0.4.0",
         "@zip.js/zip.js": "2.7.62",
         "electron-context-menu": "5.0.0",
         "electron-log": "^5",
@@ -1564,6 +1565,10 @@
     "@graphql-typed-document-node/core": ["@graphql-typed-document-node/core@3.2.0", "", { "peerDependencies": { "graphql": "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ=="],
 
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@20.0.11", "", { "dependencies": { "@types/node": "^20.0.0", "happy-dom": "^20.0.11" } }, "sha512-GqNqiShBT/lzkHTMC/slKBrvN0DsD4Di8ssBk4aDaVgEn+2WMzE6DXxq701ndSXj7/0cJ8mNT71pM7Bnrr6JRw=="],
+
+    "@hicccc77/electron-liquid-glass": ["@hicccc77/electron-liquid-glass@0.4.0", "", { "dependencies": { "node-addon-api": "^8.5.0", "node-gyp-build": "^4.8.4" }, "hasInstallScript": true }, "sha512-RHvDk+DKFwxzBI/tJM9zK0OGieqO0lIxYmLrrawe48suSbIQPDZLVUnaxHvK6M4SMyGhxVW8wxqCZ514/6FDnA=="],
+
+    "@hicccc77/electron-liquid-glass/node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
 
     "@hona/strobe": ["@hona/strobe@0.31.0", "", { "optionalDependencies": { "@hona/strobe-darwin-arm64": "0.31.0", "@hona/strobe-darwin-x64": "0.31.0", "@hona/strobe-linux-arm64": "0.31.0", "@hona/strobe-linux-x64": "0.31.0", "@hona/strobe-win32-arm64": "0.31.0", "@hona/strobe-win32-x64": "0.31.0" }, "bin": { "strobe": "bin/strobe.js" } }, "sha512-6fd7JLZTa8NPsRxHNAomd0jtpZUQWUEHhcKPwJ5hlTdQVtxjReZLg2pyEfrOb/YeVXgIallTKckWN3U6XuXFWQ=="],
 
@@ -3696,6 +3701,8 @@
     "node-abi": ["node-abi@4.33.0", "", { "dependencies": { "semver": "^7.6.3" } }, "sha512-vLBWCKb+7LWsX+TbfzWOkw0W81m377tyx3hOweBTjO43CXZnRGS1/JPWs20fr0PgZyDXk6ROYrylsEycK8raDA=="],
 
     "node-addon-api": ["node-addon-api@7.1.1", "", {}, "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ=="],
+
+    "node-gyp-build": ["node-gyp-build@4.8.4", "", { "bin": { "node-gyp-build": "bin.js", "node-gyp-build-optional": "optional.js", "node-gyp-build-test": "build-test.js" } }, "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ=="],
 
     "node-api-version": ["node-api-version@0.2.1", "", { "dependencies": { "semver": "^7.3.5" } }, "sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q=="],
 

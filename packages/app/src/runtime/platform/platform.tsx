@@ -76,6 +76,17 @@ export type HudPlatform = {
   setWorkspaceTransfer(enabled: boolean): Promise<void>
   setIgnoreMouse(ignore: boolean): Promise<void>
   setFrost(enabled: boolean): Promise<void>
+  setGlassPanels(panels: readonly HudGlassPanel[]): Promise<void>
+}
+
+/** One native frosted panel behind a HUD surface, in screen physical pixels. */
+export type HudGlassPanel = {
+  x: number
+  y: number
+  width: number
+  height: number
+  radius: number
+  dpr: number
 }
 
 export type FatalRendererErrorLog = {

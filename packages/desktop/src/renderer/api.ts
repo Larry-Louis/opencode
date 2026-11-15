@@ -56,6 +56,7 @@ export const api: ElectronAPI = {
   hudSetWorkspaceTransfer: (enabled) => invoke("HudSetWorkspaceTransfer", { enabled }),
   hudSetIgnoreMouse: (ignore) => invoke("HudSetIgnoreMouse", { ignore }),
   hudSetFrost: (enabled) => invoke("HudSetFrost", { enabled }),
+  hudSetGlassPanels: (panels) => invoke("HudSetGlassPanels", { panels }),
   onHudStateChanged: (cb) => listen("HudStateChanged", (event) => cb({ open: event.open })),
   themeReady: () => invoke("WindowThemeReady"),
   onMenuCommand: (cb) => listen("MenuCommandTriggered", (event) => cb(event.id)),

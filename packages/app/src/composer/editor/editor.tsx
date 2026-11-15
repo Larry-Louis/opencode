@@ -430,6 +430,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             <Show when={!props.controller.value()}>
               <div
                 dir={mode() === "normal" ? "auto" : "ltr"}
+                data-slot="composer-placeholder"
                 class="pointer-events-none absolute inset-x-0 top-0 ps-4 pe-[var(--composer-scroll-end)] pt-4 text-[13px] font-[440] leading-5 text-v2-text-text-faint"
                 classList={{ "font-mono! tracking-[-0.04px]": mode() === "shell" }}
                 style={{ "unicode-bidi": mode() === "normal" ? "plaintext" : undefined, "text-align": "start" }}
@@ -444,7 +445,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
         </div>
 
         <div data-slot="composer-toolbar" class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
-          <Show when={!touch()}>
+          <Show when={!touch() && !hud}>
             <div
               class="flex shrink-0 items-center"
               aria-hidden={mode() === "shell"}
@@ -492,7 +493,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
                   />
                 )}
               </Show>
-              <Show when={props.modelControlsVisible ?? true}>
+              <Show when={(props.modelControlsVisible ?? true) && !hud}>
                 {props.modelControl}
                 <Show when={view.variant} keyed>
                   {(control) => (

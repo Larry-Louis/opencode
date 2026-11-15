@@ -22,19 +22,28 @@
   --shell-bottom-inset: 0px;
   --shell-top-inset: 0px;
   --session-header-inset-end: 8px;
+  --session-header-height: 36px;
 
   /* Fallback is the dark HUD; the theme blocks below choose the actual glass. */
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 1);
-  --hud-glass-strong: rgb(12 14 18 / 1);
-  --hud-glass-band: rgb(12 14 18 / 0.9);
+  --hud-glass: rgb(12 14 18 / 0.8);
+  --hud-glass-strong: rgb(12 14 18 / 0.8);
+  --hud-glass-band: rgb(12 14 18 / 0.8);
   --hud-hairline: rgb(255 255 255 / 0.13);
   --hud-frame-bg: rgb(12 14 18 / 0.45);
-  --hud-pill-bg: rgb(12 14 18 / 1);
+  --hud-pill-bg: rgb(12 14 18 / 0.8);
   --hud-user: #ffcf6b;
-  --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
+  --hud-text-shadow: 0 0 3px rgb(0 0 0 / 1);
+  --hud-capsule-bg: rgb(12 14 18 / 0.8);
+  --hud-info-glow: 0 0 4px rgb(0 0 0 / 1);
+  --hud-glow-ink: rgb(0 0 0 / 1);
+  --hud-frost: blur(18px) saturate(1.15);
+
+  /* Outline every glyph so the transparent HUD stays readable over any app behind it:
+     light text gets a dark edge, dark text an inverted one. */
+  text-shadow: var(--hud-text-shadow);
 }
 
 /* The theme's own tokens are set on html[data-color-scheme][data-theme], which
@@ -64,22 +73,22 @@ html[data-hud][data-theme][data-color-scheme="dark"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.45);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(16 18 22 / 1);
-  --v2-background-bg-layer-02: rgb(20 22 26 / 1);
-  --v2-background-bg-layer-03: rgb(23 25 30 / 1);
-  --v2-background-bg-layer-04: rgb(27 29 34 / 1);
+  --v2-background-bg-layer-01: rgb(16 18 22 / 0.8);
+  --v2-background-bg-layer-02: rgb(20 22 26 / 0.8);
+  --v2-background-bg-layer-03: rgb(23 25 30 / 0.8);
+  --v2-background-bg-layer-04: rgb(27 29 34 / 0.8);
 
   --hud-ink: #f7f8fa;
   --hud-ink-muted: rgb(247 248 250 / 0.76);
   --hud-ink-faint: rgb(247 248 250 / 0.54);
-  --hud-glass: rgb(12 14 18 / 1);
-  --hud-glass-strong: rgb(12 14 18 / 1);
-  --hud-glass-band: rgb(12 14 18 / 0.9);
+  --hud-glass: rgb(12 14 18 / 0.8);
+  --hud-glass-strong: rgb(12 14 18 / 0.8);
+  --hud-glass-band: rgb(12 14 18 / 0.8);
   --hud-hairline: rgb(255 255 255 / 0.13);
   --hud-frame-bg: rgb(12 14 18 / 0.45);
-  --hud-pill-bg: rgb(12 14 18 / 1);
+  --hud-pill-bg: rgb(12 14 18 / 0.8);
   --hud-user: #ffcf6b;
-  --hud-text-shadow: 0 1px 1px rgb(0 0 0 / 0.92), 0 0 3px rgb(0 0 0 / 0.88);
+  --hud-text-shadow: 0 0 3px rgb(0 0 0 / 1);
 }
 
 html[data-hud][data-theme][data-color-scheme="light"] {
@@ -106,22 +115,25 @@ html[data-hud][data-theme][data-color-scheme="light"] {
   --v2-overlay-simple-overlay-scrim: rgb(0 0 0 / 0.2);
   --v2-background-bg-base: transparent;
   --v2-background-bg-deep: transparent;
-  --v2-background-bg-layer-01: rgb(255 255 255 / 1);
-  --v2-background-bg-layer-02: rgb(253 253 254 / 1);
-  --v2-background-bg-layer-03: rgb(250 251 252 / 1);
-  --v2-background-bg-layer-04: rgb(247 248 250 / 1);
+  --v2-background-bg-layer-01: rgb(255 255 255 / 0.8);
+  --v2-background-bg-layer-02: rgb(253 253 254 / 0.8);
+  --v2-background-bg-layer-03: rgb(250 251 252 / 0.8);
+  --v2-background-bg-layer-04: rgb(247 248 250 / 0.8);
 
   --hud-ink: #171a1f;
   --hud-ink-muted: rgb(23 26 31 / 0.72);
   --hud-ink-faint: rgb(23 26 31 / 0.5);
-  --hud-glass: rgb(252 252 253 / 1);
-  --hud-glass-strong: rgb(255 255 255 / 1);
-  --hud-glass-band: rgb(250 251 253 / 0.9);
+  --hud-glass: rgb(252 252 253 / 0.8);
+  --hud-glass-strong: rgb(255 255 255 / 0.8);
+  --hud-glass-band: rgb(250 251 253 / 0.8);
   --hud-hairline: rgb(20 23 28 / 0.12);
   --hud-frame-bg: rgb(255 255 255 / 0.5);
-  --hud-pill-bg: rgb(255 255 255 / 1);
+  --hud-pill-bg: rgb(255 255 255 / 0.8);
   --hud-user: #9a5b00;
-  --hud-text-shadow: 0 1px 1px rgb(255 255 255 / 0.85), 0 0 3px rgb(255 255 255 / 0.95);
+  --hud-text-shadow: 0 0 3px rgb(255 255 255 / 1);
+  --hud-capsule-bg: rgb(250 251 253 / 0.8);
+  --hud-info-glow: 0 0 4px rgb(255 255 255 / 1);
+  --hud-glow-ink: rgb(255 255 255 / 1);
 }
 
 /* If the theme has not stamped its attributes yet, keep the dark fallback readable. */
@@ -169,8 +181,6 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition:
     opacity 180ms ease,
     background-color 180ms ease;
-  backdrop-filter: blur(20px) saturate(1.15);
-  -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 
 /* The history dots live in the band's first 20px; shift the transcript rows past
@@ -193,6 +203,85 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   color: var(--hud-user);
 }
 
+/* The prompt bubble is a light surface with dark ink, so it takes the inverted outline. */
+:root[data-hud] [data-component="user-message"] [data-slot="user-message-text"] {
+  /* Dark ink on a light bubble keeps its own white edge in both themes. */
+  text-shadow: 0 0 4px rgb(255 255 255 / 1);
+}
+
+/* The HUD reads downward, so the turn gap that separates a prompt from the reply above it ends up
+   under the bubble. Move that band onto the prompt's top instead of leaving it below. */
+:root[data-hud] [data-timeline-row="TurnGap"] {
+  height: 0 !important;
+}
+
+:root[data-hud] [data-timeline-row="UserMessage"] [data-slot="session-turn-message-container"] {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* The prompt's hover meta line is chrome the HUD does not use; keep the bubble alone. */
+:root[data-hud] [data-component="user-message"] [data-slot="user-message-copy-wrapper"] {
+  display: none !important;
+}
+
+/* The notice reads as a faint halo; one solid layer. Its faintest copy takes the solid ink
+   instead of an alpha color, so the text itself is fully opaque over the app behind. */
+:root[data-hud] [data-hud-transcript] [data-slot="session-timeline-notice"] {
+  text-shadow: var(--hud-info-glow);
+  -webkit-text-stroke: 1px var(--hud-glow-ink);
+  paint-order: stroke fill;
+}
+
+:root[data-hud] [data-hud-transcript] [data-slot="session-timeline-notice"] .text-v2-text-text-faint {
+  color: var(--hud-ink);
+}
+
+/* The read group and a turn's duration/speed line sit on bare content; give them the same 90%
+   capsule as the tool pills, and a glow in the opposite luminance so the text separates from it. */
+:root[data-hud] [data-hud-transcript] [data-component="read-tool-group"] > [data-component="tool-trigger"] {
+  background: var(--hud-capsule-bg);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+:root[data-hud] [data-hud-transcript] [data-slot="text-part-meta"] {
+  flex: none;
+  width: fit-content;
+  background: var(--hud-capsule-bg);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+:root[data-hud]
+  [data-hud-transcript]
+  :is(
+    [data-component="read-tool-group"] > [data-component="tool-trigger"],
+    [data-slot="text-part-meta"]
+  ) {
+  text-shadow: var(--hud-info-glow);
+}
+
+/* The rail's marks carry a small glow so they read over the app behind the band. */
+:root[data-hud] [data-slot="turn-navigator-dot"]:not(:focus-visible) > span {
+  box-shadow: 0 0 5px rgb(0 0 0 / 1);
+}
+
+html[data-hud][data-color-scheme="light"] [data-slot="turn-navigator-dot"]:not(:focus-visible) > span {
+  box-shadow: 0 0 5px rgb(255 255 255 / 1);
+}
+
+/* The rail's preview is a HUD surface too, so it follows the 80% cap. */
+:root[data-hud] [data-component="turn-navigator-preview"] {
+  background: var(--hud-glass-strong);
+}
+
+/* The patch tool's file rows are the one capsule still painted with the page color; give them the
+   same 90% surface as the other pills. */
+:root[data-hud] [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"] {
+  background-color: var(--hud-capsule-bg) !important;
+}
+
 /* The working label sits on bare content; a hairline keeps it legible. */
 :root[data-hud] [data-component="session-working"] {
   border: 1px solid var(--hud-hairline);
@@ -211,6 +300,33 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   background: var(--v2-background-bg-layer-03) !important;
 }
 
+/* Capsules keep their per-kind tint but sit on a 90% opaque surface, so the app behind the HUD
+   never shows through the reasoning and tool pills. */
+:root[data-hud] [data-component="tool-trigger"][data-pill-kind="shell"] {
+  background: color-mix(in srgb, hsl(118 42% 45%) 13%, var(--hud-capsule-bg)) !important;
+}
+
+:root[data-hud] [data-component="tool-trigger"][data-pill-kind="edit"] {
+  background: color-mix(in srgb, hsl(208 64% 49%) 12%, var(--hud-capsule-bg)) !important;
+}
+
+:root[data-hud] [data-component="tool-trigger"][data-pill-kind="plain"] {
+  background: color-mix(in srgb, hsl(208 64% 49%) 9%, var(--hud-capsule-bg)) !important;
+}
+
+:root[data-hud] [data-component="reasoning-part"] [data-component="tool-trigger"][data-pill-kind="plain"] {
+  background: color-mix(in srgb, hsl(36 95% 60%) 14%, var(--hud-capsule-bg)) !important;
+}
+
+/* The prompt bubble keeps its light ink at the shared 80% surface cap. */
+html[data-hud][data-color-scheme="dark"] [data-component="user-message"] [data-slot="user-message-text"] {
+  background: hsl(208 56% 87% / 0.8) !important;
+}
+
+html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-slot="user-message-text"] {
+  background: var(--v2-background-bg-layer-02) !important;
+}
+
 /* The session title bar is a surface too; without its own tint a bright app
    behind the transparent header reads as a white strip above the dark band. */
 :root[data-hud] [data-session-title] {
@@ -223,11 +339,44 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: auto;
 }
 
+/* The composer is its own painted surface; the strip behind the title block stays clear. The
+   title row keeps the 80% sheet so the project and session labels read over the app. */
 :root[data-hud] [data-session-title] > div:first-child {
-  border-bottom: 1px solid var(--hud-hairline);
-  background: var(--hud-glass) !important;
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  position: relative;
+  isolation: isolate;
+  border-bottom: 0;
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-hud] [data-session-title] > div:first-child::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 36px;
+  background: var(--hud-glass);
+  backdrop-filter: var(--hud-frost);
+  -webkit-backdrop-filter: var(--hud-frost);
+  pointer-events: none;
+}
+
+/* The mobile header fade is a no-op in the HUD: the title block sits outside the scroll. */
+:root[data-hud] .session-header-fade {
+  display: none;
+}
+
+/* The HUD title row is shorter than the shell's 48px row. */
+:root[data-hud] [data-session-title] .session-header-layout {
+  block-size: 36px;
+}
+
+/* The composer spans the block's full width; its wrappers used to pad it narrower. */
+:root[data-hud] [data-component="session-composer-dock"] > div {
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 0;
 }
 
 :root[data-hud] [data-component="hud-frame"]:not([data-hud-clickthrough]) [data-hud-transcript] {
@@ -258,10 +407,9 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: none;
 }
 
-/* Unfocused the band dims to 90% at most: the top 50% stays hidden and the bottom
-   50% fades in, for the hover lock and for the default lock while the session is
-   idle. While the model writes, the default lock ramps over the top 40% and holds
-   90% for the bottom 60%. */
+/* Unfocused the band is opaque at the very top and fades to clear by the midpoint; the bottom
+   half is fully transparent. While the model writes, the default lock holds 90% over the top 60%
+   and ramps out below. */
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
     [data-hud-hold]
@@ -269,8 +417,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   [data-hud-transcript]
   [data-slot="session-timeline-scroll"] {
   opacity: 1;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
-  mask-image: linear-gradient(to bottom, transparent 0% 50%, rgb(0 0 0 / 0.9) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 50%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 50%);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
@@ -285,11 +433,11 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   [data-slot="session-timeline-scroll"] {
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent 0%,
-    rgb(0 0 0 / 0.9) 40%,
-    rgb(0 0 0 / 0.9) 100%
+    rgb(0 0 0 / 0.9) 0%,
+    rgb(0 0 0 / 0.9) 60%,
+    transparent 100%
   );
-  mask-image: linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.9) 40%, rgb(0 0 0 / 0.9) 100%);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.9) 60%, transparent 100%);
 }
 
 :root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-focused] [data-hud-transcript],
@@ -337,7 +485,7 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   border: 1px solid var(--hud-hairline);
   border-radius: 12px;
   box-shadow:
-    0 12px 36px rgb(0 0 0 / 0.4),
+    0 12px 20px rgb(0 0 0 / 0.4),
     0 0 0 0.5px rgb(255 255 255 / 0.08);
   backdrop-filter: blur(22px) saturate(1.2);
   -webkit-backdrop-filter: blur(22px) saturate(1.2);
@@ -414,7 +562,10 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud] [data-component="menu-v2-content"],
 :root[data-hud] [data-slot="select-v2-content"],
 :root[data-hud] [data-slot="dialog-container"],
-:root[data-hud] [data-slot="dialog-content"] {
+:root[data-hud] [data-slot="dialog-content"],
+:root[data-hud] [data-slot="model-selector-drawer"],
+:root[data-hud] [data-slot="model-dialog"],
+:root[data-hud] [data-slot="model-dialog-flyout"] {
   background: var(--hud-glass-strong) !important;
   border: 1px solid var(--hud-hairline);
   color: var(--hud-ink);
@@ -595,7 +746,11 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 :root[data-hud]
   [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
   [data-session-title]
-  > div:first-child,
+  .session-header-layout,
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-session-title]
+  > div:first-child::before,
 :root[data-hud]
   [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
   [data-hud-rail],
@@ -607,6 +762,16 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   pointer-events: none !important;
   -webkit-mask-image: none;
   mask-image: none;
+}
+
+/* Unfocused the whole HUD reads at 60%: title, composer and transcript dim together while the
+   window is click-through, so the state change is visible everywhere, not only in the rows. */
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
+    [data-hud-hold]
+  )
+  [data-hud-content] {
+  opacity: 0.6;
 }
 
 :root[data-hud] [data-hud-transcript]::selection,
@@ -640,6 +805,111 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 
 [data-hud] [data-hud-grabbing] {
   user-select: none;
+}
+
+/* HUD: one row, sized by the send button. The card is exactly the toolbar's submit
+   button (size-7 = 28px) plus the 8px it floats in above and below, so an empty
+   composer is 44px instead of stacking the editor above the toolbar. A wrapped prompt
+   still grows the editor inside that row. */
+:root[data-hud] [data-component="composer"] {
+  --hud-composer-send: 28px;
+  --hud-composer-send-margin: 8px;
+  --hud-composer-row: calc(var(--hud-composer-send) + var(--hud-composer-send-margin) * 2);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: var(--hud-composer-row);
+}
+
+:root[data-hud] [data-component="composer"] [data-slot="composer-content"] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* One 20px line plus the editor's 12px/12px padding is the same 44px row, with the line exactly
+   on the row's centre instead of four pixels below it. */
+:root[data-hud] [data-component="composer"] [data-component="composer-editor"] {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* The empty-state line centres in the row instead of following the editor's top padding. */
+:root[data-hud] [data-slot="composer-placeholder"] {
+  inset-block-end: 0;
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+}
+
+:root[data-hud] [data-component="composer"] [data-slot="composer-toolbar"] {
+  height: var(--hud-composer-row);
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  padding-inline: 4px;
+  background: transparent;
+}
+
+/* HUD: body prose gets its own sheet. The transcript band is translucent, so long
+   passages over a bright page behind the HUD lost contrast. Paragraphs take a 6px
+   inset that a matching negative margin cancels, so the text column and the wrapping
+   stay put; list items keep their marker outside the sheet. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] p,
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] blockquote {
+  background: var(--hud-glass-band);
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin-inline: -6px;
+}
+
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] li {
+  position: relative;
+  isolation: isolate;
+  border-radius: 6px;
+  padding-block: 2px;
+}
+
+/* The marker is painted outside the item box; carry the sheet under it so the dot sits on the
+   same surface as its text. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] li::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  inset-inline-start: -24px;
+  border-radius: 6px;
+  background: var(--hud-glass-band);
+}
+
+/* The item's own sheet already covers its text; a paragraph or quote nested inside a list item
+   must not paint a second one. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] li :is(p, blockquote) {
+  background: none;
+}
+
+/* Every 80% sheet behaves like the composer: the tint stays, the backdrop softens. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] p,
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] blockquote,
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] pre,
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] li::before,
+:root[data-hud] [data-component="tool-trigger"][data-pill-kind],
+:root[data-hud] [data-hud-transcript] [data-component="read-tool-group"] > [data-component="tool-trigger"],
+:root[data-hud] [data-hud-transcript] [data-slot="text-part-meta"],
+:root[data-hud] [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"],
+:root[data-hud] [data-component="user-message"] [data-slot="user-message-text"],
+:root[data-hud] [data-component="session-working"],
+:root[data-hud] [data-component="task-tool-card"],
+:root[data-hud] [data-component="turn-navigator-preview"] {
+  backdrop-filter: var(--hud-frost);
+  -webkit-backdrop-filter: var(--hud-frost);
+}
+
+/* The HUD grows its transcript downward, so a reply stacks bottom-up: its newest block sits at
+   the top, nearest the composer, and a streaming answer extends away from the reader. Blocks keep
+   their own order inside. */
+:root[data-hud] [data-hud-transcript] [data-component="text-part"] [data-component="markdown"] {
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 /* A HUD shows one session; docked panels belong to the full shell. */

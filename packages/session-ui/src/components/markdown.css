@@ -82,9 +82,6 @@
   > [data-markdown-block]:first-child > *:first-child {
     margin-top: 0;
   }
-  > [data-markdown-block]:last-child > *:last-child {
-    margin-bottom: 0;
-  }
 
   /* Pretty wrapping would move settled words as each token arrives, so the growing block stays greedy until it completes. */
   &[data-streaming] > [data-markdown-block]:last-child {

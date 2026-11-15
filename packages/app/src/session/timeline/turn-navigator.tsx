@@ -53,6 +53,9 @@ export function TurnNavigator(props: {
 
   // The turn under the reading line, matching how the transcript picks the prompt shown in the header. Rows share
   // their turn's id and sit in visual order, so the last row starting above the line is the turn being read.
+  // The HUD mirrors the transcript: the newest turn sits at the top, so the row nearest the top edge is being read.
+  const hudReverse = () => document.documentElement.hasAttribute("data-hud")
+
   const measure = () => {
     frame = undefined
     const root = props.scroller()
@@ -64,13 +67,31 @@ export function TurnNavigator(props: {
     const line = box.bottom - props.bottomInset - 1
     let active: string | undefined
 
-    for (const element of root.querySelectorAll<HTMLElement>("[data-message-id]")) {
-      const id = element.dataset.messageId
+    if (hudReverse()) {
+      let top: number | undefined
 
-      if (!id) continue
+      for (const element of root.querySelectorAll<HTMLElement>("[data-message-id]")) {
+        const id = element.dataset.messageId
 
-      if (element.getBoundingClientRect().top > line) break
-      active = id
+        if (!id) continue
+        const rect = element.getBoundingClientRect()
+
+        if (rect.bottom <= box.top) continue
+
+        if (top === undefined || rect.top < top) {
+          top = rect.top
+          active = id
+        }
+      }
+    } else {
+      for (const element of root.querySelectorAll<HTMLElement>("[data-message-id]")) {
+        const id = element.dataset.messageId
+
+        if (!id) continue
+
+        if (element.getBoundingClientRect().top > line) break
+        active = id
+      }
     }
 
     if (!active) active = root.querySelector<HTMLElement>("[data-message-id]")?.dataset.messageId

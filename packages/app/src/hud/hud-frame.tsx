@@ -3,6 +3,7 @@ import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
 import { HudModeProvider } from "./hud-context"
+import { createHudGlass } from "./hud-glass"
 import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
 import "./hud.css"
 
@@ -98,6 +99,14 @@ export function HudFrame(props: ParentProps) {
     void api.setFrost(!chromeHidden() && (typing() || recent() || working() || locked())).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
+
+  // Windows: one native frosted panel behind each 80% surface, so the desktop blurs per card
+  // instead of as one window-wide sheet.
+  createHudGlass({
+    enabled: () => !chromeHidden(),
+    topOnly: () => windowing().clickThrough && !focused() && !locked(),
+    send: (panels) => api.setGlassPanels(panels),
+  })
 
   onMount(() => {
     void capture()
@@ -688,6 +697,7 @@ export function HudFrame(props: ParentProps) {
       </div>
       <div
         ref={content}
+        data-hud-content
         class="relative flex min-h-0 flex-1 flex-row gap-1.5 px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
