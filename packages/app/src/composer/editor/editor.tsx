@@ -46,7 +46,7 @@ import type {
   ComposerSuggestion,
 } from "../types"
 import type { ComposerEditorModel, ComposerSelectControl } from "./interaction"
-import { useHudMode } from "@/hud/hud-context"
+import { useHudMode, useHudReverse } from "@/hud/hud-context"
 import { isAttachment, promptLength } from "../prompt-parts"
 import { editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
 import {
@@ -104,6 +104,9 @@ export function ComposerEditor(props: ComposerEditorProps) {
   const i18n = useI18n()
   const markdown = useMarkdown()
   const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  // The reverse HUD's 44px composer row hides the model/agent/attach controls the dev skin shows.
+  const compact = () => hud && hudReverse
   const state = props.controller.state
   const view = props.controller.view
   const suggestionsID = createUniqueId()
@@ -445,7 +448,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
         </div>
 
         <div data-slot="composer-toolbar" class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
-          <Show when={!touch() && !hud}>
+          <Show when={!touch() && !compact()}>
             <div
               class="flex shrink-0 items-center"
               aria-hidden={mode() === "shell"}
@@ -483,7 +486,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
             style={buttons()}
           >
             <div ref={controlsContent} class="flex h-full w-max min-w-full items-center gap-0.5">
-              <Show when={hud ? undefined : view.agent} keyed>
+              <Show when={compact() ? undefined : view.agent} keyed>
                 {(control) => (
                   <ComposerEditorConfiguredSelect
                     fitMenuToOptions
@@ -493,7 +496,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
                   />
                 )}
               </Show>
-              <Show when={(props.modelControlsVisible ?? true) && !hud}>
+              <Show when={(props.modelControlsVisible ?? true) && !compact()}>
                 {props.modelControl}
                 <Show when={view.variant} keyed>
                   {(control) => (
@@ -513,7 +516,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
           <Show when={!touch()}>
             <div data-slot="composer-actions" class="flex shrink-0 items-center">
-              <Show when={!hud && mode() === "normal"}>
+              <Show when={!compact() && mode() === "normal"}>
                 <ComposerEditorAlternateDelivery
                   controller={props.controller}
                   keybind={props.alternateKeybind ?? ["Mod", "Enter"]}
@@ -1110,6 +1113,8 @@ function ComposerEditorSelect(props: {
 }) {
   const mobile = createMediaQuery("(max-width: 767px)")
   const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  const compact = () => hud && hudReverse
   const [store, setStore] = createStore({ open: false, loaded: false })
   const focus = pointerFocusReturn()
   let trigger: HTMLButtonElement | undefined
@@ -1126,7 +1131,7 @@ function ComposerEditorSelect(props: {
   })
 
   const content = () =>
-    hud ? (
+    compact() ? (
       props.currentIcon ?? <Icon name="outline-sliders" />
     ) : (
       <>

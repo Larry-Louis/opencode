@@ -1082,6 +1082,11 @@ export const dict = {
   "settings.timeline.row.width.focused": "Focused",
   "settings.timeline.row.width.comfortable": "Comfortable",
   "settings.timeline.row.width.wide": "Wide",
+  "settings.timeline.row.hudStyle.title": "HUD style",
+  "settings.timeline.row.hudStyle.description":
+    "Choose the floating HUD's layout. Switching rebuilds the HUD view",
+  "settings.timeline.row.hudStyle.reverse": "Reverse glass",
+  "settings.timeline.row.hudStyle.dev": "Dev classic",
   "settings.timeline.detail": "Timeline detail",
   "settings.timeline.description": "Choose how much detail appears in the session timeline.",
   "settings.timeline.summary": "{{preset}}:",

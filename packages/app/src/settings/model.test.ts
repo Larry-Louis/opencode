@@ -96,6 +96,7 @@ describe("settings schema", () => {
         showTurnDiffs: false,
         backgroundActivity: "left",
         timelineWidth: "comfortable",
+        hudStyle: "reverse",
         newIcons: false,
         foldUserMessages: false,
         newQuestionUI: false,

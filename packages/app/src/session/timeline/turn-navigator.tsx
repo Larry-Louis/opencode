@@ -1,6 +1,7 @@
 ﻿import { createEffect, createMemo, createSignal, For, onCleanup, Show, type Accessor } from "solid-js"
 import { Portal } from "solid-js/web"
 import { useLanguage } from "@/runtime/i18n/language"
+import { hudReverse } from "@/hud/hud-style"
 import "./turn-navigator.css"
 
 export type TurnNavigatorItem = {
@@ -53,8 +54,8 @@ export function TurnNavigator(props: {
 
   // The turn under the reading line, matching how the transcript picks the prompt shown in the header. Rows share
   // their turn's id and sit in visual order, so the last row starting above the line is the turn being read.
-  // The HUD mirrors the transcript: the newest turn sits at the top, so the row nearest the top edge is being read.
-  const hudReverse = () => document.documentElement.hasAttribute("data-hud")
+  // The reverse HUD mirrors the transcript: the newest turn sits at the top, so the row nearest the top edge is
+  // being read; the dev skin keeps the normal bottom line.
 
   const measure = () => {
     frame = undefined

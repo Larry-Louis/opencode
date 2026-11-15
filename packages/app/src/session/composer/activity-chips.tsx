@@ -8,7 +8,7 @@ import type { ShellOutputInput, ShellOutputOutput } from "@opencode/client/promi
 import { stripAnsi } from "@opencode/session-ui/tools/ansi"
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
-import { useHudMode } from "@/hud/hud-context"
+import { useHudMode, useHudReverse } from "@/hud/hud-context"
 import { useSettings } from "@/settings/model"
 import { composerLanePlacement, useComposerLaneAlignment } from "./composer-lane"
 import { createShellPanel, createShellTail } from "./shell-panel"
@@ -65,6 +65,9 @@ export function SessionActivityChips(props: {
   const language = useLanguage()
   const settings = useSettings()
   const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  // The reverse HUD docks the composer above the timeline, so its pills open downward.
+  const below = () => hud && hudReverse
 
   const rows = new Map<string, HTMLElement>()
   let content: HTMLElement | undefined
@@ -174,7 +177,7 @@ export function SessionActivityChips(props: {
       <div data-component="session-activity-chips" class="flex min-w-0 shrink items-center">
         <Menu
           gutter={8}
-          placement={composerLanePlacement(alignment(), hud)}
+          placement={composerLanePlacement(alignment(), below())}
           open={view().open}
           onOpenChange={panel.toggle}
         >

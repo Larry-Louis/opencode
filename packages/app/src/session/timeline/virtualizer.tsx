@@ -11,6 +11,7 @@ import { Predicate } from "effect"
 import { Timeline, TimelineRow } from "@opencode/session-ui/timeline/projection"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useHudMode } from "@/hud/hud-context"
+import { hudReverse } from "@/hud/hud-style"
 import {
   batch,
   createEffect,
@@ -149,8 +150,9 @@ export function createTimelineVirtualizer(input: Input) {
   const language = useLanguage()
   const hud = useHudMode()
   // The timeline cache is built outside the HUD subtree, so this context is false inside the HUD.
-  // The root attribute is the authoritative answer and is what the HUD styles key on as well.
-  const reverse = () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-hud")
+  // The root attributes are the authoritative answer and are what the HUD styles key on as well.
+  // The dev HUD skin keeps the normal newest-at-the-bottom order.
+  const reverse = () => hudReverse()
   const active = () => input.active?.() !== false
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const topOffset = () => (input.showHeader() ? 64 : isDesktop() ? 0 : 16)
@@ -158,8 +160,9 @@ export function createTimelineVirtualizer(input: Input) {
   // activity pill and its 10px composer gap. Without hover the pill grows from 32px to its 44px touch size
   // (composer-lane.css), and the tail grows with it. Both come and go inside it, so neither moves the rows above.
   const touch = createMediaQuery("(hover: none)")
-  // The HUD pins the newest row to the content top with no tail lane; its status pill floats below the composer.
-  const tailSize = () => (reverse() ? 0 : touch() ? 104 : 92)
+  // The reverse HUD pins the newest row to the content top with no tail lane; the dev skin keeps its
+  // narrow HUD tail, and a normal window keeps room for the status row and composer pill.
+  const tailSize = () => (reverse() ? 0 : hud ? 12 : touch() ? 104 : 92)
   const ownerSessionKey = input.sessionKey()
   const entry = cache.get(ownerSessionKey)
   const cached = entry?.presentationKey === input.presentationKey?.() ? entry : undefined
@@ -511,7 +514,8 @@ export function createTimelineVirtualizer(input: Input) {
       // The content box is written imperatively only when a scroll lands, so a reverse layout whose
       // first paint happens before every row is measured would keep the estimate height and leave the
       // mirrored rows outside a box that cannot scroll. Sync it on every size flush instead.
-      if (virtualContent) virtualContent.style.height = `${virtualizer.getTotalSize() - rendering.scrollAdjustment}px`
+      if (reverse() && virtualContent)
+        virtualContent.style.height = `${virtualizer.getTotalSize() - rendering.scrollAdjustment}px`
       if (untrack(coldHidden)) pinColdBottom()
       dispatchCold(CHECK_REQUESTED)
 
@@ -1233,9 +1237,9 @@ export function createTimelineVirtualizer(input: Input) {
             </svg>
           </button>
         </div>
-        {/* HUD keeps the title block (with the composer) outside the scrolling
-            viewport, so the band's fade never hides the composer. */}
-        <Show when={hud && input.showHeader()}>{props.header}</Show>
+        {/* The reverse HUD keeps the title block (with the composer) outside the scrolling
+            viewport, so the band's fade never hides the composer. The dev skin scrolls it away. */}
+        <Show when={hud && reverse() && input.showHeader()}>{props.header}</Show>
         <ScrollView
           data-slot="session-timeline-scroll"
           viewportRef={bindListRoot}
@@ -1254,7 +1258,7 @@ export function createTimelineVirtualizer(input: Input) {
           class="relative min-w-0 w-full h-full"
           style={{ "--sticky-accordion-top": input.showHeader() ? "var(--session-header-height, 48px)" : "0px" }}
         >
-          <Show when={!hud}>
+          <Show when={!hud || !reverse()}>
             <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
               {props.header}
             </Show>

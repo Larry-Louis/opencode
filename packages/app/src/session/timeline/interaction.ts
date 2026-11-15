@@ -3,6 +3,7 @@ import { useLocation } from "@solidjs/router"
 import { createEffect, createMemo, createSignal, on, onCleanup, untrack, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { frameLoop } from "@opencode/ui/motion"
+import { hudReverse } from "@/hud/hud-style"
 import type { SessionModel } from "../model"
 import { createTimelineCursor } from "./cursor"
 import { cursorMessageID, freshCursorMessageID, hasFreshCursorOrSeek, SCROLL_MOVED_EVENT } from "./cursor-machine"
@@ -26,10 +27,9 @@ import {
 import { createRouteRevealState, routeRevealTarget, transitionRouteReveal } from "./machine"
 import { createTimelineModel } from "./model"
 
-// The floating HUD mirrors the timeline: the newest row sits at the top, so its distance from the newest is
-// the raw offset rather than the distance to the native end.
-const hudReverse = () => document.documentElement.hasAttribute("data-hud")
-
+// The floating HUD's reverse skin mirrors the timeline: the newest row sits at the top, so its distance
+// from the newest is the raw offset rather than the distance to the native end. The dev skin keeps the
+// normal order.
 const fromOldest = (element: HTMLDivElement) =>
   hudReverse() ? element.scrollHeight - element.clientHeight - element.scrollTop : element.scrollTop
 

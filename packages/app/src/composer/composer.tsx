@@ -12,7 +12,7 @@ import { DialogSelectModel, ModelSelectorDrawer } from "@/providers/models/selec
 import { DialogSelectModelUnpaid } from "@/providers/models/unpaid"
 import { formatKeybind, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
-import { useHudMode } from "@/hud/hud-context"
+import { useHudMode, useHudReverse } from "@/hud/hud-context"
 import type { ComposerModel } from "./model"
 import type { ComposerModelLabel } from "./model-label"
 import {
@@ -106,6 +106,9 @@ function ComposerModelControl(props: {
   const mobile = createMediaQuery("(max-width: 767px)")
   const dialog = useDialog()
   const hud = useHudMode()
+  const hudReverse = useHudReverse()
+  // The reverse HUD's composer row is 44px tall, so the model chip drops its provider label.
+  const compact = () => hud && hudReverse
 
   const open = (detail: number) => {
     if (!props.paid) return props.onUnpaidClick()
@@ -160,7 +163,7 @@ function ComposerModelControl(props: {
   onCleanup(() => dispatch({ type: "disposed" }))
 
   const content = () =>
-    hud ? (
+    compact() ? (
       <Icon name="outline-brain" />
     ) : (
       <>

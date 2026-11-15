@@ -12,15 +12,28 @@ import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
 import { sessionLabel } from "@/session/title"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLanguage } from "@/runtime/i18n/language"
+import { useSettings } from "@/settings/model"
+import { HudRailDev } from "./hud-rail-dev"
 
 const SESSION_LIMIT = 24
+
+/** The dev branch keeps its project rail; the reverse branch keeps the simple session rail. */
+export function HudRail() {
+  const settings = useSettings()
+
+  return (
+    <Show when={settings.general.hudStyle() === "dev"} fallback={<HudRailReverse />}>
+      <HudRailDev />
+    </Show>
+  )
+}
 
 /**
  * The normal window's project sidebar, pinned to its icon rail: project avatars on the right
  * edge, never wider than the rail. Each avatar opens that project's recent sessions, with a
  * new conversation as the first row, so switching projects never grows the bar.
  */
-export function HudRail() {
+function HudRailReverse() {
   const server = useServer()
   const language = useLanguage()
   const params = useParams<{ id: string }>()

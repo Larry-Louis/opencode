@@ -21,6 +21,7 @@ export type FollowUpBehavior = Settings["general"]["followUpBehavior"]
 export type BackgroundActivity = Settings["general"]["backgroundActivity"]
 
 export type TimelineWidth = Settings["general"]["timelineWidth"]
+export type HudStyle = Settings["general"]["hudStyle"]
 
 export type SidebarOrganize = Settings["general"]["sidebarOrganize"]
 
@@ -130,6 +131,8 @@ const generalSchema = Persistence.struct({
   showTurnDiffs: Schema.Boolean,
   backgroundActivity: Schema.Literals(["off", "left", "center", "right"]),
   timelineWidth: Schema.Literals(["focused", "comfortable", "wide"]),
+  // Which HUD the floating window renders: the reverse/glass branch or the dev branch's layout.
+  hudStyle: Schema.Literals(["reverse", "dev"]),
   // The "New icons" design experiment, off until it ships.
   newIcons: Schema.Boolean,
   // The "Fold long messages" experiment, off until it ships.
@@ -309,6 +312,7 @@ export const defaultSettings: Settings = {
     showTurnDiffs: false,
     backgroundActivity: "left",
     timelineWidth: "comfortable",
+    hudStyle: "reverse",
     newIcons: false,
     foldUserMessages: false,
     newQuestionUI: false,
@@ -393,6 +397,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       document.documentElement.dataset.timelineWidth = timelineWidth()
     })
 
+    const hudStyle = withFallback(() => store.general?.hudStyle, defaultSettings.general.hudStyle)
+
+    // The HUD picks its whole layout from this attribute; components outside the HUD subtree read it too.
+    createEffect(() => {
+      if (typeof document === "undefined") return
+      document.documentElement.dataset.hudStyle = hudStyle()
+    })
+
     const autoApproveDefault = withFallback(
       () => store.permissions?.autoApprove,
       defaultSettings.permissions.autoApprove,
@@ -430,6 +442,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         timelineWidth,
         setTimelineWidth(value: TimelineWidth) {
           setStore("general", "timelineWidth", value)
+        },
+        hudStyle,
+        setHudStyle(value: HudStyle) {
+          setStore("general", "hudStyle", value)
         },
         newIcons,
         setNewIcons(value: boolean) {
