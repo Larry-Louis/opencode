@@ -245,12 +245,18 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   color: var(--hud-ink);
 }
 
-/* The read group and a turn's duration/speed line sit on bare content; give them the same 90%
-   capsule as the tool pills, and a glow in the opposite luminance so the text separates from it. */
+/* The read group's blue fill belongs to the capsule itself; its inner trigger stays clear so the
+   tint reaches the capsule edge instead of leaving a dark pill inside a blue ring. */
+:root[data-hud] [data-hud-transcript] [data-component="read-tool-group"] {
+  background: color-mix(in srgb, hsl(208 64% 49%) 22%, var(--hud-capsule-bg));
+  border-color: hsl(208 64% 49% / 0.42);
+}
+
 :root[data-hud] [data-hud-transcript] [data-component="read-tool-group"] > [data-component="tool-trigger"] {
-  background: var(--hud-capsule-bg);
-  border-radius: 6px;
-  padding: 2px 8px;
+  background: none;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
 }
 
 :root[data-hud] [data-hud-transcript] [data-slot="text-part-meta"] {
@@ -368,6 +374,13 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   backdrop-filter: var(--hud-frost);
   -webkit-backdrop-filter: var(--hud-frost);
   pointer-events: none;
+}
+
+/* The composer docks under the title row, so the block is taller than its 36px band. Without a
+   backing, a bright app behind the transparent HUD showed as a light strip around the composer;
+   carry the band down the entire sticky block in that case. */
+:root[data-hud] [data-session-title] > div:first-child:has([data-hud-composer-divider])::before {
+  height: 100%;
 }
 
 /* The mobile header fade is a no-op in the HUD: the title block sits outside the scroll. */
@@ -944,7 +957,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-transcript] [data-component="markdown"] pre,
 :root[data-hud] [data-hud-transcript] [data-component="markdown"] li::before,
 :root[data-hud] [data-component="tool-trigger"][data-pill-kind],
-:root[data-hud] [data-hud-transcript] [data-component="read-tool-group"] > [data-component="tool-trigger"],
+:root[data-hud] [data-hud-transcript] [data-component="read-tool-group"],
 :root[data-hud] [data-hud-transcript] [data-slot="text-part-meta"],
 :root[data-hud] [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"],
 :root[data-hud] [data-component="user-message"] [data-slot="user-message-text"],

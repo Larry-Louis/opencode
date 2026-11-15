@@ -16,7 +16,7 @@ const SURFACES = [
   '[data-hud-transcript] [data-component="markdown"] pre',
   '[data-hud-transcript] [data-component="markdown"] li',
   '[data-hud-transcript] [data-component="tool-trigger"][data-pill-kind]',
-  '[data-hud-transcript] [data-component="read-tool-group"] > [data-component="tool-trigger"]',
+  '[data-hud-transcript] [data-component="read-tool-group"]',
   '[data-hud-transcript] [data-slot="text-part-meta"]',
 ].join(", ")
 
@@ -92,12 +92,13 @@ function collect(topOnly: boolean) {
     const bottom = Math.min(height, rect.bottom, scroll && scroll.contains(element) ? limit : Number.POSITIVE_INFINITY)
 
     if (right - left < 4 || bottom - top < 4) continue
+    const component = element.getAttribute("data-component")
     panels.push({
       x: Math.round((window.screenX + left) * dpr),
       y: Math.round((window.screenY + top) * dpr),
       width: Math.round((right - left) * dpr),
       height: Math.round((bottom - top) * dpr),
-      radius: element.getAttribute("data-component") === "composer" ? 12 : 6,
+      radius: component === "composer" ? 12 : component === "read-tool-group" ? Math.min(999, (bottom - top) / 2) : 6,
       dpr,
     })
 
