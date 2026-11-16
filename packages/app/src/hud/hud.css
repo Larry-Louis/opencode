@@ -386,13 +386,6 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   pointer-events: none;
 }
 
-/* The composer docks under the title row, so the block is taller than its 36px band. Without a
-   backing, a bright app behind the transparent HUD showed as a light strip around the composer;
-   carry the band down the entire sticky block in that case. */
-:root[data-hud] [data-session-title] > div:first-child:has([data-hud-composer-divider])::before {
-  height: 100%;
-}
-
 /* The mobile header fade is a no-op in the HUD: the title block sits outside the scroll. */
 :root[data-hud] .session-header-fade {
   display: none;
