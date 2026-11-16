@@ -262,6 +262,11 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   padding: 0;
 }
 
+/* The shared text part carries a 24px top margin; the HUD keeps a tighter 12px rhythm. */
+:root[data-hud] [data-hud-transcript] [data-component="text-part"] {
+  margin-top: 12px;
+}
+
 :root[data-hud] [data-hud-transcript] [data-slot="text-part-meta"] {
   flex: none;
   width: fit-content;
@@ -496,7 +501,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   border: 1px solid var(--hud-hairline);
   border-radius: 12px;
   box-shadow:
-    0 12px 20px rgb(0 0 0 / 0.4),
+    0 6px 12px rgb(0 0 0 / 0.35),
     0 0 0 0.5px rgb(255 255 255 / 0.08);
   backdrop-filter: blur(22px) saturate(1.2);
   -webkit-backdrop-filter: blur(22px) saturate(1.2);

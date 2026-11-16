@@ -30,10 +30,6 @@ const HUD_PERSIST_DELAY_MS = 200
 /** A HUD whose renderer never reports a theme still has to become visible. */
 const HUD_SHOW_FALLBACK_MS = 3_000
 
-/** Dev builds open one detached DevTools window for the first HUD, so layout and scroll problems can be
- *  inspected live; later opens use the title bar's debug button. */
-let hudDevToolsOpened = false
-
 export type HudController = {
   readonly toggle: (route?: string) => void
   readonly open: (route?: string) => void
@@ -141,11 +137,6 @@ export function createHudController(input: {
 
     win = created
     created.setAlwaysOnTop(true, process.platform === "darwin" ? "floating" : "screen-saver")
-
-    if (!hudDevToolsOpened && import.meta.env.OPENCODE_CHANNEL === "dev") {
-      hudDevToolsOpened = true
-      created.webContents.openDevTools({ mode: "detach" })
-    }
 
     if (process.platform === "darwin")
       created.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
