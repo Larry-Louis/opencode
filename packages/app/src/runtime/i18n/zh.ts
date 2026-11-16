@@ -6,6 +6,7 @@ export const dict = {
   "hud.label": "HUD",
   "hud.close": "退出 HUD",
   "hud.reset": "重置 HUD 布局",
+  "hud.devtools": "开发者工具",
   "hud.context.enable": "随每条消息附带 HUD 背后的屏幕",
   "hud.context.disable": "停止附带 HUD 背后的屏幕",
   "hud.context.refresh": "刷新屏幕上下文",

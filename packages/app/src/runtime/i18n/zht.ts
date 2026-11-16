@@ -1392,6 +1392,7 @@ export const dict = {
   "hud.label": "HUD",
   "hud.close": "離開 HUD",
   "hud.reset": "重設 HUD 版面",
+  "hud.devtools": "開發人員工具",
   "hud.drag": "拖曳以移動",
   "hud.resize": "調整 HUD 大小",
   "hud.context.enable": "隨每則訊息附上 HUD 背後的畫面",

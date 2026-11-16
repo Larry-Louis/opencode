@@ -693,6 +693,16 @@ export function HudFrame(props: ParentProps) {
         </button>
         <button
           type="button"
+          aria-label={language.t("hud.devtools")}
+          title={language.t("hud.devtools")}
+          class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => void platform.runDesktopMenuAction?.("view.toggleDevTools")}
+        >
+          <Icon name="terminal" size="small" />
+        </button>
+        <button
+          type="button"
           aria-label={language.t("hud.reset")}
           title={language.t("hud.reset")}
           class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"

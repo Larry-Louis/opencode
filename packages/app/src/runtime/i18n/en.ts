@@ -4,6 +4,7 @@ export const dict = {
   "hud.label": "HUD",
   "hud.close": "Exit HUD",
   "hud.reset": "Reset HUD layout",
+  "hud.devtools": "Developer Tools",
   "hud.drag": "Drag to move",
   "hud.resize": "Resize HUD",
   "hud.context.enable": "Include the screen behind the HUD with each message",
