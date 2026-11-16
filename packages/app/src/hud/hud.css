@@ -177,7 +177,9 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   background: transparent;
   color: var(--hud-ink);
   text-shadow: var(--hud-text-shadow);
-  pointer-events: none;
+  /* The transcript stays hit-testable so pointing at it can make the window solid and let the
+     wheel scroll it; the frame's hit-test decides when the window actually takes the pointer. */
+  pointer-events: auto;
   transition:
     opacity 180ms ease,
     background-color 180ms ease;
