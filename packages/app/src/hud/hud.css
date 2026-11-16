@@ -194,11 +194,13 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 /* The history dots live in the band's first 20px; shift the transcript rows past
    them so text never sits under the rail. */
 /* HUD: the activity lane hangs below the composer instead of over the title bar. */
+/* HUD: the activity lane hangs below the composer instead of over the title bar. The working
+   label tucks up against the composer's bottom edge. */
 :root[data-hud] [data-component="session-composer-lane"] {
   bottom: auto;
   top: 100%;
   align-items: flex-start;
-  padding-top: 4px;
+  padding-top: 0;
   padding-bottom: 0;
 }
 
@@ -560,6 +562,15 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-slot="session-chat-panel"] > :not([data-hud-transcript]),
 :root[data-hud] [data-component="session-composer-dock"],
 :root[data-hud] [data-slot="composer-touch-bar-mount"] {
+  background: transparent !important;
+}
+
+/* The docked composer row and every wrapper above the card stay clear; only the card paints. */
+:root[data-hud] [data-hud-composer-divider],
+:root[data-hud] [data-hud-composer-divider] > div,
+:root[data-hud] [data-component="session-composer-dock"] > div,
+:root[data-hud] [data-slot="composer-morph"],
+:root[data-hud] [data-slot="composer-face"] {
   background: transparent !important;
 }
 
