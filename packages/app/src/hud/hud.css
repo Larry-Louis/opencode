@@ -429,8 +429,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 }
 
 /* Unfocused the band is opaque at the very top and fades to clear by the midpoint; the bottom
-   half is fully transparent. While the model writes, the default lock holds 90% over the top 60%
-   and ramps out below. */
+   half is fully transparent. A running turn uses the same fade while the window is unfocused. */
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
     [data-hud-hold]
@@ -444,21 +443,6 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
-}
-
-:root[data-hud]
-  [data-component="hud-frame"][data-hud-clickthrough][data-hud-working]:not([data-hud-locked]):not(
-    [data-hud-focused]
-  ):not([data-hud-hold]):not([data-hud-lock-hover])
-  [data-hud-transcript]
-  [data-slot="session-timeline-scroll"] {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 0.9) 0%,
-    rgb(0 0 0 / 0.9) 60%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.9) 60%, transparent 100%);
 }
 
 :root[data-hud] [data-component="hud-frame"][data-hud-clickthrough][data-hud-focused] [data-hud-transcript],
