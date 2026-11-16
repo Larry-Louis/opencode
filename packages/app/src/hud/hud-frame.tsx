@@ -294,9 +294,7 @@ export function HudFrame(props: ParentProps) {
         overlayFocused ||
         // A visible band is a reading surface even when the pointer is between
         // controls; keep the window solid so text can be scrolled and selected.
-        // Hovering alone is enough: while the window is click-through the pointer
-        // cannot click the transcript to focus it, and a wheel over it did nothing.
-        ((focused() || working() || locked() || hovering()) &&
+        ((focused() || working() || locked()) &&
           hit instanceof Element &&
           hit.closest("[data-hud-transcript]") !== null) ||
         (hit instanceof Element &&
