@@ -1017,6 +1017,9 @@ export function createTimelineVirtualizer(input: Input) {
     input.onUserScroll(event.target)
     // Older history lies below the newest row in the HUD, so scrolling down asks for it.
     dispatchIntent(reverse() ? event.deltaY > 0 : event.deltaY < 0)
+    // At the oldest end the wheel asks for more history without moving the scroll, so no scroll event
+    // would carry the request; ask here, where the intent is known.
+    input.onHistoryScroll()
   }
 
   const handleListTouchStart = (event: TouchEvent) => {
@@ -1132,6 +1135,8 @@ export function createTimelineVirtualizer(input: Input) {
     if (scrollKeyOwner(event.currentTarget, event.target, key) !== event.currentTarget) return
     input.onUserScroll(event.currentTarget)
     dispatchIntent(reverse() ? !upwardKeys.has(key) : upwardKeys.has(key))
+    // A key pressed at the oldest end asks for history without moving the scroll.
+    input.onHistoryScroll()
   }
 
   const handleListScroll = (event: Event & { currentTarget: HTMLDivElement }) => {
