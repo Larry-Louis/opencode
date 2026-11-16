@@ -353,6 +353,14 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   pointer-events: auto;
 }
 
+/* The shared viewport fades its last 20px so the floating composer can sit over it. The reverse HUD
+   docks the composer above the transcript, so that fade only hides the oldest rows; the unfocused
+   mask above already handles the idle look. */
+:root[data-hud]:not([data-hud-style="dev"]) [data-slot="session-timeline-scroll"] > .scroll-view__viewport {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 /* The composer is its own painted surface; the strip behind the title block stays clear. The
    title row keeps the 80% sheet so the project and session labels read over the app. */
 :root[data-hud] [data-session-title] > div:first-child {

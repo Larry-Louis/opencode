@@ -449,6 +449,21 @@ export function createTimelineVirtualizer(input: Input) {
     reverse() ? virtualizer.getTotalSize() - start - size : start - topOffset() - rendering.scrollAdjustment
   const scrollToNewest = (behavior?: ScrollBehavior) => virtualizer.scrollToEnd({ behavior })
 
+  // The mirrored offset counts down from the newest row, so content added or measured above the reader
+  // changes the logical offset without moving the native scroll. Hand the new offset to TanStack, or its
+  // range stays on the rows from before the page landed and the newly loaded tail is never rendered.
+  const syncLogicalOffset = () => {
+    if (!reverse()) return
+    const root = listRoot()
+
+    if (!root?.isConnected) return
+    if (virtualizer.scrollOffset === toLogical(root, root.scrollTop)) return
+    reportOffset?.(root.scrollTop, false)
+    input.onHistoryScroll()
+  }
+
+  createEffect(on(rowKeys, () => queueMicrotask(syncLogicalOffset), { defer: true }))
+
   const resizeItem = virtualizer.resizeItem
   const pendingSizes = new Map<number, { key: string; size: number }>()
   let resizeScheduled = false
@@ -516,6 +531,7 @@ export function createTimelineVirtualizer(input: Input) {
       // mirrored rows outside a box that cannot scroll. Sync it on every size flush instead.
       if (reverse() && virtualContent)
         virtualContent.style.height = `${virtualizer.getTotalSize() - rendering.scrollAdjustment}px`
+      syncLogicalOffset()
       if (untrack(coldHidden)) pinColdBottom()
       dispatchCold(CHECK_REQUESTED)
 
