@@ -830,6 +830,18 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   opacity: 0.6;
 }
 
+/* The desktop blur is part of the focused, interactive state. Unfocused the HUD becomes a flat
+   translucent sheet: the surfaces keep their tint, without frosting the window behind. */
+:root[data-hud] [data-component="hud-frame"]:not([data-hud-focused]):not([data-hud-locked]) {
+  --hud-frost: none;
+}
+
+:root[data-hud] [data-component="hud-frame"]:not([data-hud-focused]):not([data-hud-locked])
+  :is([data-component="composer"], [data-hud-drag], [data-hud-rail]) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 :root[data-hud] [data-hud-transcript]::selection,
 :root[data-hud] [data-hud-transcript] *::selection {
   background: color-mix(in srgb, var(--hud-user) 28%, transparent);

@@ -114,9 +114,10 @@ export function HudFrame(props: ParentProps) {
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
 
   // Windows: one native frosted panel behind each 80% surface, so the desktop blurs per card
-  // instead of as one window-wide sheet.
+  // instead of as one window-wide sheet. An unfocused HUD dims to a flat sheet: the desktop blur
+  // only belongs to the focused, interactive state.
   createHudGlass({
-    enabled: () => reverse() && !chromeHidden(),
+    enabled: () => reverse() && !chromeHidden() && (focused() || locked()),
     topOnly: () => windowing().clickThrough && !focused() && !locked(),
     send: (panels) => api.setGlassPanels(panels),
   })
