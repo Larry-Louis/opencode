@@ -23,13 +23,13 @@ describe("hud geometry", () => {
     expect(bounds.y).toBe(1040 - HUD_DEFAULT_HEIGHT - 72)
   })
 
-  test("keeps the minimum size and a grabbable part on screen", () => {
+  test("keeps the minimum size and the full height on screen", () => {
     const bounds = clampHudBounds({ x: -1000, y: 5000, width: 10, height: 10 }, area)
 
     expect(bounds.width).toBe(HUD_MIN_WIDTH)
     expect(bounds.height).toBe(HUD_MIN_HEIGHT)
     expect(bounds.x).toBeLessThan(0)
-    expect(bounds.y).toBeLessThanOrEqual(area.height)
+    expect(bounds.y).toBe(area.height - HUD_MIN_HEIGHT)
   })
 
   test("resizing from the west anchors the east edge", () => {
@@ -76,6 +76,6 @@ describe("hud geometry", () => {
     const bounds = clampHudBounds({ x: -1940, y: -40, width: 620, height: 320 }, left)
 
     expect(bounds.x).toBe(-1940)
-    expect(bounds.y).toBe(-40)
+    expect(bounds.y).toBe(0)
   })
 })

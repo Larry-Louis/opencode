@@ -64,8 +64,9 @@ export function defaultHudBounds(area: HudArea): HudBounds {
 }
 
 /**
- * Keeps a bar on screen. Unlike a normal window it may hang off an edge, but at least
- * `HUD_MIN_VISIBLE_*` of it stays grabbable. Size is capped to the display's work area.
+ * Keeps a bar usable. It may hang off the left or right edge, but its full height stays inside the
+ * work area: a bottom slice past the display edge is where the oldest transcript rows live, and the
+ * scroller cannot reveal content the screen does not show.
  */
 export function clampHudBounds(bounds: HudBounds, area: HudArea): HudBounds {
   const maximum = maxHudSize(area)
@@ -73,8 +74,8 @@ export function clampHudBounds(bounds: HudBounds, area: HudArea): HudBounds {
   const height = clamp(Math.round(finiteOr(bounds.height, HUD_DEFAULT_HEIGHT)), HUD_MIN_HEIGHT, maximum.height)
   const minX = area.x - width + HUD_MIN_VISIBLE_WIDTH
   const maxX = area.x + area.width - HUD_MIN_VISIBLE_WIDTH
-  const minY = area.y - height + HUD_MIN_VISIBLE_HEIGHT
-  const maxY = area.y + area.height - HUD_MIN_VISIBLE_HEIGHT
+  const minY = area.y
+  const maxY = area.y + area.height - height
 
   return {
     x: Math.round(clamp(finiteOr(bounds.x, area.x), minX, maxX)),
