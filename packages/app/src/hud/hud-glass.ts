@@ -93,12 +93,22 @@ function collect(topOnly: boolean) {
 
     if (right - left < 4 || bottom - top < 4) continue
     const component = element.getAttribute("data-component")
+    // The native panel rounds and anti-aliases to its own bounds. Keep the read capsule's glass a
+    // pixel inside the pill, and round edges inward everywhere, so the blur can never show past the
+    // fill's rounded outline (the capsule's ends made even a sub-pixel overhang obvious).
+    const inset = component === "read-tool-group" ? 1 : 0
+    const x = Math.ceil((window.screenX + left + inset) * dpr)
+    const y = Math.ceil((window.screenY + top + inset) * dpr)
+    const panelWidth = Math.floor((window.screenX + right - inset) * dpr) - x
+    const panelHeight = Math.floor((window.screenY + bottom - inset) * dpr) - y
+
+    if (panelWidth < 1 || panelHeight < 1) continue
     panels.push({
-      x: Math.round((window.screenX + left) * dpr),
-      y: Math.round((window.screenY + top) * dpr),
-      width: Math.round((right - left) * dpr),
-      height: Math.round((bottom - top) * dpr),
-      radius: component === "composer" ? 12 : component === "read-tool-group" ? Math.min(999, (bottom - top) / 2) : 6,
+      x,
+      y,
+      width: panelWidth,
+      height: panelHeight,
+      radius: component === "composer" ? 12 : component === "read-tool-group" ? Math.min(999, (bottom - top - inset * 2) / 2) : 6,
       dpr,
     })
 
