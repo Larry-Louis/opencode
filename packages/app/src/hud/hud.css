@@ -439,11 +439,13 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 }
 
 /* Unfocused the band is opaque at the very top and fades to clear by the midpoint; the bottom
-   half is fully transparent. A running turn uses the same fade while the window is unfocused. */
+   half is fully transparent. A running turn uses the same fade while the window is unfocused.
+   Pointing at the HUD counts as reading it: hovering restores the full transcript so the oldest
+   rows at the end of history are not hidden by the idle fade. */
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
     [data-hud-hold]
-  )
+  ):not([data-hud-hover])
   [data-hud-transcript]
   [data-slot="session-timeline-scroll"] {
   opacity: 1;
@@ -823,11 +825,12 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 }
 
 /* Unfocused the whole HUD reads at 60%: title, composer and transcript dim together while the
-   window is click-through, so the state change is visible everywhere, not only in the rows. */
+   window is click-through, so the state change is visible everywhere, not only in the rows. The
+   pointer resting on the HUD is a reading state, so hovering lifts the dim as well. */
 :root[data-hud]
   [data-component="hud-frame"][data-hud-clickthrough]:not([data-hud-locked]):not([data-hud-focused]):not(
     [data-hud-hold]
-  )
+  ):not([data-hud-hover])
   [data-hud-content] {
   opacity: 0.6;
 }
