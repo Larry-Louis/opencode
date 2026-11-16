@@ -120,7 +120,8 @@ export const HudSetFrost = Rpc.make("HudSetFrost", {
   payload: { enabled: Schema.Boolean },
 })
 
-/** One native glass panel behind a HUD surface. Coordinates are screen physical pixels. */
+/** One native glass panel behind a HUD surface. x/y/width/height are screen physical pixels; the
+ *  radius stays in CSS pixels and main scales it by `dpr` for the native effect. */
 const HudGlassPanel = Schema.Struct({
   x: Schema.Number,
   y: Schema.Number,

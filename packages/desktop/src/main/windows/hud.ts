@@ -72,6 +72,7 @@ export function createHudController(input: {
   const routes = new Map<number, string>()
   let glassPanels: GlassPanel[] = []
   let glassVisible: boolean[] = []
+  let glassRadii: number[] = []
   let glassPolicyWindow: BrowserWindow | undefined
   let glassStats = ""
 
@@ -95,6 +96,7 @@ export function createHudController(input: {
     glassPanels.forEach((panel) => panel.destroy())
     glassPanels = []
     glassVisible = []
+    glassRadii = []
     glassPolicyWindow = undefined
   }
 
@@ -447,9 +449,22 @@ export function createHudController(input: {
       for (let index = 0; index < panels.length; index++) {
         const rect = panels[index]!
         const existing = glassPanels[index]
+        // The native API takes every length in physical pixels; the renderer measures CSS pixels.
+        const radius = Math.round(rect.radius * rect.dpr)
 
         if (existing) {
           existing.setBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+
+          if (glassRadii[index] !== radius) {
+            existing.setParams({
+              cornerRadius: radius,
+              blurSigma: 6,
+              displacementScale: 0,
+              aberrationIntensity: 0,
+              saturation: 1.15,
+            })
+            glassRadii[index] = radius
+          }
 
           if (!glassVisible[index]) {
             existing.show(0)
@@ -464,7 +479,7 @@ export function createHudController(input: {
           y: rect.y,
           width: rect.width,
           height: rect.height,
-          cornerRadius: rect.radius,
+          cornerRadius: radius,
           blurSigma: 6,
           displacementScale: 0,
           aberrationIntensity: 0,
@@ -477,6 +492,7 @@ export function createHudController(input: {
 
         glassPanels[index] = panel
         glassVisible[index] = true
+        glassRadii[index] = radius
         panel.show(0)
       }
 
