@@ -23,7 +23,7 @@ const SURFACES = [
 /** Native panels are real windows; keep the count bounded. */
 const LIMIT = 24
 
-/** Rects change on scroll and streaming; panels move with them, at a low, steady rate. */
+/** Streaming and layout changes refresh here; scrolling uses a frame-synced read instead. */
 const INTERVAL_MS = 150
 
 /** List items paint their sheet 24px left of the box so the marker sits on it. */
@@ -38,6 +38,8 @@ export function createHudGlass(input: {
   send: (panels: readonly HudGlassPanel[]) => Promise<void>
 }) {
   let timer: ReturnType<typeof setInterval> | undefined
+  let frame: number | undefined
+  let active = false
   let last = ""
 
   const read = () => {
@@ -49,9 +51,32 @@ export function createHudGlass(input: {
     void input.send(panels).catch(() => undefined)
   }
 
+  // Scrolling moves every surface at frame rate; the slow interval would leave the panels a trail
+  // behind the text. Scroll events schedule the same read on the next painted frame.
+  const schedule = () => {
+    if (!active || frame !== undefined) return
+    frame = requestAnimationFrame(() => {
+      frame = undefined
+      if (active) read()
+    })
+  }
+
+  const onScroll = () => schedule()
+
+  window.addEventListener("scroll", onScroll, { capture: true, passive: true })
+  onCleanup(() => {
+    window.removeEventListener("scroll", onScroll, { capture: true })
+    if (frame !== undefined) cancelAnimationFrame(frame)
+  })
+
   const stop = () => {
+    active = false
+
     if (timer !== undefined) clearInterval(timer)
     timer = undefined
+
+    if (frame !== undefined) cancelAnimationFrame(frame)
+    frame = undefined
 
     if (!last) return
     last = ""
@@ -61,11 +86,17 @@ export function createHudGlass(input: {
   createEffect(() => {
     if (!input.enabled()) return stop()
 
+    active = true
     read()
     timer = setInterval(read, INTERVAL_MS)
     onCleanup(() => {
+      active = false
+
       if (timer !== undefined) clearInterval(timer)
       timer = undefined
+
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      frame = undefined
     })
   })
 
