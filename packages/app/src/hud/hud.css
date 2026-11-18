@@ -1123,8 +1123,8 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   transition: opacity 140ms ease;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-drag]:has(> button:hover),
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-drag]:has(> button:hover) {
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-drag]:hover,
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-drag]:hover {
   opacity: 1 !important;
 }
 
@@ -1204,8 +1204,9 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   pointer-events: auto;
 }
 
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-rail]:hover,
 :root[data-hud] [data-component="hud-frame"][data-hud-focused]
-  [data-hud-rail]:has([data-hud-project]:hover, [data-hud-project][aria-expanded="true"]) {
+  [data-hud-rail]:has([data-hud-project][aria-expanded="true"]) {
   opacity: 1;
 }
 
