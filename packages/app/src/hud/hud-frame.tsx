@@ -270,6 +270,18 @@ export function HudFrame(props: ParentProps) {
       if (!point) return
 
       const hit = document.elementFromPoint(point.x, point.y)
+
+      // Unfocused the transcript is read-only scenery: pointing at it must not turn the window
+      // solid or pull focus. Only the title controls and the composer take the pointer.
+      if (hit instanceof Element && hit.closest("[data-hud-transcript]") && !focused() && !locked()) {
+        if (!ignored) {
+          ignored = true
+          void api.setIgnoreMouse(true)
+        }
+
+        return
+      }
+
       const frameRoot = content?.closest("[data-component='hud-frame']")
 
       const overlayFocused =
