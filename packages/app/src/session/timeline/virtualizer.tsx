@@ -486,7 +486,15 @@ export function createTimelineVirtualizer(input: Input) {
 
     let header: HTMLElement | null = null
     let sizes: ResizeObserver | undefined
-    const measure = () => header && setOverlayGap(Math.ceil(header.getBoundingClientRect().height))
+    // Lead with the space under the composer card itself, not the header's bottom padding; the
+    // clear strip below the card belongs to the transcript.
+    const measure = () => {
+      if (!header) return
+      const box = header.getBoundingClientRect()
+      const card = header.querySelector<HTMLElement>('[data-component="composer"]')
+      const bottom = card ? card.getBoundingClientRect().bottom : box.bottom
+      setOverlayGap(Math.ceil(Math.max(0, bottom - box.top)))
+    }
     const attach = () => {
       header = root.querySelector<HTMLElement>("[data-session-title]")
 
