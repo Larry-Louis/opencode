@@ -276,33 +276,20 @@ export function HudFrame(props: ParentProps) {
 
       const hit = document.elementFromPoint(point.x, point.y)
 
-      // Unfocused the transcript is read-only scenery: pointing at it must not turn the window
-      // solid or pull focus. The title controls and the composer card still take the pointer.
-      const inHeader = hit instanceof Element && hit.closest("[data-session-title]") !== null
+      // Unfocused, the composer is the only way back: everything else — transcript, title
+      // controls, chrome strip, project rail and history rail — stays click-through until the
+      // user clicks the editor once and the window comes back to focus.
+      if (!focused() && !locked()) {
+        const composer = hit instanceof Element && hit.closest('[data-component="composer"]') !== null
 
-      if (
-        !inHeader &&
-        hit instanceof Element &&
-        hit.closest("[data-hud-transcript]") &&
-        !focused() &&
-        !locked()
-      ) {
-        if (!ignored) {
-          ignored = true
-          void api.setIgnoreMouse(true)
+        if (!composer) {
+          if (!ignored) {
+            ignored = true
+            void api.setIgnoreMouse(true)
+          }
+
+          return
         }
-
-        return
-      }
-
-      // The chrome strip is hover-only and belongs to the focused window; unfocused it is scenery too.
-      if (hit instanceof Element && !focused() && hit.closest("[data-hud-drag]")) {
-        if (!ignored) {
-          ignored = true
-          void api.setIgnoreMouse(true)
-        }
-
-        return
       }
 
       const frameRoot = content?.closest("[data-component='hud-frame']")

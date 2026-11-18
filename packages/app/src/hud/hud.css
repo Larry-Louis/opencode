@@ -1214,7 +1214,23 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   pointer-events: auto;
 }
 
-:root[data-hud] [data-hud-rail]:hover {
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-hud-rail]:hover {
+  opacity: 1;
+}
+
+/* Whatever a lock mode does, an unfocused HUD keeps the rail hidden until the composer is used. */
+:root[data-hud] [data-component="hud-frame"]:not([data-hud-focused]) [data-hud-rail] {
+  opacity: 0 !important;
+}
+
+/* The history rail is the same hover-only story, and only after the HUD has focus. */
+:root[data-hud] [data-component="turn-navigator"] {
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 140ms ease;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-focused] [data-component="turn-navigator"]:hover {
   opacity: 1;
 }
 
