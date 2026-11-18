@@ -448,8 +448,12 @@ export function createTimelineVirtualizer(input: Input) {
   // about the content box cancels the adjustment, so the newest row lands at the top of the box
   // (right under the composer), the reserved tail lands there too, and older rows fall away below.
   // The scroll offset is mirrored at the DOM boundary, so the logical end is the newest row in both layouts.
+  // Measured rows include the scrollMargin in their starts, while the spacer above already supplies that
+  // leading space, so add it back when mirroring to keep rows at their content positions.
   const rowTop = (start: number, size: number) =>
-    reverse() ? virtualizer.getTotalSize() - start - size : start - topOffset() - rendering.scrollAdjustment
+    reverse()
+      ? overlayGap() + virtualizer.getTotalSize() - start - size
+      : start - topOffset() - rendering.scrollAdjustment
   const scrollToNewest = (behavior?: ScrollBehavior) => virtualizer.scrollToEnd({ behavior })
 
   // The mirrored offset counts down from the newest row, so content added or measured above the reader
@@ -477,16 +481,33 @@ export function createTimelineVirtualizer(input: Input) {
     }
 
     const root = viewRoot()
-    const header = root?.querySelector<HTMLElement>("[data-session-title]")
 
-    if (!header) return
+    if (!root) return
 
-    const measure = () => setOverlayGap(Math.ceil(header.getBoundingClientRect().height))
+    let header: HTMLElement | null = null
+    let sizes: ResizeObserver | undefined
+    const measure = () => header && setOverlayGap(Math.ceil(header.getBoundingClientRect().height))
+    const attach = () => {
+      header = root.querySelector<HTMLElement>("[data-session-title]")
 
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(header)
-    onCleanup(() => observer.disconnect())
+      if (!header) return false
+
+      measure()
+      sizes = new ResizeObserver(measure)
+      sizes.observe(header)
+
+      return true
+    }
+
+    // The ref runs before the header's subtree is inserted, so wait for it if it is not there yet.
+    const mutations = attach() ? undefined : new MutationObserver(() => attach() && mutations?.disconnect())
+
+    if (mutations) mutations.observe(root, { childList: true, subtree: true })
+
+    onCleanup(() => {
+      mutations?.disconnect()
+      sizes?.disconnect()
+    })
   })
 
   createEffect(() => {
