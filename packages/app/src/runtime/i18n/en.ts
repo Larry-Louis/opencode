@@ -5,6 +5,8 @@ export const dict = {
   "hud.close": "Exit HUD",
   "hud.reset": "Reset HUD layout",
   "hud.devtools": "Developer Tools",
+  "hud.minimal.enter": "Show only the composer",
+  "hud.minimal.exit": "Show the full HUD",
   "hud.drag": "Drag to move",
   "hud.resize": "Resize HUD",
   "hud.context.enable": "Include the screen behind the HUD with each message",

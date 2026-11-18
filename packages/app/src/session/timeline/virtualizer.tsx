@@ -1295,7 +1295,8 @@ export function createTimelineVirtualizer(input: Input) {
             "opacity-0 translate-y-1 motion-reduce:translate-y-0 duration-[110ms] ease-[cubic-bezier(.4,0,1,1)]":
               !input.scroll().overflow || !input.scroll().jump,
           }}
-          style={{ bottom: `${bottomInset() + 32}px` }}
+          // The reverse HUD's newest end is the top, so the jump button sits under the header there.
+          style={reverse() ? { top: `${overlayGap() + 12}px` } : { bottom: `${bottomInset() + 32}px` }}
           inert={!input.scroll().overflow || !input.scroll().jump}
         >
           <button
@@ -1308,7 +1309,14 @@ export function createTimelineVirtualizer(input: Input) {
             }}
             onClick={() => input.onResumeScroll(prefersReducedMotion() ? "auto" : "smooth")}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              class={reverse() ? "rotate-180" : undefined}
+            >
               <path
                 d="M12.3333 8.66665L8 13L3.66667 8.66665M8 12.6667V2.83332"
                 stroke="currentColor"

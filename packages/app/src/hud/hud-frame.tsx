@@ -56,6 +56,8 @@ export function HudFrame(props: ParentProps) {
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
   const [lockMode, setLockMode] = createSignal<HudLockMode>(readHudLockMode())
   const [hovering, setHovering] = createSignal(false)
+  // The HUD chrome is a hover-revealed strip: hidden until the focused window's pointer reaches it.
+  const [stripHover, setStripHover] = createSignal(false)
   // A finished turn stays on screen until the user has focused the HUD at least
   // once, so the answer never fades the instant streaming stops.
   const [holdUntilFocus, setHoldUntilFocus] = createSignal(false)
@@ -290,6 +292,16 @@ export function HudFrame(props: ParentProps) {
         return
       }
 
+      // The chrome strip is hover-only and belongs to the focused window; unfocused it is scenery too.
+      if (hit instanceof Element && !focused() && hit.closest("[data-hud-drag]")) {
+        if (!ignored) {
+          ignored = true
+          void api.setIgnoreMouse(true)
+        }
+
+        return
+      }
+
       const frameRoot = content?.closest("[data-component='hud-frame']")
 
       const overlayFocused =
@@ -398,6 +410,13 @@ export function HudFrame(props: ParentProps) {
   const toggleLock = () => {
     const next: HudLockMode =
       lockMode() === "auto" ? "show" : lockMode() === "show" ? "hide" : lockMode() === "hide" ? "hover" : "auto"
+    setLockMode(next)
+    writeHudLockMode(next)
+  }
+
+  // One-button minimal mode: leave only the composer on screen, or restore the full HUD.
+  const toggleMinimal = () => {
+    const next: HudLockMode = lockMode() === "hide" ? "auto" : "hide"
     setLockMode(next)
     writeHudLockMode(next)
   }
@@ -632,6 +651,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-lock-hover={hoverMode() ? "" : undefined}
       data-hud-hold={holdUntilFocus() ? "" : undefined}
       data-hud-hover={hovering() ? "" : undefined}
+      data-hud-strip-hover={stripHover() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
@@ -641,6 +661,8 @@ export function HudFrame(props: ParentProps) {
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         class="relative z-[70] flex h-7 shrink-0 cursor-grab items-center gap-1.5 px-2 select-none active:cursor-grabbing"
         onPointerDown={startStripDrag}
+        onPointerEnter={() => setStripHover(true)}
+        onPointerLeave={() => setStripHover(false)}
       >
         <span class="text-[11px] font-medium tracking-wide text-v2-text-text-faint uppercase">
           {language.t("hud.label")}
@@ -674,6 +696,21 @@ export function HudFrame(props: ParentProps) {
             <Icon name="refresh" size="small" />
           </button>
         </Show>
+        <button
+          type="button"
+          aria-label={language.t(lockMode() === "hide" ? "hud.minimal.exit" : "hud.minimal.enter")}
+          title={language.t(lockMode() === "hide" ? "hud.minimal.exit" : "hud.minimal.enter")}
+          aria-pressed={lockMode() === "hide"}
+          class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+          classList={{
+            "text-v2-text-text-base": lockMode() === "hide",
+            "text-v2-text-text-faint hover:text-v2-text-text-base": lockMode() !== "hide",
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={toggleMinimal}
+        >
+          <Icon name={lockMode() === "hide" ? "outline-eye" : "outline-eye-slash"} size="small" />
+        </button>
         <button
           type="button"
           aria-label={language.t(

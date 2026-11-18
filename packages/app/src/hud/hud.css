@@ -929,8 +929,8 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
    composer is 44px instead of stacking the editor above the toolbar. A wrapped prompt
    still grows the editor inside that row. */
 :root[data-hud] [data-component="composer"] {
-  --hud-composer-send: 28px;
-  --hud-composer-send-margin: 8px;
+  --hud-composer-send: 26px;
+  --hud-composer-send-margin: 7px;
   --hud-composer-row: calc(var(--hud-composer-send) + var(--hud-composer-send-margin) * 2);
   display: flex;
   flex-direction: row;
@@ -946,8 +946,8 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 /* One 20px line plus the editor's 12px/12px padding is the same 44px row, with the line exactly
    on the row's centre instead of four pixels below it. */
 :root[data-hud] [data-component="composer"] [data-component="composer-editor"] {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 /* The empty-state line centres in the row instead of following the editor's top padding. */
@@ -1121,4 +1121,26 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 /* The composer sits at the bottom of a short window; drop the wide-window bottom inset. */
 [data-hud] [data-slot="session-chat-panel"] > div {
   border-radius: 0 0 12px 12px;
+}
+
+/* The chrome strip is hover-only: it belongs to the focused window and appears only while the
+   pointer is on it. It stays hit-testable (opacity, not visibility) so pointing at the top edge
+   can reveal it again. */
+:root[data-hud] [data-component="hud-frame"] [data-hud-drag] {
+  opacity: 0 !important;
+  visibility: visible !important;
+  pointer-events: auto;
+  transition: opacity 140ms ease;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-focused][data-hud-strip-hover] [data-hud-drag],
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-drag]:hover {
+  opacity: 1 !important;
+}
+
+/* The composer's send button follows the tighter composer row. */
+:root[data-hud] [data-slot="composer-actions"] button {
+  inline-size: var(--hud-composer-send);
+  block-size: var(--hud-composer-send);
+  padding: 5px;
 }

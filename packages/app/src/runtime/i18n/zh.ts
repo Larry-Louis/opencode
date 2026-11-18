@@ -7,6 +7,8 @@ export const dict = {
   "hud.close": "退出 HUD",
   "hud.reset": "重置 HUD 布局",
   "hud.devtools": "开发者工具",
+  "hud.minimal.enter": "只显示输入框",
+  "hud.minimal.exit": "显示完整 HUD",
   "hud.context.enable": "随每条消息附带 HUD 背后的屏幕",
   "hud.context.disable": "停止附带 HUD 背后的屏幕",
   "hud.context.refresh": "刷新屏幕上下文",
