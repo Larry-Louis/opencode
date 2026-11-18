@@ -5,7 +5,7 @@ import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/
 import { useSettings } from "@/settings/model"
 import { HudModeProvider } from "./hud-context"
 import { createHudGlass } from "./hud-glass"
-import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
+import { HUD_NOTE, readHudLockMode, readHudMinimal, readIncludeScreen, setHudContext, writeHudLockMode, writeHudMinimal, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
 import reverseCss from "./hud.css?inline"
 import devCss from "./hud-dev.css?inline"
 
@@ -55,6 +55,8 @@ export function HudFrame(props: ParentProps) {
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
   const [lockMode, setLockMode] = createSignal<HudLockMode>(readHudLockMode())
+  // Minimal mode keeps the words and the composer, dropping every other capsule surface.
+  const [minimal, setMinimal] = createSignal(readHudMinimal())
   const [hovering, setHovering] = createSignal(false)
   // The HUD chrome is a hover-revealed strip: hidden until the focused window's pointer reaches it.
   const [stripHover, setStripHover] = createSignal(false)
@@ -120,6 +122,7 @@ export function HudFrame(props: ParentProps) {
   // only belongs to the focused, interactive state.
   createHudGlass({
     enabled: () => reverse() && !chromeHidden() && (focused() || locked()),
+    onlyComposer: () => minimal(),
     topOnly: () => windowing().clickThrough && !focused() && !locked(),
     send: (panels) => api.setGlassPanels(panels),
   })
@@ -414,11 +417,11 @@ export function HudFrame(props: ParentProps) {
     writeHudLockMode(next)
   }
 
-  // One-button minimal mode: leave only the composer on screen, or restore the full HUD.
+  // One-button minimal mode: drop every capsule background except the composer's; text stays.
   const toggleMinimal = () => {
-    const next: HudLockMode = lockMode() === "hide" ? "auto" : "hide"
-    setLockMode(next)
-    writeHudLockMode(next)
+    const next = !minimal()
+    setMinimal(next)
+    writeHudMinimal(next)
   }
 
   // A snap or reset happens in main and moves the native window without telling this renderer;
@@ -652,6 +655,7 @@ export function HudFrame(props: ParentProps) {
       data-hud-hold={holdUntilFocus() ? "" : undefined}
       data-hud-hover={hovering() ? "" : undefined}
       data-hud-strip-hover={stripHover() ? "" : undefined}
+      data-hud-minimal={minimal() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
@@ -698,18 +702,18 @@ export function HudFrame(props: ParentProps) {
         </Show>
         <button
           type="button"
-          aria-label={language.t(lockMode() === "hide" ? "hud.minimal.exit" : "hud.minimal.enter")}
-          title={language.t(lockMode() === "hide" ? "hud.minimal.exit" : "hud.minimal.enter")}
-          aria-pressed={lockMode() === "hide"}
+          aria-label={language.t(minimal() ? "hud.minimal.exit" : "hud.minimal.enter")}
+          title={language.t(minimal() ? "hud.minimal.exit" : "hud.minimal.enter")}
+          aria-pressed={minimal()}
           class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
           classList={{
-            "text-v2-text-text-base": lockMode() === "hide",
-            "text-v2-text-text-faint hover:text-v2-text-text-base": lockMode() !== "hide",
+            "text-v2-text-text-base": minimal(),
+            "text-v2-text-text-faint hover:text-v2-text-text-base": !minimal(),
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={toggleMinimal}
         >
-          <Icon name={lockMode() === "hide" ? "outline-eye" : "outline-eye-slash"} size="small" />
+          <Icon name={minimal() ? "outline-eye" : "outline-eye-slash"} size="small" />
         </button>
         <button
           type="button"

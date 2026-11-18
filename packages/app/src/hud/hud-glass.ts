@@ -33,13 +33,15 @@ export function createHudGlass(input: {
   enabled: () => boolean
   /** The unfocused transcript fades after its top half; only the opaque part gets panels. */
   topOnly: () => boolean
+  /** Minimal mode keeps a panel only behind the composer; the other surfaces are clear. */
+  onlyComposer?: () => boolean
   send: (panels: readonly HudGlassPanel[]) => Promise<void>
 }) {
   let timer: ReturnType<typeof setInterval> | undefined
   let last = ""
 
   const read = () => {
-    const panels = collect(input.topOnly())
+    const panels = collect(input.topOnly(), input.onlyComposer?.() ?? false)
     const key = JSON.stringify(panels)
 
     if (key === last) return
@@ -70,7 +72,7 @@ export function createHudGlass(input: {
   onCleanup(stop)
 }
 
-function collect(topOnly: boolean) {
+function collect(topOnly: boolean, onlyComposer: boolean) {
   const dpr = window.devicePixelRatio || 1
   const width = window.innerWidth
   const height = window.innerHeight
@@ -81,6 +83,7 @@ function collect(topOnly: boolean) {
   const limit = scrollBox ? scrollBox.top + scrollBox.height * 0.45 : Number.POSITIVE_INFINITY
 
   for (const element of document.querySelectorAll<HTMLElement>(SURFACES)) {
+    if (onlyComposer && element.getAttribute("data-component") !== "composer") continue
     // A paragraph inside a list item has no sheet of its own; the item's panel covers it.
     if (element.closest("li") && element.tagName !== "LI") continue
     // Nested lists sit inside the outer item's panel.

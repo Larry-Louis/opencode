@@ -1144,3 +1144,66 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   block-size: var(--hud-composer-send);
   padding: 5px;
 }
+
+/* Minimal mode: the words stay, the capsule sheets go. Only the composer keeps its surface. */
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-transcript] {
+  --hud-frost: none;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal]
+  [data-hud-transcript]
+  :is(
+    [data-component="markdown"] p,
+    [data-component="markdown"] blockquote,
+    [data-component="markdown"] pre,
+    [data-component="tool-trigger"][data-pill-kind],
+    [data-component="read-tool-group"],
+    [data-slot="text-part-meta"],
+    [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"],
+    [data-component="user-message"] [data-slot="user-message-text"],
+    [data-component="session-working"],
+    [data-component="task-tool-card"],
+    [data-component="turn-navigator-preview"]
+  ) {
+  background: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal]
+  [data-hud-transcript] [data-component="markdown"] li::before {
+  background: none !important;
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-rail],
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-drag] {
+  background: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Clear surfaces need their own ink edge. */
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-content] {
+  text-shadow: 0 0 6px var(--hud-glow-ink), 0 0 2px var(--hud-glow-ink);
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-content]
+  :is(svg, [data-component="project-avatar-v2"]) {
+  filter: drop-shadow(0 0 3px var(--hud-glow-ink));
+}
+
+/* Minimal: the prompt bubble loses its light sheet, so its ink flips back to the HUD's light text. */
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal]
+  [data-component="user-message"] [data-slot="user-message-text"] {
+  color: var(--hud-ink) !important;
+  text-shadow: 0 0 6px var(--hud-glow-ink), 0 0 2px var(--hud-glow-ink);
+}
+
+/* The locked frame's smoked sheet would still paint behind everything. */
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal][data-hud-locked] {
+  background: transparent;
+}
