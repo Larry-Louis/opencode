@@ -357,6 +357,16 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   padding-bottom: 0;
 }
 
+/* The docked composer overlays the transcript instead of reserving a strip above it: the body
+   shows through every clear part of the header, while the title band and the composer card keep
+   their own paint. The header stays out of the scroll's layout, so the scroller keeps the full
+   height of the transcript container. */
+:root[data-hud] [data-hud-transcript] [data-session-title] {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
 /* HUD: the title bar and the composer form one sticky block. */
 :root[data-hud] [data-hud-composer-divider] {
   padding-top: 6px;

@@ -1227,14 +1227,7 @@ export function createTimelineVirtualizer(input: Input) {
     }
 
     return (
-      <div
-        ref={setViewRoot}
-        class={
-          hud && reverse()
-            ? "relative w-full h-full min-w-0 flex min-h-0 flex-col"
-            : "relative w-full h-full min-w-0"
-        }
-      >
+      <div ref={setViewRoot} class="relative w-full h-full min-w-0">
         <div
           class="absolute left-1/2 -translate-x-1/2 z-[60] pointer-events-none transition-[opacity,translate]"
           classList={{
@@ -1283,11 +1276,7 @@ export function createTimelineVirtualizer(input: Input) {
             // Following would scroll a selection away.
             if (window.getSelection()?.toString()) input.follow.dispatch({ type: "detach" })
           }}
-          class={
-            hud && reverse()
-              ? "relative min-w-0 w-full min-h-0 flex-1"
-              : "relative min-w-0 w-full h-full"
-          }
+          class="relative min-w-0 w-full h-full"
           style={{ "--sticky-accordion-top": input.showHeader() ? "var(--session-header-height, 48px)" : "0px" }}
         >
           <Show when={!hud || !reverse()}>
