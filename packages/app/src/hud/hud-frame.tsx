@@ -58,8 +58,6 @@ export function HudFrame(props: ParentProps) {
   // Minimal mode keeps the words and the composer, dropping every other capsule surface.
   const [minimal, setMinimal] = createSignal(readHudMinimal())
   const [hovering, setHovering] = createSignal(false)
-  // The HUD chrome is a hover-revealed strip: hidden until the focused window's pointer reaches it.
-  const [stripHover, setStripHover] = createSignal(false)
   // A finished turn stays on screen until the user has focused the HUD at least
   // once, so the answer never fades the instant streaming stops.
   const [holdUntilFocus, setHoldUntilFocus] = createSignal(false)
@@ -646,7 +644,6 @@ export function HudFrame(props: ParentProps) {
       data-hud-lock-hover={hoverMode() ? "" : undefined}
       data-hud-hold={holdUntilFocus() ? "" : undefined}
       data-hud-hover={hovering() ? "" : undefined}
-      data-hud-strip-hover={stripHover() ? "" : undefined}
       data-hud-minimal={minimal() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
@@ -657,8 +654,6 @@ export function HudFrame(props: ParentProps) {
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         class="relative z-[70] flex h-7 shrink-0 cursor-grab items-center gap-1.5 px-2 select-none active:cursor-grabbing"
         onPointerDown={startStripDrag}
-        onPointerEnter={() => setStripHover(true)}
-        onPointerLeave={() => setStripHover(false)}
       >
         <span class="text-[11px] font-medium tracking-wide text-v2-text-text-faint uppercase">
           {language.t("hud.label")}
