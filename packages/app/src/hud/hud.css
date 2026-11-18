@@ -1177,8 +1177,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   background: none !important;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-rail],
-:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-drag] {
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-rail] {
   background: none !important;
   border-color: transparent !important;
   box-shadow: none !important;
