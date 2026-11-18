@@ -8,7 +8,8 @@ import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
 import { Tooltip } from "@opencode/ui/tooltip"
 
-import { useLayout } from "@/shell/state/layout"
+import { useLayout, useCurrentRoute } from "@/shell/state/layout"
+import { sessionHref } from "@/shell/routes/session"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -18,7 +19,9 @@ import { createTitlebarHistory } from "./history"
 import { TitlebarTabStrip } from "@/shell/titlebar/tab-strip"
 import { macVerticalTrafficLights, SidebarToggle } from "@/shell/sidebar-toggle"
 import { SidebarInbox } from "@/shell/titlebar/inbox"
+import { SidebarCustomized, type SidebarStripGrouping } from "@/shell/titlebar/sidebar-customized"
 import { SidebarOrganized } from "@/shell/titlebar/sidebar-organized"
+import { RecentSessions } from "@/shell/titlebar/recent-sessions"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/shell/titlebar/session-events"
@@ -198,6 +201,13 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
         <Match when>
           {(_) => {
             const layout = useLayout()
+  const route = useCurrentRoute()
+
+  const openHud = () => {
+    const current = route()
+
+    void platform.hud?.toggle(current.type === "session" ? sessionHref(current.server, current.sessionId) : undefined)
+  }
             const global = useGlobal()
 
             const tabs = useTabs()
@@ -206,7 +216,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             createEffect(() => {
               if (
                 settings.appearance.tabLayout() === "vertical" &&
-                settings.general.sidebarOrganize() === "projects" &&
+                (settings.general.sidebarOrganize() === "projects" || settings.general.sidebarOrganize() === "customize") &&
                 !mobile()
               )
                 return
@@ -305,10 +315,17 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
-            const verticalTabStrip = (highlightActive?: () => boolean, onNavigate?: () => void) => (
+            const verticalTabStrip = (
+              highlightActive?: () => boolean,
+              onNavigate?: () => void,
+              grouped?: SidebarStripGrouping,
+            ) => (
               <TitlebarTabStrip
                 orientation="vertical"
                 highlightActive={highlightActive?.()}
+                sections={grouped?.sections}
+                tabFooter={grouped?.tabFooter}
+                tabLabel={grouped?.tabLabel}
                 tabs={tabsStore}
                 currentTab={currentTab()}
                 onNavigate={(tab, el) => {
@@ -442,6 +459,16 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             command.register("tabs", () => {
               const current = currentTab()
 
+              const closeCurrent = () => {
+                if (current === tabs.preview()) {
+                  tabs.closePreview()
+
+                  return
+                }
+
+                tabsStoreActions.closeTab(tabsStore.findIndex((tab) => current === tab))
+              }
+
               return [
                 {
                   ...newTabCommand,
@@ -456,15 +483,14 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   title: language.t("command.tab.close"),
                   keybind: "mod+w",
                   hidden: true,
-                  onSelect: () => {
-                    if (current === tabs.preview()) {
-                      tabs.closePreview()
-
-                      return
-                    }
-
-                    tabsStoreActions.closeTab(tabsStore.findIndex((tab) => current === tab))
-                  },
+                  onSelect: closeCurrent,
+                },
+                current && {
+                  id: "tab.closeSession",
+                  category: "tab",
+                  title: language.t("command.tab.closeSession"),
+                  keybind: "mod+alt+w",
+                  onSelect: closeCurrent,
                 },
                 {
                   id: "tab.reopenClosed",
@@ -572,7 +598,8 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   <SidebarToggle />
                 </Show>
                 <Show when={!mobile() && !props.verticalTabs}>
-                  <div class="flex shrink-0 items-center gap-0.5">
+                  {/* Pulls the first tab's avatar 10px from Search, past the row gap plus the tab's own inset. */}
+                  <div class="-me-0.5 flex shrink-0 items-center gap-0.5">
                     {homeButton()}
                     {searchButton()}
                   </div>
@@ -789,19 +816,22 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             </div>
                             <div class="h-4 w-full shrink-0" aria-hidden="true" />
                             <div class="flex min-h-0 flex-1 flex-col gap-1">
-                              <Show
-                                when={settings.appearance.tabLayout() === "inbox"}
-                                fallback={
-                                  <Show
-                                    when={settings.general.sidebarOrganize() === "projects"}
-                                    fallback={verticalTabStrip()}
-                                  >
-                                    <SidebarOrganized currentTab={currentTab()}>{verticalTabStrip}</SidebarOrganized>
-                                  </Show>
-                                }
-                              >
-                                <SidebarInbox />
-                              </Show>
+                              <Switch fallback={verticalTabStrip()}>
+                                <Match when={settings.appearance.tabLayout() === "inbox"}>
+                                  <SidebarInbox />
+                                </Match>
+                                <Match when={settings.general.sidebarOrganize() === "projects"}>
+                                  <SidebarOrganized currentTab={currentTab()}>{verticalTabStrip}</SidebarOrganized>
+                                </Match>
+                                <Match when={settings.general.sidebarOrganize() === "customize"}>
+                                  <SidebarCustomized currentTab={currentTab()} onNewSession={openNewTab}>
+                                    {(grouped) => verticalTabStrip(undefined, undefined, grouped)}
+                                  </SidebarCustomized>
+                                </Match>
+                                <Match when={settings.general.sidebarOrganize() === "recent"}>
+                                  <RecentSessions />
+                                </Match>
+                              </Switch>
                             </div>
                             <Show when={titlebarItems.ids().length > 0}>
                               <div data-slot="vertical-tabs-footer" class="mt-2 flex w-full shrink-0 flex-col">
@@ -819,6 +849,19 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 </Show>
                 <Show when={!props.verticalTabs}>
                   <div class="relative z-20 flex shrink-0 items-center justify-end gap-0 overflow-visible">
+                    <Show when={platform.hud}>
+                      <Tooltip placement="bottom" value={language.t("command.hud.toggle")} class="shrink-0">
+                        <IconButton
+                          type="button"
+                          variant="ghost-muted"
+                          size="large"
+                          class="!w-9 shrink-0"
+                          icon={<Icon name="monitor" />}
+                          onClick={openHud}
+                          aria-label={language.t("command.hud.toggle")}
+                        />
+                      </Tooltip>
+                    </Show>
                     <TitlebarItems items={titlebarItems} />
                   </div>
                 </Show>

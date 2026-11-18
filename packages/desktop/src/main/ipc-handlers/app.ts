@@ -13,6 +13,7 @@ import { finishFirstLaunchOnboarding, isFirstLaunchOnboardingPending } from "../
 import { BackgroundService } from "../service/background-service"
 import { SidecarCredentials } from "../service/sidecar-credentials"
 import { getWindowID, setBackgroundColor } from "../windows"
+import { isHudWindow } from "../windows/kinds"
 import { sender } from "./context"
 
 export const appHandlers = AppRpcs.toLayer(
@@ -41,7 +42,15 @@ export const appHandlers = AppRpcs.toLayer(
         finishFirstLaunchOnboarding(createDefaultProject).pipe(Effect.orDie),
       AppCheckAppExists: ({ appName }) => checkAppExists(appName).pipe(Effect.orDie),
       AppResolveAppPath: ({ appName }) => resolveAppPath(appName).pipe(Effect.orDie),
-      AppSetBackgroundColor: ({ color }) => Effect.sync(() => setBackgroundColor(color)),
+      AppSetBackgroundColor: ({ color }, context) =>
+        Effect.sync(() => {
+          // The HUD is transparent and must not write its theme background into the global setting.
+          const win = BrowserWindow.fromWebContents(sender(handoff, context))
+
+          if (isHudWindow(win)) return
+
+          setBackgroundColor(color)
+        }),
       AppGetSpellcheckEnabled: () => Effect.sync(getSpellcheckEnabled),
       AppSetSpellcheckEnabled: ({ enabled }) => Effect.sync(() => setSpellcheckEnabled(enabled)),
       AppExportDebugLogs: () => logging.exportDebug,

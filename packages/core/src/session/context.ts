@@ -4,6 +4,7 @@ import { Model } from "../model.js"
 import { Permission } from "../permission.js"
 import { Context, Effect, Layer } from "effect"
 import { Agent } from "../agent.js"
+import type { SessionRequestKind } from "@opencode/plugin/effect/session"
 import { CodeModeInstructions } from "../codemode/instructions.js"
 import { Database } from "../database/database.js"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
@@ -54,6 +55,7 @@ export interface Interface {
   readonly load: (selection: Selection) => Effect.Effect<Loaded, SessionRunnerModel.Error>
   readonly resolveModel: (
     session: SessionSchema.Info,
+    request: { readonly kind: SessionRequestKind; readonly agent: Agent.ID },
   ) => Effect.Effect<SessionRunnerModel.Resolved, SessionRunnerModel.Error>
   /** Selects auxiliary title capabilities without instruction or tool preflight. */
   readonly selectTitle: (session: SessionSchema.Info) => Effect.Effect<
@@ -89,36 +91,38 @@ const layer = Layer.effect(
     const store = yield* SessionStore.Service
     const registry = yield* Tool.Service
 
-    const resolveModel = (session: SessionSchema.Info) => models.resolve(session, model.available)
+    const resolveModel = (
+      session: SessionSchema.Info,
+      request: { readonly kind: SessionRequestKind; readonly agent: Agent.ID },
+    ) => models.resolve(session, model.available, request)
 
     const selectTitle = Effect.fn("SessionContext.selectTitle")(function* (session: SessionSchema.Info) {
       const agent = yield* agents.get(Agent.ID.make("title"))
       if (!agent) return
-      const primary = yield* resolveModel(session).pipe(Effect.orElseSucceed(() => undefined))
+      // A title only names a session, so title requests never carry a thinking level, not even one
+      // inherited from the session's selected variant or an auxiliary model's configuration.
+      const resolveTitle = (ref: Model.Ref) =>
+        resolveModel(
+          { ...session, model: Model.Ref.make({ providerID: ref.providerID, id: ref.id }) },
+          { kind: "title", agent: agent.id },
+        ).pipe(Effect.orElseSucceed(() => undefined))
+      const resolved = yield* resolveModel(session, { kind: "title", agent: agent.id }).pipe(
+        Effect.orElseSucceed(() => undefined),
+      )
+      const primary = !resolved
+        ? undefined
+        : resolved.ref.variant === undefined
+          ? resolved
+          : yield* resolveTitle(resolved.ref)
       const candidate = yield* Effect.gen(function* () {
-        if (agent.model) {
-          const info = yield* model.get(agent.model.providerID, agent.model.id)
-          return info && { info, variant: agent.model.variant ?? minimalVariant(info) }
-        }
-        if (!primary) return
-        const small = yield* model.small(primary.ref.providerID)
-        // The auxiliary model names a session: it needs no thinking level, and some small models reject one.
-        if (small) return { info: small, variant: undefined }
-        // Without a lower variant, the primary model at its selected variant is already the fallback.
-        const info = yield* model.get(primary.ref.providerID, primary.ref.id)
-        const variant = info && lowerVariant(info, primary.ref.variant)
-        return variant && { info, variant }
+        // The title agent may name its own model, and the provider's small model is the default auxiliary choice.
+        if (agent.model) return yield* model.get(agent.model.providerID, agent.model.id)
+        if (!resolved) return
+        return yield* model.small(resolved.ref.providerID)
       })
-      const preferred =
-        candidate &&
-        (yield* resolveModel({
-          ...session,
-          model: Model.Ref.make({
-            providerID: candidate.info.providerID,
-            id: candidate.info.id,
-            ...(candidate.variant ? { variant: candidate.variant } : {}),
-          }),
-        }).pipe(Effect.orElseSucceed(() => undefined)))
+      const preferred = candidate
+        ? yield* resolveTitle(Model.Ref.make({ providerID: candidate.providerID, id: candidate.id }))
+        : undefined
       const selected = preferred ?? primary
       if (!selected) return
       return { agent, primary, selected }
@@ -167,7 +171,7 @@ const layer = Layer.effect(
     })
 
     const load = Effect.fn("SessionContext.load")(function* (selection: Selection) {
-      const model = yield* resolveModel(selection.session)
+      const model = yield* resolveModel(selection.session, { kind: "primary", agent: selection.agent.id })
       const history = yield* SessionHistory.entriesForRunner(
         db,
         selection.session.id,
@@ -187,21 +191,6 @@ const layer = Layer.effect(
     return Service.of({ select, load, resolveModel, selectTitle, request })
   }),
 )
-
-/** Variant IDs that minimize reasoning output, in preference order. */
-const MINIMAL_REASONING_VARIANTS = ["none", "minimal", "low"].map((id) => Model.VariantID.make(id))
-
-const minimalVariant = (info: Model.Info) =>
-  MINIMAL_REASONING_VARIANTS.find((id) => info.variants.some((item) => item.id === id))
-
-/**
- * `none` and `minimal` always reduce reasoning. `low` can enable reasoning on a model whose default
- * does not reason, so it is only used when it ranks below the variant the session selected.
- */
-const lowerVariant = (info: Model.Info, selected: Model.VariantID | undefined) => {
-  const rank = (id: Model.VariantID | undefined) => info.variants.findIndex((item) => item.id === id)
-  return MINIMAL_REASONING_VARIANTS.find((id) => rank(id) !== -1 && (id !== "low" || rank(id) < rank(selected)))
-}
 
 export const node = makeLocationNode({
   service: Service,

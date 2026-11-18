@@ -18,4 +18,7 @@ export default {
   "sheet.tabs": "工作表",
   "problem.compound": "此檔案受密碼保護，或儲存為較舊的 Office 格式。",
   "problem.format": "此檔案不是有效的 Office 文件。",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "document.pageFailed": "無法顯示此頁面",
 }

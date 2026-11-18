@@ -18,6 +18,7 @@ export type DesktopMenuAction =
   | "view.zoomIn"
   | "view.zoomOut"
   | "view.toggleFullscreen"
+  | "view.toggleHud"
   | "window.new"
   | "window.close"
   | "window.minimize"
@@ -200,6 +201,11 @@ export const DESKTOP_MENU: DesktopMenu[] = [
         command: "terminal.toggle",
         accelerator: { macos: "Ctrl+`" },
       },
+      {
+        type: "item",
+        labelKey: "desktop.menu.toggleHud",
+        action: "view.toggleHud",
+      },
       { type: "separator" },
       { type: "item", labelKey: "desktop.menu.reload", action: "view.reload", role: "reload" },
       {
@@ -272,7 +278,7 @@ export const DESKTOP_MENU: DesktopMenu[] = [
     id: "help",
     labelKey: "desktop.menu.help",
     items: [
-      { type: "item", labelKey: "desktop.menu.documentation", href: "https://opencode.ai/v2/docs" },
+      { type: "item", labelKey: "desktop.menu.documentation", href: "https://opencode.ai/docs" },
       { type: "item", labelKey: "desktop.menu.supportForum", href: "https://discord.com/invite/opencode" },
       { type: "item", labelKey: "desktop.menu.exportLogs", command: "logs.export" },
       { type: "separator" },

@@ -23,4 +23,9 @@ export default {
   "quote.addWithComment": "引用並留言",
   "quote.addWithoutComment": "僅引用",
   "quote.tooLong": "選取的內容過長",
-  "quote.label": "終端機",}
+  "quote.label": "終端機",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "close.failed": "無法關閉終端機",
+  "request.timedOut": "伺服器回應逾時",
+}

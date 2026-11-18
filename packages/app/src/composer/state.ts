@@ -71,6 +71,10 @@ function composerTarget(serverScope: ServerScope, scope: PromptScope) {
     ? Persist.prompt(Persist.draft(scope.draftID, "prompt"))
     : Persist.prompt({
         ...Persist.serverScoped(serverScope, scope.dir, scope.id, "prompt"),
+        // The floating HUD and its hidden main window share this session's draft. BroadcastChannel
+        // keeps the two stores in step, so sending from the HUD clears the main window's composer
+        // instead of leaving a stale draft that can be written back later.
+        sync: true,
         previousKey:
           serverScope === ServerScope.local ? `${scope.dir}/prompt${scope.id ? "/" + scope.id : ""}.v2` : undefined,
       })

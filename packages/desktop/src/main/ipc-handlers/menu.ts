@@ -16,6 +16,7 @@ export const menuHandlers = MenuRpcs.toLayer(
         Effect.sync(() =>
           runDesktopMenuAction(BrowserWindow.fromWebContents(sender(handoff, context)), action, {
             createWindow: lifecycle.createWindow,
+            toggleHud: () => lifecycle.hud.toggle(),
             relaunch: lifecycle.relaunch,
           }),
         ),

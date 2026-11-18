@@ -19,7 +19,7 @@ import { ServerConnection, ServersProvider } from "@/runtime/server/registry"
 import { SettingsProvider } from "@/settings/model"
 import { TabsProvider } from "@/shell/tabs/tabs"
 import { ErrorPage } from "@/shell/errors/error"
-import { AppRoutes, File, preloadRoute } from "@/shell/routes/routes"
+import { AppRoutes, File, HudRoutes, preloadRoute } from "@/shell/routes/routes"
 import { PluginRoot } from "@/runtime/plugin/root"
 
 export { preloadRoute }
@@ -53,13 +53,17 @@ export function AppBaseProviders(
     locale?: Locale
     onNativeTranslations?: Parameters<typeof LanguageProvider>[0]["onNativeTranslations"]
     onThemeApplied?: (mode: "light" | "dark", scheme: "system" | "light" | "dark") => void
+    transparentRoot?: boolean
   }>,
 ) {
   return (
     <MetaProvider>
       <Title>OpenCode</Title>
       <Font />
-      <ThemeProvider onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}>
+      <ThemeProvider
+        transparentRoot={props.transparentRoot}
+        onThemeApplied={(mode, scheme) => props.onThemeApplied?.(mode, scheme)}
+      >
         <LanguageProvider locale={props.locale} onNativeTranslations={props.onNativeTranslations}>
           <UiI18nBridge>
             <ErrorBoundary
@@ -89,6 +93,8 @@ export function AppInterface(props: {
   canonicalLocalServer?: ServerConnection.Key
   servers?: Array<ServerConnection.Any>
   router?: Component<BaseRouterProps>
+  /** Mount the floating HUD's route tree instead of the full shell. */
+  hud?: boolean
 }) {
   // The visual layout lives in the router root so it remains mounted across
   // route changes. Draft and session routes override only their server-bound data
@@ -115,7 +121,7 @@ export function AppInterface(props: {
     <ServersProvider canonicalLocalServer={props.canonicalLocalServer} servers={props.servers}>
       <SettingsProvider>
         <Dynamic component={props.router ?? Router} root={Root}>
-          <AppRoutes />
+          {props.hud ? <HudRoutes /> : <AppRoutes />}
         </Dynamic>
       </SettingsProvider>
     </ServersProvider>

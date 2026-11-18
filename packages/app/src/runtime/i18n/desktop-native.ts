@@ -257,6 +257,7 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.newSession": "New Session",
   "desktop.menu.openProject": "Open Project…",
   "desktop.menu.newWindow": "New Window",
+  "desktop.menu.toggleHud": "Toggle HUD",
   "desktop.menu.closeWindow": "Close Window",
   "desktop.menu.undo": "Undo",
   "desktop.menu.redo": "Redo",

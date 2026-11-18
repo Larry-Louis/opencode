@@ -6,6 +6,7 @@ export type DesktopMenuActionHandlers = Partial<{
   installCli: () => void
   createWindow: () => void
   relaunch: () => void
+  toggleHud: (route?: string) => void
 }>
 
 export function runDesktopMenuAction(
@@ -66,6 +67,10 @@ export function runDesktopMenuAction(
       return
     case "view.toggleFullscreen":
       win?.setFullScreen(!win.isFullScreen())
+
+      return
+    case "view.toggleHud":
+      handlers.toggleHud?.()
 
       return
     case "edit.undo":

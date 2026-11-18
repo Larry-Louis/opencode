@@ -27,6 +27,7 @@ type Deps = {
   commandWindow: () => BrowserWindow | null
   installCli: () => void
   createWindow: () => void
+  toggleHud: () => void
   openExternal: (url: string) => void
   relaunch: () => void
 }
@@ -160,6 +161,7 @@ function nativeItem(entry: DesktopMenuEntry, deps: Deps): MenuItemConstructorOpt
       runDesktopMenuAction(win, action, {
         installCli: deps.installCli,
         createWindow: deps.createWindow,
+        toggleHud: deps.toggleHud,
         relaunch: deps.relaunch,
       })
     }

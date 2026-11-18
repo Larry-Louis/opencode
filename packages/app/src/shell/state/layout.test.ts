@@ -36,6 +36,7 @@ describe("layout persistence", () => {
       review: { panelOpened: false },
       fileTree: { opened: false, width: 200, tab: "changes" },
       session: { width: 600 },
+      tabRail: { width: 44 },
       mobileSidebar: { opened: false },
       sessionTabs: {},
       sessionView: {},

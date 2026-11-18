@@ -76,6 +76,12 @@ export class SidecarChanged extends Schema.TaggedClass<SidecarChanged>()("Sideca
   url: Schema.String,
 }) {}
 
+// The floating HUD opened or closed; a main window uses the close edge to put the caret back
+// in its composer after the bar hands the session back.
+export class HudStateChanged extends Schema.TaggedClass<HudStateChanged>()("HudStateChanged", {
+  open: Schema.Boolean,
+}) {}
+
 export const DesktopEvent = Schema.Union([
   DeepLinksOpened,
   SidecarChanged,
@@ -91,6 +97,7 @@ export const DesktopEvent = Schema.Union([
   PluginsChanged,
   PluginGuisChanged,
   PluginMenubarItemsChanged,
+  HudStateChanged,
 ])
 
 export type DesktopEvent = Schema.Schema.Type<typeof DesktopEvent>

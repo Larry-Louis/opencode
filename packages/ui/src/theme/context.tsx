@@ -149,7 +149,7 @@ function getSystemMode(): "light" | "dark" {
   return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 }
 
-function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "dark") {
+function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "dark", transparentRoot = false) {
   const isDark = mode === "dark"
   const variant = isDark ? theme.dark : theme.light
   const tokens = resolveThemeVariant(variant, isDark)
@@ -167,12 +167,16 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   ensureThemeStyleElement().textContent = fullCss
   document.documentElement.dataset.theme = themeId
   document.documentElement.dataset.colorScheme = mode
-  document.documentElement.style.backgroundColor = isDark ? "#080808" : "#fafafa"
+
+  // The floating HUD is a transparent window; its own surface paints the themed background. The
+  // document root must not fill the window, or the bar becomes an opaque rectangle.
+  if (transparentRoot) document.documentElement.style.removeProperty("background-color")
+  else document.documentElement.style.backgroundColor = isDark ? "#080808" : "#fafafa"
 
   // Update theme-color meta tag to match light/dark mode
   const meta = document.querySelector('meta[name="theme-color"]')
 
-  if (meta) meta.setAttribute("content", isDark ? "#080808" : "#fafafa")
+  if (!transparentRoot && meta) meta.setAttribute("content", isDark ? "#080808" : "#fafafa")
 }
 
 function cacheThemeVariants(theme: DesktopTheme) {
@@ -192,6 +196,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     defaultTheme?: string
     /** The window shows the theme: its colors, or until a registered theme arrives, those cached from the last run. */
     onThemeApplied?: (mode: "light" | "dark", scheme: ColorScheme) => void
+    /** Leave the document root transparent for a frameless window that paints its own surface. */
+    transparentRoot?: boolean
   }) => {
     // An id no theme has yet stays selected until `settle`: a registered theme can arrive after startup.
     const initial = createThemeState({
@@ -256,7 +262,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
 
       if (effect.type === "clear-cache") return clear()
 
-      if (effect.type === "apply-theme") return applyThemeCss(effect.theme, effect.id, effect.mode)
+      if (effect.type === "apply-theme")
+        return applyThemeCss(effect.theme, effect.id, effect.mode, props.transparentRoot)
 
       if (effect.type === "warn-missing-theme") return console.warn(`Theme "${effect.id}" not found`)
 

@@ -60,4 +60,7 @@ export default {
   "zoom.reset": "重置缩放",
   "zoom.percent": "{{percent}}%",
   "link.copy": "复制链接",
-  "history.clear": "清除历史记录",}
+  "history.clear": "清除历史记录",
+  // 2026-11-14 补译
+  "model.timedOut": "浏览器加载时间过长",
+}

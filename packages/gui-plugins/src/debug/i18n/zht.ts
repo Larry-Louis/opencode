@@ -42,4 +42,11 @@ export default {
   "speed.label": "速度",
   "speed.tip": "全域動畫速度。點選可在 0.5× 和 0.25× 之間切換，最後回到 1×。",
   "slow.label": "慢速",
-  "slow.tip": "以四分之一速度執行所有已調節的動畫。",}
+  "slow.tip": "以四分之一速度執行所有已調節的動畫。",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "session.label": "工作階段",
+  "session.tip": "{{id}}。點擊複製。",
+  "session.none": "未開啟工作階段",
+  "session.copyFailed": "複製工作階段 ID 失敗",
+}

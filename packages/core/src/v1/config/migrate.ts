@@ -1,7 +1,8 @@
 export * as ConfigMigrateV1 from "./migrate.js"
 
 import { ConfigAgent } from "@opencode/schema/config/agent"
-import { Schema } from "effect"
+import { ConfigModel } from "@opencode/schema/config/model"
+import { Option, Schema } from "effect"
 import { ConfigAgentV1 } from "./agent.js"
 import { ConfigCommandV1 } from "./command.js"
 import { ConfigMCPV1 } from "./mcp.js"
@@ -13,6 +14,7 @@ import { Model } from "../../model.js"
 
 const decodeOptions = { errors: "all", onExcessProperty: "ignore" } as const
 const decodeAgent = Schema.decodeUnknownSync(Schema.fromJsonString(ConfigAgent.Info), decodeOptions)
+const decodeSelection = Schema.decodeUnknownOption(ConfigModel.Selection)
 
 function permissions(info?: ConfigPermissionV1.Info) {
   const rules = (info ?? []).flatMap(([key, rule]) => {
@@ -64,12 +66,13 @@ export function migrateCommand(command: ConfigCommandV1.Info) {
 }
 
 export function modelSelection(input?: string, variant?: string) {
-  if (input === undefined || !/^[^/#]+\/[^#]+$/.test(input)) return undefined
-  const separator = input.indexOf("/")
+  const selection = Option.getOrUndefined(decodeSelection(input))
+  if (selection === undefined) return undefined
+  const selected = selection.variant ?? variant
   return {
-    providerID: providerID(input.slice(0, separator)),
-    model: input.slice(separator + 1),
-    ...(variant === undefined || variant.length === 0 || variant.includes("#") ? {} : { variant }),
+    providerID: providerID(selection.providerID),
+    model: selection.model,
+    ...(selected === undefined || selected.length === 0 || selected.includes("#") ? {} : { variant: selected }),
   }
 }
 
@@ -127,7 +130,11 @@ function migrateStandardProvider(info: ConfigProviderV1.Info) {
     env: info.env,
     package: info.npm ? packageSpecifier(info.npm) : undefined,
     compatibility: Object.keys(compatibility).length ? compatibility : undefined,
-    settings: info.api ? { ...options.settings, baseURL: info.api } : info.options ? options.settings : undefined,
+    settings: info.api
+      ? { ...options.settings, baseURL: options.settings.baseURL || info.api }
+      : info.options
+        ? options.settings
+        : undefined,
     headers: info.options && options.headers,
     body: info.options && options.body,
     models:
@@ -210,11 +217,7 @@ function migrateModel(info: typeof ConfigProviderV1.Model.Type, npm: string | un
       : { settings: ConfigProviderOptionsV1.model(input), body: undefined }
   const migrated = options && split(options)
   const settings = migrated?.settings
-  const compatibility = {
-    ...Model.compatibility(info.interleaved),
-    ...info.compatibility,
-    ...(disableThinkingBlockBinding ? { supportsThinkingBlockBinding: false } : {}),
-  }
+  const compatibility = { ...Model.compatibility(info.interleaved), ...info.compatibility }
   const costs = info.cost && [
     {
       input: info.cost.input,
@@ -232,20 +235,19 @@ function migrateModel(info: typeof ConfigProviderV1.Model.Type, npm: string | un
         ]
       : []),
   ]
-  const defaults = Model.Capabilities.default()
   const capabilities =
     info.tool_call !== undefined || info.modalities?.input !== undefined || info.modalities?.output !== undefined
-      ? {
-          tools: info.tool_call ?? defaults.tools,
-          input: info.modalities?.input ?? defaults.input,
-          output: info.modalities?.output ?? defaults.output,
-        }
+      ? { tools: info.tool_call, input: info.modalities?.input, output: info.modalities?.output }
       : undefined
   return {
     modelID: info.id,
     family: info.family,
     name: info.name,
-    compatibility: Object.keys(compatibility).length ? compatibility : undefined,
+    compatibility: disableThinkingBlockBinding
+      ? { ...compatibility, supportsThinkingBlockBinding: false }
+      : Object.keys(compatibility).length
+        ? compatibility
+        : undefined,
     package: info.provider?.npm ? packageSpecifier(info.provider.npm) : undefined,
     settings: info.provider?.api ? { ...settings, baseURL: info.provider.api } : settings,
     capabilities,
@@ -257,9 +259,9 @@ function migrateModel(info: typeof ConfigProviderV1.Model.Type, npm: string | un
     cost: costs,
     disabled: info.status === "deprecated" ? true : undefined,
     limit: info.limit && {
-      context: int(info.limit.context),
+      context: info.limit.context === undefined ? undefined : int(info.limit.context),
       input: info.limit.input === undefined ? undefined : int(info.limit.input),
-      output: int(info.limit.output),
+      output: info.limit.output === undefined ? undefined : int(info.limit.output),
     },
   }
 }

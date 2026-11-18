@@ -13,6 +13,7 @@ import { windowArguments } from "./bootstrap"
 import {
   getBackgroundColor,
   getPinchZoomEnabled,
+  hudWindowOptions,
   setBackgroundColor,
   setDockIcon,
   setPinchZoomEnabled,
@@ -25,6 +26,11 @@ import {
   wireFullscreen,
   wireZoom,
 } from "./appearance"
+import { isHudWindow, markHudWindow } from "./kinds"
+import { createHudController } from "./hud"
+import type { HudBounds } from "../../shared/hud-geometry"
+import { HudStateChanged } from "../../shared/ipc-rpc/events"
+import { emitIpcEvent } from "../ipc-events"
 import { registerRendererProtocol, setProtocolReporter } from "./protocol"
 import { loadWindow } from "./scheme"
 import { createWindowRegistry } from "./registry"
@@ -88,9 +94,9 @@ export function getWindowID(win: BrowserWindow) {
   return registry.persisted().find((id) => registry.get(id) === win)
 }
 
-/** App windows that host the renderer, excluding popups and other native windows. */
+/** App windows that host the renderer, excluding popups, native windows and the HUD. */
 export function getMainWindows() {
-  return registry.list().filter((win) => !win.isDestroyed())
+  return registry.list().filter((win) => !win.isDestroyed() && !isHudWindow(win))
 }
 
 /** Runs for each app window as it registers, before its renderer loads. */
@@ -128,24 +134,40 @@ export const mainWindows = Effect.fn("Window.make")(function* (input: {
       openExternal: (url) => runFork(openExternalURL(url)),
     }).map((step) => create(step.id, step.kind === "adopt" ? step.entry : undefined))
 
-  const create = (id: string = randomUUID(), early?: EarlyWindow) => {
+  type CreateOptions = { kind?: "main" | "hud"; route?: string; bounds?: HudBounds }
+
+  const create = (id: string = randomUUID(), early?: EarlyWindow, options?: CreateOptions) => {
+    const hud = options?.kind === "hud"
     const stateFile = path.join(app.getPath("userData"), windowStateFile(id))
     const state = early?.state ?? resolveWindowState(readWindowState(stateFile), { width: 1280, height: 800 }, displays)
-    const appearance = windowAppearance(path, paths)
+    const bounds = options?.bounds
+
+    // The HUD gets its own transparent frame; the normal appearance path would paint the theme
+    // background, add a Windows titlebar overlay and restore macOS traffic lights.
+    const appearance = hud
+      ? {
+          ...hudWindowOptions(path, paths),
+          webPreferences: {
+            preload: paths.preloadPath,
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: true,
+          },
+        }
+      : windowAppearance(path, paths)
 
     const win =
       early?.win ??
       new BrowserWindow({
-        x: state.x,
-        y: state.y,
-        width: state.width,
-        height: state.height,
+        ...(hud
+          ? { x: bounds?.x, y: bounds?.y, width: bounds?.width, height: bounds?.height }
+          : { x: state.x, y: state.y, width: state.width, height: state.height }),
         show: false,
         autoHideMenuBar: true,
         ...appearance,
         webPreferences: {
           ...appearance.webPreferences,
-          additionalArguments: windowArguments(id),
+          additionalArguments: windowArguments(id, hud ? { kind: "hud", route: options?.route } : undefined),
         },
       })
 
@@ -154,53 +176,75 @@ export const mainWindows = Effect.fn("Window.make")(function* (input: {
       allowRendererPermissions(win)
       wireNavigationPolicy(win, (url) => runFork(openExternalURL(url)))
       wireRendererHeaders(win)
-      manageWindowState(win, stateFile, state, displays)
     }
 
-    const focusForTests = () => {
-      if (app.isPackaged || process.env.OPENCODE_TEST_ONBOARDING !== "1") return
+    if (!hud && !early) manageWindowState(win, stateFile, state, displays)
 
-      if (process.platform === "darwin") app.focus({ steal: true })
-      win.focus()
-    }
+    if (hud) {
+      markHudWindow(win)
+      // Keep the OS title stable: the session route's document title would otherwise
+      // replace it, and Linux compositors identify the HUD by this title.
+      win.on("page-title-updated", (event) => event.preventDefault())
+      wireFocus(win)
+      // The HUD closes with the app rather than being restored next launch. Clear the storage
+      // namespace its renderer used, but keep the HUD's own geometry file.
+      win.on("closed", () => {
+        runFork(
+          Effect.try(() => storage.state.clear(windowDataFile(id))).pipe(
+            Effect.catch((error) =>
+              scoped("window", Effect.logError("failed to clean hud window state", { id, error })),
+            ),
+          ),
+        )
+      })
+    } else {
+      const focusForTests = () => {
+        if (app.isPackaged || process.env.OPENCODE_TEST_ONBOARDING !== "1") return
 
-    const reveal = createRevealDriver({
-      early: !!early,
-      show: (reason) => {
-        if (win.isDestroyed()) return
-        win.show()
+        if (process.platform === "darwin") app.focus({ steal: true })
+        win.focus()
+      }
+
+      const reveal = createRevealDriver({
+        early: !!early,
+        show: (reason) => {
+          if (win.isDestroyed()) return
+          win.show()
+          focusForTests()
+          runFork(Effect.logInfo("main window visible", reason === "ready" ? { window: id } : { window: id, reason }))
+        },
+      })
+
+      revealDrivers.set(win, reveal)
+
+      wireWindowRecovery(win, id, {
+        relaunch: input.relaunch,
+        reveal: () => reveal.dispatch({ type: "recovery.requested" }),
+      })
+      register(win, id)
+      wireFullscreen(win)
+      wireFocus(win)
+
+      if (!early) loadWindow(win, "index.html")
+      wireZoom(win)
+
+      if (early) {
         focusForTests()
-        runFork(Effect.logInfo("main window visible", reason === "ready" ? { window: id } : { window: id, reason }))
-      },
-    })
+        runFork(Effect.logInfo("main window visible", { window: id, shownAt: early.shownAt }))
+      }
 
-    revealDrivers.set(win, reveal)
+      const contentReady = () => reveal.dispatch({ type: "content.ready" })
 
-    wireWindowRecovery(win, id, {
-      relaunch: input.relaunch,
-      reveal: () => reveal.dispatch({ type: "recovery.requested" }),
-    })
-    register(win, id)
-    wireFullscreen(win)
-    wireFocus(win)
+      win.once("ready-to-show", contentReady)
 
-    if (!early) loadWindow(win, "index.html")
-    wireZoom(win)
-
-    if (early) {
-      focusForTests()
-      runFork(Effect.logInfo("main window visible", { window: id, shownAt: early.shownAt }))
+      if (process.platform === "linux") win.webContents.once("did-finish-load", contentReady)
+      win.once("closed", () => {
+        reveal.dispatch({ type: "window.closed" })
+        revealDrivers.delete(win)
+      })
     }
 
-    const contentReady = () => reveal.dispatch({ type: "content.ready" })
-
-    win.once("ready-to-show", contentReady)
-
-    if (process.platform === "linux") win.webContents.once("did-finish-load", contentReady)
-    win.once("closed", () => {
-      reveal.dispatch({ type: "window.closed" })
-      revealDrivers.delete(win)
-    })
+    if (hud) loadWindow(win, "index.html")
 
     return win
   }
@@ -224,5 +268,17 @@ export const mainWindows = Effect.fn("Window.make")(function* (input: {
     opened.forEach((listener) => listener(win, id))
   }
 
-  return { create, restore }
+  const hud = createHudController({
+    userData: app.getPath("userData"),
+    createWindow: ({ route, bounds }) => create(randomUUID(), undefined, { kind: "hud", route, bounds }),
+    findMainWindow: (id) => getMainWindows().find((win) => win.id === id),
+    lastMainWindow: () => getLastFocusedWindow() ?? getMainWindows().at(-1),
+    createMainWindow: () => create(),
+    onStateChanged: ({ open }) => {
+      const event = new HudStateChanged({ open })
+      getMainWindows().forEach((win) => emitIpcEvent(win.webContents, event))
+    },
+  })
+
+  return { create, restore, hud }
 })

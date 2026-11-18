@@ -14,6 +14,7 @@ import { fileHandlers } from "./ipc-handlers/files"
 import { menuHandlers } from "./ipc-handlers/menu"
 import { storageHandlers } from "./ipc-handlers/storage"
 import { windowHandlers } from "./ipc-handlers/window"
+import { hudHandlers } from "./ipc-handlers/hud"
 import { IpcPortHandoff, IpcServerProtocolLive } from "./ipc-transport"
 import { ApplicationLifecycle } from "./lifecycle"
 import { createCliInstaller } from "./native/install-cli"
@@ -31,6 +32,7 @@ const handlers = Layer.mergeAll(
   storageHandlers,
   fileHandlers,
   windowHandlers,
+  hudHandlers,
   menuHandlers,
   eventHandlers,
   pluginHandlers,
@@ -52,15 +54,17 @@ export const registerIpcHandlers = Effect.gen(function* () {
     commandWindow: getLastFocusedWindow,
     installCli: yield* createCliInstaller(desktopCli),
     createWindow: lifecycle.createWindow,
+    toggleHud: () => lifecycle.hud.toggle(),
     openExternal: (url: string) => runFork(openExternalURL(url)),
     relaunch: lifecycle.relaunch,
   }
 
   const wire = (win: BrowserWindow) => {
     win.webContents.on("before-input-event", (_event, input) => {
-      // Ctrl+R renames the session in the renderer, so the default menu's Reload must not take it.
+      // Ctrl+R renames the session and Ctrl+Shift+R toggles review in the renderer,
+      // so the default menu's Reload and Force Reload must not take them.
       win.webContents.setIgnoreMenuShortcuts(
-        input.control && !input.meta && !input.shift && !input.alt && input.key.toLowerCase() === "r",
+        input.control && !input.meta && !input.alt && input.key.toLowerCase() === "r",
       )
 
       if (input.type !== "keyDown" || input.key !== "Escape") return

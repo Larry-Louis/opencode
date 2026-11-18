@@ -11,6 +11,7 @@ import {
   setZoomLevel,
   updateTitlebar,
 } from "../windows"
+import { isHudWindow } from "../windows/kinds"
 import { storedZoomLevel } from "../windows/defaults"
 import { focusWindow } from "../windows/focus"
 import { presentWindow } from "../windows/present"
@@ -34,6 +35,16 @@ export const windowHandlers = WindowRpcs.toLayer(
           const win = BrowserWindow.fromWebContents(sender(handoff, context))
 
           if (!win) throw new Error("Window not found")
+
+          // The HUD has no reveal driver; showing it once its theme is applied avoids an empty
+          // transparent window while the renderer hydrates.
+          if (isHudWindow(win)) {
+            win.show()
+            win.focus()
+
+            return
+          }
+
           setWindowThemeReady(win)
         }),
       WindowGetFocused: (_args, context) =>

@@ -1,6 +1,8 @@
 import { SessionMessage } from "@opencode/schema/session-message"
 import type { SessionMessageUser } from "@opencode/client/promise"
+import { uuid } from "@opencode/util/uuid"
 import { createEffect, createSignal, onCleanup, untrack, type Accessor } from "solid-js"
+import { readHudContext, withHudNote } from "@/hud/hud-attachment"
 import type { PromptComment } from "./comment-note"
 import type { PromptHistoryComment } from "./history/entry"
 import { isCommentItem, type ContextItem, type ImageAttachmentPart, type Prompt } from "./state"
@@ -12,7 +14,8 @@ import type {
   ComposerSession,
   ComposerSubmissionHandle,
 } from "./adapter"
-import { buildPromptRequest, noteComment, quoteComment } from "./request"
+import { buildPromptRequest, commentMentions, noteComment, quoteComment } from "./request"
+import { getDirectory, getFilename } from "@opencode/util/path"
 import { setCursorPosition } from "./editor/dom"
 import { blobDataUrl, resolveBlobUrl } from "@/runtime/persistence/drafts"
 import type { ModelSelection } from "@/providers/models/selection"
@@ -54,6 +57,7 @@ type ComposerSubmitInput = {
   resetHistory: () => void
   closePopover: () => void
   delivery?: (alternate: boolean) => ComposerDelivery
+  queueFirst?: (inboxID: string) => void
   clientCommand?: (text: string) => (() => void | Promise<void>) | undefined
   notify: {
     missingSelection: () => void
@@ -92,7 +96,7 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
     }
 
     if (effect.type === "submit.retry")
-      return dispatch({ type: "submit", snapshot: snapshot(input, effect.alternate), done: effect.done })
+      return dispatch({ type: "submit", snapshot: snapshot(input, effect.alternate, effect.first), done: effect.done })
 
     if (effect.type === "hold.show") {
       input.adapter.beforeSubmit?.()
@@ -256,11 +260,15 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
 
   return {
     state,
-    submit(event: globalThis.Event, options?: { alternate?: boolean }) {
+    submit(event: globalThis.Event, options?: { alternate?: boolean; first?: boolean }) {
       event.preventDefault()
 
       return new Promise<void>((resolve) =>
-        dispatch({ type: "submit", snapshot: snapshot(input, options?.alternate ?? false), done: () => resolve() }),
+        dispatch({
+          type: "submit",
+          snapshot: snapshot(input, options?.alternate ?? false, options?.first),
+          done: () => resolve(),
+        }),
       )
     },
     submitQuote(key: string, comment: string) {
@@ -293,11 +301,13 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
   }
 }
 
-function snapshot(input: ComposerSubmitInput, alternate: boolean): SubmitSnapshot {
+function snapshot(input: ComposerSubmitInput, alternate: boolean, first = false): SubmitSnapshot {
   const target = input.adapter.state
   const prompt = clonePrompt(target.current())
   const text = submissionText(prompt)
   const mode = input.mode()
+
+  const queueFirst = first && mode === "normal" && input.adapter.kind === "active-session" && input.adapter.working()
 
   const context = target.context.items().map((item) => {
     if (item.type === "note") return { ...item, live: item.live ? { ...item.live } : undefined }
@@ -306,6 +316,25 @@ function snapshot(input: ComposerSubmitInput, alternate: boolean): SubmitSnapsho
 
     return { ...item, selection: item.selection ? { ...item.selection } : undefined }
   })
+
+  // A HUD screen capture belongs to this send, not to the draft: it is attached to the submission's
+  // images so retries and the optimistic message carry it, without showing it in the composer.
+  const hudImage = (() => {
+    const image = readHudContext()?.image
+
+    if (mode !== "normal" || text.trimStart().startsWith("/") || !image) return
+
+    const id = uuid()
+
+    return {
+      type: "image" as const,
+      id,
+      filename: image.name,
+      mime: image.mime,
+      blob: { id, url: image.dataUrl },
+      dataUrl: image.dataUrl,
+    }
+  })()
 
   return {
     draft: {
@@ -324,7 +353,8 @@ function snapshot(input: ComposerSubmitInput, alternate: boolean): SubmitSnapsho
     text,
     mode,
     alternate,
-    delivery: input.delivery?.(alternate) ?? "steer",
+    delivery: queueFirst ? "queue" : (input.delivery?.(alternate) ?? "steer"),
+    first: queueFirst,
     selection: currentSelection(input),
     loading: input.adapter.controls().model.loading,
     retry: target.retry.current(),
@@ -333,6 +363,7 @@ function snapshot(input: ComposerSubmitInput, alternate: boolean): SubmitSnapsho
     clientCommand: mode === "normal" ? input.clientCommand?.(text) : undefined,
     comments: input.comments.capture(),
     session: input.adapter.kind === "active-session" ? input.adapter.session() : undefined,
+    hudImage,
   }
 }
 
@@ -567,6 +598,8 @@ function dispatchPrompt(input: ComposerSubmitInput, session: ComposerSession, va
 
         if (!admitted) return false
 
+        if (value.first) input.queueFirst?.(value.id)
+
         // Move blocking work only once the steer is admitted, so the next step can read it from the inbox.
         void background?.move()
 
@@ -722,6 +755,7 @@ async function sendCommand(
     skills: request.skills,
     delivery: value.delivery,
   })
+  session.data.session.acceptSend(session.id)
 }
 
 async function applySelection(
@@ -770,6 +804,11 @@ async function sendPrompt(
   track: ModelSelection["trackSessionCommit"] | undefined,
 ) {
   const request = await buildSubmissionRequest(session, value)
+  const hud = readHudContext()
+
+  // The HUD note reaches the model on the user message while `displayText` keeps the transcript
+  // showing exactly what the user typed. The note is per-turn and never touches the draft.
+  request.text = withHudNote(hud?.note, request.text)
 
   // Switching agent or model reconfigures the session immediately, and with it
   // the remainder of a running turn. A steer targets that turn, so its
@@ -817,6 +856,7 @@ async function sendPrompt(
   }
 
   await session.data.session.prompt(admission).catch(() => session.data.session.prompt(admission))
+  session.data.session.acceptSend(session.id)
 }
 
 async function buildSubmissionRequest(session: ComposerSession, value: ComposerSubmission) {
@@ -827,13 +867,38 @@ async function buildSubmissionRequest(session: ComposerSession, value: ComposerS
     })),
   )
 
+  const mentions = commentMentions(value.context)
+
   return buildPromptRequest({
     prompt: value.prompt,
     context: value.context,
     images,
     text: value.text,
     sessionDirectory: session.directory,
+    existingMentions: mentions.length > 0 ? await existingMentions(session, mentions) : undefined,
   })
+}
+
+// A comment's `@word` may be plain text such as `@here`, and the server rejects a prompt that attaches a missing
+// file. Lists each mention's folder instead of reading the file, so the check transfers no content.
+async function existingMentions(session: ComposerSession, mentions: string[]) {
+  const existing = new Set<string>()
+
+  await Promise.all(
+    [...new Set(mentions)].map(async (path) => {
+      const target = path.replace(/[\\/]+$/, "")
+      const parent = /[\\/]/.test(target) ? getDirectory(target) : undefined
+
+      const found = await session.file
+        .list({ path: parent, location: { directory: session.directory } })
+        .then((result) => result.data.some((entry) => getFilename(entry.path) === getFilename(target)))
+        .catch(() => false)
+
+      if (found) existing.add(path)
+    }),
+  )
+
+  return existing
 }
 
 function failSubmission(

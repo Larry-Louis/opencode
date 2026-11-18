@@ -46,6 +46,9 @@ import {
 
 const DEFAULT_SIDEBAR_WIDTH = 344
 
+/** The vertical tab rail's default width: the icon rail, wide enough for a project avatar only. */
+const DEFAULT_TAB_RAIL_WIDTH = 44
+
 const DEFAULT_FILE_TREE_WIDTH = 200
 
 const DEFAULT_SESSION_WIDTH = 600
@@ -133,6 +136,8 @@ const closedTabSchema = Schema.Struct({
   file: Schema.optional(Schema.String),
   detail: Schema.optional(Schema.String),
   data: Schema.optional(Schema.String),
+  pane: Schema.optional(Schema.Literals(["side", "split", "bottom"])),
+  index: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
   closed: Schema.Finite,
 })
 
@@ -169,6 +174,8 @@ export const layoutSchema = Persistence.struct({
     tab: Schema.Literals(["changes", "all"]),
   }),
   session: Persistence.struct({ width: Schema.Finite }),
+  // The vertical tab rail kept its width in memory; it now survives a reload so the icon rail stays the default.
+  tabRail: Persistence.optional(Persistence.struct({ width: Schema.Finite })),
   // The side region's width per panel (`${plugin}:${panel id}`) that sizes itself, app-wide.
   panelWidths: Schema.optional(Persistence.record(Schema.Finite)),
   mobileSidebar: Persistence.struct({ opened: Schema.Boolean }),
@@ -240,6 +247,7 @@ export function initialLayout(server?: ServerConnection.Key): typeof layoutSchem
     review: { panelOpened: false },
     fileTree: { opened: false, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" },
     session: { width: DEFAULT_SESSION_WIDTH },
+    tabRail: { width: DEFAULT_TAB_RAIL_WIDTH },
     mobileSidebar: { opened: false },
     sessionTabs: {},
     sessionView: {},
@@ -554,6 +562,21 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           setStore("session", "width", width)
         },
       },
+      /** The vertical tab rail's width in the main window, remembered across reloads. */
+      tabRail: {
+        width: createMemo(() => store.tabRail?.width ?? DEFAULT_TAB_RAIL_WIDTH),
+        resize(width: number) {
+          if (!Number.isFinite(width)) return
+
+          if (!store.tabRail) {
+            setStore("tabRail", { width })
+
+            return
+          }
+
+          setStore("tabRail", "width", width)
+        },
+      },
       /** The side region's width while a panel that sizes itself shows, keyed `${plugin}:${panel id}`. */
       panelWidth: {
         get: (panel: string) => store.panelWidths?.[panel],
@@ -767,9 +790,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             if (!current?.all.includes(tab)) return
             writeTabs(session, moveSessionTab(current, tab, pane, before))
           },
-          /** Opens the next new tab a pane's "+" menu creates in `pane`; with `plugin`, only that plugin's tab. */
-          target(pane: SessionPane, plugin?: string) {
-            dispatchIntent({ type: "pane.targeted", session: key(), pane, plugin })
+          /**
+           * Opens the next new tab a pane's "+" menu creates in `pane`; with `plugin`, only that plugin's tab, and with
+           * `index`, at that position in the strip.
+           */
+          target(pane: SessionPane, plugin?: string, index?: number) {
+            dispatchIntent({ type: "pane.targeted", session: key(), pane, plugin, index })
           },
         }
       },

@@ -55,13 +55,16 @@ export default {
   "mcp.signIn.failed": "授權失敗：{{error}}",
   "mcp.signIn.expired": "授權已過期",
   "mcp.signIn.openBrowser": "開啟瀏覽器",
-  "mcp.signIn.paste.label": "重新導向 URL",
-  "mcp.signIn.paste.placeholder": "http://127.0.0.1:…/callback?code=…",
-  "mcp.signIn.paste.required": "請貼上瀏覽器網址列中的 URL",
   "mcp.error.open": "{{name}} 失敗，檢視錯誤",
   "mcp.error.title": "MCP 伺服器：{{name}}",
   "mcp.error.copy": "複製詳細資料",
   "mcp.error.copyFailed": "無法複製錯誤詳細資料",
   "mcp.error.disable": "停用",
   "mcp.timedOut": "{{name}} 回應逾時",
-  "mcp.error.details": "MCP 伺服器：{{name}}\n狀態：失敗\n設定：mcp.servers.{{name}}\n錯誤：{{error}}",}
+  "mcp.error.details": "MCP 伺服器：{{name}}\n狀態：失敗\n設定：mcp.servers.{{name}}\n錯誤：{{error}}",
+
+  // 2026-11-14 補譯：審計後新增的鍵
+  "changesFailed": "無法載入變更",
+  "changesOffline": "無法連線該伺服器",
+  "mcp.signIn.syncFailed": "已登入，但無法重新整理 {{name}}：{{error}}",
+}

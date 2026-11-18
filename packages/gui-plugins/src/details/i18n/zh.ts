@@ -55,13 +55,15 @@ export default {
   "mcp.signIn.failed": "授权失败：{{error}}",
   "mcp.signIn.expired": "授权已过期",
   "mcp.signIn.openBrowser": "打开浏览器",
-  "mcp.signIn.paste.label": "重定向 URL",
-  "mcp.signIn.paste.placeholder": "http://127.0.0.1:…/callback?code=…",
-  "mcp.signIn.paste.required": "请粘贴浏览器地址栏中的 URL",
   "mcp.error.open": "{{name}} 失败，查看错误",
   "mcp.error.title": "MCP 服务器：{{name}}",
   "mcp.error.copy": "复制详情",
   "mcp.error.copyFailed": "无法复制错误详情",
   "mcp.error.disable": "禁用",
   "mcp.timedOut": "{{name}} 响应超时",
-  "mcp.error.details": "MCP 服务器：{{name}}\n状态：失败\n配置：mcp.servers.{{name}}\n错误：{{error}}",}
+  "mcp.error.details": "MCP 服务器：{{name}}\n状态：失败\n配置：mcp.servers.{{name}}\n错误：{{error}}",
+  // 2026-11-14 补译
+  "changesFailed": "无法加载变更",
+  "changesOffline": "无法连接该服务器",
+  "mcp.signIn.syncFailed": "已登录，但无法刷新 {{name}}：{{error}}",
+}
