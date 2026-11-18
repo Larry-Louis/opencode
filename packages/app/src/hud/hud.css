@@ -39,7 +39,7 @@
   --hud-capsule-bg: rgb(12 14 18 / 0.8);
   --hud-info-glow: 0 0 4px rgb(0 0 0 / 1);
   --hud-glow-ink: rgb(0 0 0 / 1);
-  --hud-frost: blur(18px) saturate(1.15);
+  --hud-frost: blur(2px);
 
   /* Outline every glyph so the transparent HUD stays readable over any app behind it:
      light text gets a dark edge, dark text an inverted one. */
