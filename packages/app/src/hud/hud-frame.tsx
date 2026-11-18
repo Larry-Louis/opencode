@@ -272,8 +272,16 @@ export function HudFrame(props: ParentProps) {
       const hit = document.elementFromPoint(point.x, point.y)
 
       // Unfocused the transcript is read-only scenery: pointing at it must not turn the window
-      // solid or pull focus. Only the title controls and the composer take the pointer.
-      if (hit instanceof Element && hit.closest("[data-hud-transcript]") && !focused() && !locked()) {
+      // solid or pull focus. The title controls and the composer card still take the pointer.
+      const inHeader = hit instanceof Element && hit.closest("[data-session-title]") !== null
+
+      if (
+        !inHeader &&
+        hit instanceof Element &&
+        hit.closest("[data-hud-transcript]") &&
+        !focused() &&
+        !locked()
+      ) {
         if (!ignored) {
           ignored = true
           void api.setIgnoreMouse(true)
