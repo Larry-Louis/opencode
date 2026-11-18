@@ -367,10 +367,34 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   width: 100%;
 }
 
-/* HUD: the title bar and the composer form one sticky block. */
+/* Only the header's controls and the composer card take the pointer; its clear parts belong to
+   the transcript behind, so a wheel over the body under the header keeps scrolling it. */
+:root[data-hud] [data-hud-transcript] [data-session-title] > div {
+  pointer-events: none !important;
+}
+
+:root[data-hud] [data-hud-transcript] [data-session-title]
+  :is(
+    button,
+    a[href],
+    input,
+    textarea,
+    select,
+    [contenteditable="true"],
+    [role="button"],
+    [role="link"],
+    [data-component="composer"],
+    [data-component="composer"] *
+  ) {
+  pointer-events: auto !important;
+}
+
+/* HUD: the title bar and the composer form one sticky block. The row itself is only a layout
+   wrapper; the transcript behind it owns the pointer, so the wheel keeps scrolling under the
+   header's clear areas. */
 :root[data-hud] [data-hud-composer-divider] {
   padding-top: 6px;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 /* The shared viewport fades its last 20px so the floating composer can sit over it. The reverse HUD

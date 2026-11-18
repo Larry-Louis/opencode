@@ -178,6 +178,9 @@ export function createTimelineVirtualizer(input: Input) {
   const [listRoot, setListRoot] = createSignal<HTMLDivElement>()
   const [visibleArea, setVisibleArea] = createSignal<HTMLDivElement>()
   const [viewRoot, setViewRoot] = createSignal<HTMLDivElement>()
+  // The reverse HUD draws the title/composer as an overlay. Its height is leading space inside the
+  // scroll content, so the newest row starts below it instead of under the composer.
+  const [overlayGap, setOverlayGap] = createSignal(0)
   const bottomInset = () => input.bottomInset?.() ?? 0
 
   // The HUD mirrors the content box, so a native offset counts down from the newest row instead of up.
@@ -426,8 +429,8 @@ export function createTimelineVirtualizer(input: Input) {
     scrollEndThreshold: 80,
     get scrollMargin() {
       // Empty projections still need the bottom spacer for running status.
-      // The HUD measures from the content start, so a top offset would leave a blank band at the bottom.
-      return rows().length > 0 && !reverse() ? topOffset() : 0
+      // The reverse HUD's overlaid header becomes the scroll content's leading space.
+      return rows().length > 0 ? (reverse() ? overlayGap() : topOffset()) : 0
     },
     get paddingEnd() {
       return tailSize()
@@ -463,6 +466,33 @@ export function createTimelineVirtualizer(input: Input) {
   }
 
   createEffect(on(rowKeys, () => queueMicrotask(syncLogicalOffset), { defer: true }))
+
+  // Measure the overlaid title/composer block. Its height becomes the scroll content's leading
+  // space, so the newest row starts below the header instead of running under the composer.
+  createEffect(() => {
+    if (!hud || !reverse() || !input.showHeader()) {
+      setOverlayGap(0)
+
+      return
+    }
+
+    const root = viewRoot()
+    const header = root?.querySelector<HTMLElement>("[data-session-title]")
+
+    if (!header) return
+
+    const measure = () => setOverlayGap(Math.ceil(header.getBoundingClientRect().height))
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(header)
+    onCleanup(() => observer.disconnect())
+  })
+
+  createEffect(() => {
+    overlayGap()
+    queueMicrotask(syncLogicalOffset)
+  })
 
   const resizeItem = virtualizer.resizeItem
   const pendingSizes = new Map<number, { key: string; size: number }>()
@@ -1283,6 +1313,11 @@ export function createTimelineVirtualizer(input: Input) {
             <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
               {props.header}
             </Show>
+          </Show>
+          {/* The overlaid HUD header is not in flow; this spacer gives the newest row the same
+              leading space, and scrollMargin tells the virtualizer about it. */}
+          <Show when={hud && reverse() && overlayGap() > 0}>
+            <div aria-hidden="true" style={{ height: `${overlayGap()}px` }} />
           </Show>
           <div
             data-timeline-virtual-content
