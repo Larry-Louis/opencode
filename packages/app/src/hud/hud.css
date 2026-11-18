@@ -832,35 +832,25 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   transition: none;
 }
 
-/* Hover lock: the pointer decides whether the rail and the title strip are shown;
-   the band itself uses the same unfocused fade as the default lock. */
-
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hover][data-hud-hover] [data-hud-rail],
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hover][data-hud-hover] [data-hud-drag] {
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-/* Hover lock away from the HUD: only the composer stays, like the hide lock, and
-   the pointer brings everything back. */
+/* Hover lock: unfocused, only the composer stays; after the composer click brings focus back,
+   the chrome, rail and title block each wait for their own hover. */
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-focused])
   [data-hud-transcript]
   [data-slot="session-timeline-scroll"],
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-focused])
   [data-session-title]
   .session-header-layout,
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-focused])
   [data-session-title]
   > div:first-child::before,
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-focused])
   [data-hud-rail],
 :root[data-hud]
-  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-hover]):not([data-hud-focused])
+  [data-component="hud-frame"][data-hud-lock-hover]:not([data-hud-focused])
   [data-hud-drag] {
   opacity: 0 !important;
   visibility: hidden !important;
@@ -1240,4 +1230,25 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
    8px content inset + 44px rail + 6px gap. */
 :root[data-hud] [data-component="hud-frame"] > [data-hud-drag] {
   margin-inline-end: 58px;
+}
+
+
+/* Hover lock: the title block is revealed by hovering its own row, not by pointing at the body. */
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hover] [data-session-title] .session-header-layout {
+  pointer-events: auto;
+  transition: opacity 140ms ease;
+}
+
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover][data-hud-focused]
+  [data-session-title]
+  .session-header-layout {
+  opacity: 0;
+}
+
+:root[data-hud]
+  [data-component="hud-frame"][data-hud-lock-hover][data-hud-focused]
+  [data-session-title]
+  .session-header-layout:hover {
+  opacity: 1;
 }
