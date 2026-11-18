@@ -1206,3 +1206,20 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-component="hud-frame"][data-hud-minimal][data-hud-locked] {
   background: transparent;
 }
+
+/* The rail is hover-only, like the chrome strip. Transparent but still hoverable, so pointing at
+   the 44px column reveals it without shifting the session pane. */
+:root[data-hud] [data-hud-rail] {
+  opacity: 0;
+  pointer-events: auto;
+}
+
+:root[data-hud] [data-hud-rail]:hover {
+  opacity: 1;
+}
+
+/* The chrome strip ends where the session pane ends, not over the rail column:
+   8px content inset + 44px rail + 6px gap. */
+:root[data-hud] [data-component="hud-frame"] > [data-hud-drag] {
+  margin-inline-end: 58px;
+}
