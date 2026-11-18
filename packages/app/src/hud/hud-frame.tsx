@@ -615,9 +615,14 @@ export function HudFrame(props: ParentProps) {
     const hit = event.target
 
     // The transcript is a reading surface: let the browser start a text
-    // selection there instead of stealing the press to move the bar or to
-    // return the caret to the composer. The title strip stays the drag handle.
-    if (hit instanceof Element && hit.closest("[data-hud-transcript]")) return
+    // selection there instead of stealing the press to move the bar. The title block — including
+    // the composer — stays a hold-to-drag handle; its buttons still opt out via INTERACTIVE.
+    if (
+      hit instanceof Element &&
+      hit.closest("[data-hud-transcript]") &&
+      hit.closest("[data-session-title]") === null
+    )
+      return
 
     startComposerDrag(event)
   }
