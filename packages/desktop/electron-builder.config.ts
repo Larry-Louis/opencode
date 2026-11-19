@@ -69,6 +69,8 @@ const getBase = (appId: string): Configuration => {
       output: "dist",
       buildResources: "resources",
     },
+    // The native glass module ships a prebuilt .node; keep it outside the asar so it can load.
+    asarUnpack: ["node_modules/@hicccc77/electron-liquid-glass/**/*"],
     // Linux launchers are .desktop files, so this is the desktop file name,
     // not just the app id. For prod, app id "ai.opencode.desktop" becomes
     // "ai.opencode.desktop.desktop".

@@ -3,6 +3,7 @@ import { useLocation } from "@solidjs/router"
 import { createEffect, createMemo, createSignal, on, onCleanup, untrack, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { frameLoop } from "@opencode/ui/motion"
+import { hudReverse } from "@/hud/hud-style"
 import type { SessionModel } from "../model"
 import { createTimelineCursor } from "./cursor"
 import { cursorMessageID, freshCursorMessageID, hasFreshCursorOrSeek, SCROLL_MOVED_EVENT } from "./cursor-machine"
@@ -25,6 +26,15 @@ import {
 } from "./history-machine"
 import { createRouteRevealState, routeRevealTarget, transitionRouteReveal } from "./machine"
 import { createTimelineModel } from "./model"
+
+// The floating HUD's reverse skin mirrors the timeline: the newest row sits at the top, so its distance
+// from the newest is the raw offset rather than the distance to the native end. The dev skin keeps the
+// normal order.
+const fromOldest = (element: HTMLDivElement) =>
+  hudReverse() ? element.scrollHeight - element.clientHeight - element.scrollTop : element.scrollTop
+
+const fromNewest = (element: HTMLDivElement) =>
+  hudReverse() ? element.scrollTop : element.scrollHeight - element.clientHeight - element.scrollTop
 
 /** `visible`: the conversation is on screen, not behind another narrow-screen view. */
 export function createSessionTimelineInteraction(session: SessionModel, visible: Accessor<boolean>) {
@@ -124,7 +134,7 @@ export function createSessionTimelineInteraction(session: SessionModel, visible:
 
   const measureScrollState = (element: HTMLDivElement) => {
     const max = element.scrollHeight - element.clientHeight
-    const distance = max - element.scrollTop
+    const distance = fromNewest(element)
     const overflow = max > 1
 
     return { overflow, jump: overflow && distance > jumpThreshold(element) }
@@ -241,7 +251,7 @@ export function createSessionTimelineInteraction(session: SessionModel, visible:
   const onHistoryScroll = () => {
     if (
       !scroller ||
-      scroller.scrollTop >= HISTORY_SCROLL_THRESHOLD ||
+      fromOldest(scroller) >= HISTORY_SCROLL_THRESHOLD ||
       !canRequestScrollPage(untrack(historyState)) ||
       untrack(follow.following)
     )
@@ -276,7 +286,7 @@ export function createSessionTimelineInteraction(session: SessionModel, visible:
             !!scroller &&
             (effect.probe === "fill"
               ? follow.following() && scroller.scrollHeight <= scroller.clientHeight + 1
-              : !follow.following() && scroller.scrollTop < HISTORY_SCROLL_THRESHOLD)
+              : !follow.following() && fromOldest(scroller) < HISTORY_SCROLL_THRESHOLD)
         },
         () => {
           historyProbe = undefined
@@ -394,8 +404,7 @@ export function createSessionTimelineInteraction(session: SessionModel, visible:
 
       // Measured before the new inset applies: a shrinking region also keeps a reader whose end it uncovers.
       const stick = scroller
-        ? follow.following() ||
-          scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 10 + Math.max(0, -delta)
+        ? follow.following() || fromNewest(scroller) < 10 + Math.max(0, -delta)
         : false
 
       setState("inset", next)

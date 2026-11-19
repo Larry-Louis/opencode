@@ -34,6 +34,15 @@ story("a non-modal menu and its submenu opened from a dialog list their items", 
   await expect(page.getByRole("menuitem", { name: "Archive" })).toBeVisible()
 })
 
+story("hovering another row closes the previous submenu", async ({ page }) => {
+  await page.getByRole("dialog").getByRole("button", { name: "Actions" }).click()
+  await page.getByRole("menuitem", { name: "Move to" }).hover()
+  await expect(page.getByRole("menuitem", { name: "Archive" })).toBeVisible()
+  await page.getByRole("menuitem", { name: "Export" }).hover()
+  await expect(page.getByRole("menuitem", { name: "PDF" })).toBeVisible()
+  await expect(page.getByRole("menuitem", { name: "Archive" })).toBeHidden()
+})
+
 story("a tooltip opened from a dialog is announced", async ({ page }) => {
   await page.getByRole("dialog").getByRole("button", { name: "Copy" }).hover()
   await expect(page.getByText("Copy the link")).toBeVisible()

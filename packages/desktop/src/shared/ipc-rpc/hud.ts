@@ -120,6 +120,24 @@ export const HudSetFrost = Rpc.make("HudSetFrost", {
   payload: { enabled: Schema.Boolean },
 })
 
+/** One native glass panel behind a HUD surface. x/y/width/height are screen physical pixels; the
+ *  radius stays in CSS pixels and main scales it by `dpr` for the native effect. */
+const HudGlassPanel = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
+  width: Schema.Number,
+  height: Schema.Number,
+  radius: Schema.Number,
+  dpr: Schema.Number,
+})
+
+export type HudGlassPanel = Schema.Schema.Type<typeof HudGlassPanel>
+
+/** Windows: keep one native frosted panel behind each translucent HUD surface. */
+export const HudSetGlassPanels = Rpc.make("HudSetGlassPanels", {
+  payload: { panels: Schema.Array(HudGlassPanel) },
+})
+
 export const HudRpcs = RpcGroup.make(
   HudOpen,
   HudClose,
@@ -135,4 +153,5 @@ export const HudRpcs = RpcGroup.make(
   HudSetWorkspaceTransfer,
   HudSetIgnoreMouse,
   HudSetFrost,
+  HudSetGlassPanels,
 )

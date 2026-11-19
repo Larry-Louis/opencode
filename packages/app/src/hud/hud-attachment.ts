@@ -96,3 +96,20 @@ export function writeHudLockMode(mode: HudLockMode) {
     localStorage.setItem(LOCK_MODE_KEY, mode)
   } catch {}
 }
+
+const MINIMAL_KEY = "opencode.hud.minimal"
+
+/** Keep only the composer's surface: words stay, capsule backgrounds go. */
+export function readHudMinimal() {
+  try {
+    return localStorage.getItem(MINIMAL_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+export function writeHudMinimal(enabled: boolean) {
+  try {
+    localStorage.setItem(MINIMAL_KEY, enabled ? "1" : "0")
+  } catch {}
+}

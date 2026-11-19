@@ -1,10 +1,13 @@
-import { For, Show, createEffect, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
+import { For, Show, createEffect, createRenderEffect, createSignal, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Icon } from "@opencode/ui/icon"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform, type HudBounds, type HudEdge, type HudWindowing } from "@/runtime/platform/platform"
+import { useSettings } from "@/settings/model"
 import { HudModeProvider } from "./hud-context"
-import { HUD_NOTE, readHudLockMode, readIncludeScreen, setHudContext, writeHudLockMode, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
-import "./hud.css"
+import { createHudGlass } from "./hud-glass"
+import { HUD_NOTE, readHudLockMode, readHudMinimal, readIncludeScreen, setHudContext, writeHudLockMode, writeHudMinimal, writeIncludeScreen, type HudContext, type HudLockMode } from "./hud-attachment"
+import reverseCss from "./hud.css?inline"
+import devCss from "./hud-dev.css?inline"
 
 const ALL_RESIZE_EDGES: HudEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
 
@@ -37,10 +40,23 @@ const defaultWindowing = (): HudWindowing => ({
 export function HudFrame(props: ParentProps) {
   const platform = usePlatform()
   const language = useLanguage()
+  const settings = useSettings()
   const api = platform.hud
+  // The Settings switch selects one complete skin: this branch's reverse glass or the dev layout.
+  const style = () => settings.general.hudStyle()
+  const reverse = () => style() !== "dev"
+
+  // The timeline helpers read the skin from the document attribute. A render effect keeps it ahead
+  // of the keyed remount below, so the first measurement in the new skin reads the right layout.
+  createRenderEffect(() => {
+    document.documentElement.dataset.hudStyle = style()
+  })
+
   const [dragging, setDragging] = createSignal(false)
   const [includeScreen, setIncludeScreen] = createSignal(readIncludeScreen())
   const [lockMode, setLockMode] = createSignal<HudLockMode>(readHudLockMode())
+  // Minimal mode keeps the words and the composer, dropping every other capsule surface.
+  const [minimal, setMinimal] = createSignal(readHudMinimal())
   const [hovering, setHovering] = createSignal(false)
   // A finished turn stays on screen until the user has focused the HUD at least
   // once, so the answer never fades the instant streaming stops.
@@ -98,6 +114,16 @@ export function HudFrame(props: ParentProps) {
     void api.setFrost(!chromeHidden() && (typing() || recent() || working() || locked())).catch(() => undefined)
   })
   onCleanup(() => void api.setFrost(false).catch(() => undefined))
+
+  // Windows: one native frosted panel behind each 80% surface, so the desktop blurs per card
+  // instead of as one window-wide sheet. An unfocused HUD dims to a flat sheet: the desktop blur
+  // only belongs to the focused, interactive state.
+  createHudGlass({
+    enabled: () => reverse() && !chromeHidden() && (focused() || locked()),
+    onlyComposer: () => minimal(),
+    topOnly: () => windowing().clickThrough && !focused() && !locked(),
+    send: (panels) => api.setGlassPanels(panels),
+  })
 
   onMount(() => {
     void capture()
@@ -247,6 +273,23 @@ export function HudFrame(props: ParentProps) {
       if (!point) return
 
       const hit = document.elementFromPoint(point.x, point.y)
+
+      // Unfocused, the composer is the only way back: everything else — transcript, title
+      // controls, chrome strip, project rail and history rail — stays click-through until the
+      // user clicks the editor once and the window comes back to focus.
+      if (!focused() && !locked()) {
+        const composer = hit instanceof Element && hit.closest('[data-component="composer"]') !== null
+
+        if (!composer) {
+          if (!ignored) {
+            ignored = true
+            void api.setIgnoreMouse(true)
+          }
+
+          return
+        }
+      }
+
       const frameRoot = content?.closest("[data-component='hud-frame']")
 
       const overlayFocused =
@@ -357,6 +400,13 @@ export function HudFrame(props: ParentProps) {
       lockMode() === "auto" ? "show" : lockMode() === "show" ? "hide" : lockMode() === "hide" ? "hover" : "auto"
     setLockMode(next)
     writeHudLockMode(next)
+  }
+
+  // One-button minimal mode: drop every capsule background except the composer's; text stays.
+  const toggleMinimal = () => {
+    const next = !minimal()
+    setMinimal(next)
+    writeHudMinimal(next)
   }
 
   // A snap or reset happens in main and moves the native window without telling this renderer;
@@ -550,9 +600,14 @@ export function HudFrame(props: ParentProps) {
     const hit = event.target
 
     // The transcript is a reading surface: let the browser start a text
-    // selection there instead of stealing the press to move the bar or to
-    // return the caret to the composer. The title strip stays the drag handle.
-    if (hit instanceof Element && hit.closest("[data-hud-transcript]")) return
+    // selection there instead of stealing the press to move the bar. The title block — including
+    // the composer — stays a hold-to-drag handle; its buttons still opt out via INTERACTIVE.
+    if (
+      hit instanceof Element &&
+      hit.closest("[data-hud-transcript]") &&
+      hit.closest("[data-session-title]") === null
+    )
+      return
 
     startComposerDrag(event)
   }
@@ -589,9 +644,11 @@ export function HudFrame(props: ParentProps) {
       data-hud-lock-hover={hoverMode() ? "" : undefined}
       data-hud-hold={holdUntilFocus() ? "" : undefined}
       data-hud-hover={hovering() ? "" : undefined}
+      data-hud-minimal={minimal() ? "" : undefined}
       data-hud-clickthrough={windowing().clickThrough ? "" : undefined}
       class="relative flex size-full min-h-0 flex-col overflow-hidden rounded-[12px]"
     >
+      <style>{reverse() ? reverseCss : devCss}</style>
       <div
         data-hud-drag
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
@@ -632,6 +689,21 @@ export function HudFrame(props: ParentProps) {
         </Show>
         <button
           type="button"
+          aria-label={language.t(minimal() ? "hud.minimal.exit" : "hud.minimal.enter")}
+          title={language.t(minimal() ? "hud.minimal.exit" : "hud.minimal.enter")}
+          aria-pressed={minimal()}
+          class="grid size-5 place-items-center rounded-[4px] hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none"
+          classList={{
+            "text-v2-text-text-base": minimal(),
+            "text-v2-text-text-faint hover:text-v2-text-text-base": !minimal(),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={toggleMinimal}
+        >
+          <Icon name={minimal() ? "outline-eye" : "outline-eye-slash"} size="small" />
+        </button>
+        <button
+          type="button"
           aria-label={language.t(
             lockMode() === "auto"
               ? "hud.lock.show"
@@ -667,6 +739,16 @@ export function HudFrame(props: ParentProps) {
         </button>
         <button
           type="button"
+          aria-label={language.t("hud.devtools")}
+          title={language.t("hud.devtools")}
+          class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => void platform.runDesktopMenuAction?.("view.toggleDevTools")}
+        >
+          <Icon name="terminal" size="small" />
+        </button>
+        <button
+          type="button"
           aria-label={language.t("hud.reset")}
           title={language.t("hud.reset")}
           class="grid size-5 place-items-center rounded-[4px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-text-text-base focus-visible:outline-none"
@@ -688,12 +770,17 @@ export function HudFrame(props: ParentProps) {
       </div>
       <div
         ref={content}
+        data-hud-content
         class="relative flex min-h-0 flex-1 flex-row gap-1.5 px-2 pb-2"
         data-hud-native-drag={windowing().nativeDrag ? "" : undefined}
         onPointerDown={onContentPointerDown}
         onClick={onContentClick}
       >
-        <HudModeProvider>{props.children}</HudModeProvider>
+        <Show keyed when={style()}>
+          {(current) => (
+            <HudModeProvider reverse={current !== "dev"}>{props.children}</HudModeProvider>
+          )}
+        </Show>
       </div>
       <For each={resizeEdges()}>
         {(edge) => <div data-hud-resize={edge} aria-hidden="true" onPointerDown={startResize(edge)} />}

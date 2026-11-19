@@ -1,4 +1,7 @@
-import { BrowserWindow, screen } from "electron"
+import { BrowserWindow, screen, app } from "electron"
+import { appendFileSync } from "node:fs"
+import path from "node:path"
+import { createPanel, isSupported, setWindowCapturePolicy, type GlassPanel } from "@hicccc77/electron-liquid-glass"
 import {
   applyHudResize,
   clampHudBounds,
@@ -8,6 +11,7 @@ import {
   type HudBounds,
   type HudEdge,
 } from "../../shared/hud-geometry"
+import type { HudGlassPanel } from "../../shared/ipc-rpc/hud"
 import { isHudWindow } from "./kinds"
 import { transitionHud, type HudEvent, type HudState } from "./hud-machine"
 import { captureHudContext, type HudCapture } from "./hud-context"
@@ -40,6 +44,7 @@ export type HudController = {
   readonly setWorkspaceTransfer: (enabled: boolean) => void
   readonly setIgnoreMouse: (ignore: boolean) => void
   readonly setFrost: (enabled: boolean) => void
+  readonly setGlassPanels: (panels: readonly HudGlassPanel[]) => void
   readonly state: () => { readonly open: boolean; readonly bounds?: HudBounds }
   readonly dispose: () => void
 }
@@ -61,6 +66,35 @@ export function createHudController(input: {
   let pendingBounds: HudBounds | undefined
   let lastRoute: string | undefined
   const routes = new Map<number, string>()
+  let glassPanels: GlassPanel[] = []
+  let glassVisible: boolean[] = []
+  let glassRadii: number[] = []
+  let glassPolicyWindow: BrowserWindow | undefined
+  let glassStats = ""
+
+  const logGlass = (panels: number) => {
+    const stats = `${isSupported()}:${panels}`
+
+    if (stats === glassStats) return
+    glassStats = stats
+
+    try {
+      appendFileSync(
+        path.join(app.getPath("userData"), "hud-glass.log"),
+        `${new Date().toISOString()} supported=${isSupported()} panels=${panels}\n`,
+      )
+    } catch {
+      // Diagnostics only.
+    }
+  }
+
+  const destroyGlassPanels = () => {
+    glassPanels.forEach((panel) => panel.destroy())
+    glassPanels = []
+    glassVisible = []
+    glassRadii = []
+    glassPolicyWindow = undefined
+  }
 
   const dispatch = (event: HudEvent) => {
     const next = transitionHud(state, event)
@@ -127,6 +161,7 @@ export function createHudController(input: {
       clearTimeout(closeTimer)
       clearTimeout(showTimer)
       closeTimer = undefined
+      destroyGlassPanels()
 
       if (win === created) win = undefined
 
@@ -388,6 +423,76 @@ export function createHudController(input: {
         // Vibrancy is an AppKit capability.
       }
     },
+    setGlassPanels(panels) {
+      const current = win
+
+      if (!current || current.isDestroyed() || !isSupported()) return logGlass(panels.length)
+
+      logGlass(panels.length)
+
+      // The panels capture the desktop below the HUD; the HUD window itself sits above them, so
+      // keep it out of DXGI duplication (WGC/GDI still see it) or each panel would blur the HUD's
+      // own tint and text back into itself.
+      if (glassPolicyWindow !== current) {
+        glassPolicyWindow = setWindowCapturePolicy(current, "dda-only") ? current : undefined
+      }
+
+      for (let index = 0; index < panels.length; index++) {
+        const rect = panels[index]!
+        const existing = glassPanels[index]
+        // The native API takes every length in physical pixels; the renderer measures CSS pixels.
+        const radius = Math.round(rect.radius * rect.dpr)
+
+        if (existing) {
+          existing.setBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+
+          if (glassRadii[index] !== radius) {
+            existing.setParams({
+              cornerRadius: radius,
+              blurSigma: 6,
+              displacementScale: 0,
+              aberrationIntensity: 0,
+              saturation: 1.15,
+            })
+            glassRadii[index] = radius
+          }
+
+          if (!glassVisible[index]) {
+            existing.show(0)
+            glassVisible[index] = true
+          }
+
+          continue
+        }
+
+        const panel = createPanel({
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          cornerRadius: radius,
+          blurSigma: 6,
+          displacementScale: 0,
+          aberrationIntensity: 0,
+          saturation: 1.15,
+          dpr: rect.dpr,
+          anchorWindow: current,
+        })
+
+        if (!panel) return
+
+        glassPanels[index] = panel
+        glassVisible[index] = true
+        glassRadii[index] = radius
+        panel.show(0)
+      }
+
+      for (let index = panels.length; index < glassPanels.length; index++) {
+        if (!glassVisible[index]) continue
+        glassPanels[index]?.hide(0)
+        glassVisible[index] = false
+      }
+    },
     state() {
       const bounds = win && !win.isDestroyed() ? win.getBounds() : undefined
 
@@ -399,6 +504,7 @@ export function createHudController(input: {
       clearTimeout(persistTimer)
       flushBounds()
       dispatch({ type: "disposed" })
+      destroyGlassPanels()
 
       if (win && !win.isDestroyed()) win.destroy()
 

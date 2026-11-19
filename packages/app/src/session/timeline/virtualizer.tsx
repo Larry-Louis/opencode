@@ -11,6 +11,7 @@ import { Predicate } from "effect"
 import { Timeline, TimelineRow } from "@opencode/session-ui/timeline/projection"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useHudMode } from "@/hud/hud-context"
+import { hudReverse } from "@/hud/hud-style"
 import {
   batch,
   createEffect,
@@ -148,6 +149,10 @@ type ViewProps = {
 export function createTimelineVirtualizer(input: Input) {
   const language = useLanguage()
   const hud = useHudMode()
+  // The timeline cache is built outside the HUD subtree, so this context is false inside the HUD.
+  // The root attributes are the authoritative answer and are what the HUD styles key on as well.
+  // The dev HUD skin keeps the normal newest-at-the-bottom order.
+  const reverse = () => hudReverse()
   const active = () => input.active?.() !== false
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const topOffset = () => (input.showHeader() ? 64 : isDesktop() ? 0 : 16)
@@ -155,7 +160,9 @@ export function createTimelineVirtualizer(input: Input) {
   // activity pill and its 10px composer gap. Without hover the pill grows from 32px to its 44px touch size
   // (composer-lane.css), and the tail grows with it. Both come and go inside it, so neither moves the rows above.
   const touch = createMediaQuery("(hover: none)")
-  const tailSize = () => (hud ? 12 : touch() ? 104 : 92)
+  // The reverse HUD pins the newest row to the content top with no tail lane; the dev skin keeps its
+  // narrow HUD tail, and a normal window keeps room for the status row and composer pill.
+  const tailSize = () => (reverse() ? 0 : hud ? 12 : touch() ? 104 : 92)
   const ownerSessionKey = input.sessionKey()
   const entry = cache.get(ownerSessionKey)
   const cached = entry?.presentationKey === input.presentationKey?.() ? entry : undefined
@@ -171,7 +178,23 @@ export function createTimelineVirtualizer(input: Input) {
   const [listRoot, setListRoot] = createSignal<HTMLDivElement>()
   const [visibleArea, setVisibleArea] = createSignal<HTMLDivElement>()
   const [viewRoot, setViewRoot] = createSignal<HTMLDivElement>()
+  // The reverse HUD draws the title/composer as an overlay. Its height is leading space inside the
+  // scroll content, so the newest row starts below it instead of under the composer.
+  const [overlayGap, setOverlayGap] = createSignal(0)
   const bottomInset = () => input.bottomInset?.() ?? 0
+
+  // The HUD mirrors the content box, so a native offset counts down from the newest row instead of up.
+  // TanStack, the follow machine and every anchoring decision keep working in logical offsets that grow
+  // toward the newest, exactly as they do in a normal timeline; only the DOM boundary converts.
+  const scrollMax = (root: HTMLDivElement) => Math.max(0, root.scrollHeight - root.clientHeight)
+  const toLogical = (root: HTMLDivElement, offset: number) => {
+    if (!reverse()) return offset
+
+    const max = scrollMax(root)
+
+    return Math.min(max, Math.max(0, max - offset))
+  }
+  const toRaw = (root: HTMLDivElement, offset: number) => (reverse() ? Math.max(0, scrollMax(root) - offset) : offset)
 
   const [toolOpen, setToolOpen] = createStore<Record<string, boolean | undefined>>(
     (input.keepsDisclosure ? entry : cached)?.toolOpen ?? {},
@@ -313,16 +336,16 @@ export function createTimelineVirtualizer(input: Input) {
     observeElementOffset: (instance, callback) => {
       reportOffset = (offset, scrolling) => {
         if (!active()) return
+        const root = listRoot()
+        const logical = root ? toLogical(root, offset) : offset
         // Rows and the sizer use the opposite translation while native touch
         // scrolling keeps its own offset. Range selection uses the logical offset.
         batch(() => {
-          const logicalOffset = offset + rendering.scrollAdjustment
-          callback(rendering.scrollAdjustment ? Math.max(0, logicalOffset) : offset, scrolling)
+          const logicalOffset = logical + rendering.scrollAdjustment
+          callback(rendering.scrollAdjustment ? Math.max(0, logicalOffset) : logical, scrolling)
           // Reconcile both start boundaries in one native write. Gradually
           // clamping row translations lets the compositor paint between
           // corrections and makes the content oscillate at the top.
-          const root = listRoot()
-
           if (
             rendering.scrollAdjustment !== 0 &&
             root &&
@@ -334,7 +357,7 @@ export function createTimelineVirtualizer(input: Input) {
 
           if (!isTouchHeld(input.follow.peek())) flushTouchAdjustment()
           input.follow.dispatch(
-            root && needsEndProbe(input.follow.peek()) && atReachableEnd(root) ? settledAtEndEvent : settledEvent,
+            root && needsEndProbe(input.follow.peek()) && atNewest(root) ? settledAtEndEvent : settledEvent,
           )
         })
         dispatchCold(CHECK_REQUESTED)
@@ -344,11 +367,12 @@ export function createTimelineVirtualizer(input: Input) {
         if (!active()) return
         virtualContent?.querySelectorAll<HTMLDivElement>("[data-index]").forEach(virtualizer.measureElement)
 
-        if (input.follow.following()) virtualizer.scrollToEnd()
+        if (input.follow.following()) scrollToNewest()
         dispatchCold(CHECK_REQUESTED)
       })
     },
-    initialOffset: () => (input.follow.following() ? Number.MAX_SAFE_INTEGER : 0),
+    // Logical offsets grow toward the newest row, which is also where an opening HUD mounts.
+    initialOffset: () => (input.follow.following() || reverse() ? Number.MAX_SAFE_INTEGER : 0),
     initialMeasurementsCache: initialMeasurements,
     estimateSize: () => fallbackItemSize,
     // A newly observed element gets a real ResizeObserver box before paint. Reuse
@@ -382,6 +406,15 @@ export function createTimelineVirtualizer(input: Input) {
       setRendering("scrollAdjustment", 0)
 
       if (virtualContent) virtualContent.style.height = `${instance.getTotalSize()}px`
+      const root = listRoot()
+
+      // The mirrored list reaches the same content with the opposite native offset.
+      if (reverse()) {
+        if (root) root.scrollTo({ top: toRaw(root, offset + (options.adjustments ?? 0)), behavior: options.behavior })
+
+        return
+      }
+
       elementScroll(offset, options, instance)
     },
     get getItemKey() {
@@ -396,7 +429,8 @@ export function createTimelineVirtualizer(input: Input) {
     scrollEndThreshold: 80,
     get scrollMargin() {
       // Empty projections still need the bottom spacer for running status.
-      return rows().length > 0 ? topOffset() : 0
+      // The reverse HUD's overlaid header becomes the scroll content's leading space.
+      return rows().length > 0 ? (reverse() ? overlayGap() : topOffset()) : 0
     },
     get paddingEnd() {
       return tailSize()
@@ -408,6 +442,85 @@ export function createTimelineVirtualizer(input: Input) {
     get rangeExtractor() {
       return rangeExtractor()
     },
+  })
+
+  // Mirrored geometry for the HUD. A row's normal top is `start - topOffset - adjustment`; mirroring it
+  // about the content box cancels the adjustment, so the newest row lands at the top of the box
+  // (right under the composer), the reserved tail lands there too, and older rows fall away below.
+  // The scroll offset is mirrored at the DOM boundary, so the logical end is the newest row in both layouts.
+  // Measured rows include the scrollMargin in their starts, while the spacer above already supplies that
+  // leading space, so add it back when mirroring to keep rows at their content positions.
+  const rowTop = (start: number, size: number) =>
+    reverse()
+      ? overlayGap() + virtualizer.getTotalSize() - start - size
+      : start - topOffset() - rendering.scrollAdjustment
+  const scrollToNewest = (behavior?: ScrollBehavior) => virtualizer.scrollToEnd({ behavior })
+
+  // The mirrored offset counts down from the newest row, so content added or measured above the reader
+  // changes the logical offset without moving the native scroll. Hand the new offset to TanStack, or its
+  // range stays on the rows from before the page landed and the newly loaded tail is never rendered.
+  const syncLogicalOffset = () => {
+    if (!reverse()) return
+    const root = listRoot()
+
+    if (!root?.isConnected) return
+    if (virtualizer.scrollOffset === toLogical(root, root.scrollTop)) return
+    reportOffset?.(root.scrollTop, false)
+    input.onHistoryScroll()
+  }
+
+  createEffect(on(rowKeys, () => queueMicrotask(syncLogicalOffset), { defer: true }))
+
+  // Measure the overlaid title/composer block. Its height becomes the scroll content's leading
+  // space, so the newest row starts below the header instead of running under the composer.
+  createEffect(() => {
+    if (!hud || !reverse() || !input.showHeader()) {
+      setOverlayGap(0)
+
+      return
+    }
+
+    const root = viewRoot()
+
+    if (!root) return
+
+    let header: HTMLElement | null = null
+    let sizes: ResizeObserver | undefined
+    // Lead with the space under the composer card itself, not the header's bottom padding; the
+    // clear strip below the card belongs to the transcript.
+    const measure = () => {
+      if (!header) return
+      const box = header.getBoundingClientRect()
+      const card = header.querySelector<HTMLElement>('[data-component="composer"]')
+      const bottom = card ? card.getBoundingClientRect().bottom : box.bottom
+      setOverlayGap(Math.ceil(Math.max(0, bottom - box.top)))
+    }
+    const attach = () => {
+      header = root.querySelector<HTMLElement>("[data-session-title]")
+
+      if (!header) return false
+
+      measure()
+      sizes = new ResizeObserver(measure)
+      sizes.observe(header)
+
+      return true
+    }
+
+    // The ref runs before the header's subtree is inserted, so wait for it if it is not there yet.
+    const mutations = attach() ? undefined : new MutationObserver(() => attach() && mutations?.disconnect())
+
+    if (mutations) mutations.observe(root, { childList: true, subtree: true })
+
+    onCleanup(() => {
+      mutations?.disconnect()
+      sizes?.disconnect()
+    })
+  })
+
+  createEffect(() => {
+    overlayGap()
+    queueMicrotask(syncLogicalOffset)
   })
 
   const resizeItem = virtualizer.resizeItem
@@ -472,6 +585,12 @@ export function createTimelineVirtualizer(input: Input) {
       dispatchCold(SIZES_FLUSHED)
       pinAnchor()
 
+      // The content box is written imperatively only when a scroll lands, so a reverse layout whose
+      // first paint happens before every row is measured would keep the estimate height and leave the
+      // mirrored rows outside a box that cannot scroll. Sync it on every size flush instead.
+      if (reverse() && virtualContent)
+        virtualContent.style.height = `${virtualizer.getTotalSize() - rendering.scrollAdjustment}px`
+      syncLogicalOffset()
       if (untrack(coldHidden)) pinColdBottom()
       dispatchCold(CHECK_REQUESTED)
 
@@ -479,12 +598,15 @@ export function createTimelineVirtualizer(input: Input) {
       const root = listRoot()
 
       // Reopening a settled scroll-to-end operation can fight subsequent keyboard scrolling.
-      if (root && !atReachableEnd(root)) virtualizer.scrollToEnd()
+      if (root && !atNewest(root)) scrollToNewest()
     })
   }
 
   onCleanup(() => pendingSizes.clear())
   virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (item, delta, instance) => {
+    // A mirrored list grows downward from a fixed newest row, so keeping the native offset keeps the
+    // reader's place; TanStack's compensation for rows before the range would move it.
+    if (reverse()) return false
     // Prepended rows can resize more than once as deferred content mounts. Keep
     // compensating while they remain entirely above the visible content fold.
     const first = instance.range?.startIndex
@@ -588,7 +710,7 @@ export function createTimelineVirtualizer(input: Input) {
 
     // Hand over every pin, even one the scroll already reaches: TanStack lands exactly on its last target once the
     // scroll is within a pixel of it, which would undo a compensation for a row above that resized since.
-    virtualizer.scrollToOffset(offset)
+    virtualizer.scrollToOffset(toLogical(root, offset))
   }
 
   // An anchored row that leaves the list lets its anchor go. Reads the rows only while anchored, never while scrolling.
@@ -627,7 +749,8 @@ export function createTimelineVirtualizer(input: Input) {
     if (index < 0) return
     prepareNavigation()
     input.follow.dispatch({ type: "detach" })
-    virtualizer.scrollToIndex(index, { align: "start" })
+    // The logical end of the row is its visual top in the HUD.
+    virtualizer.scrollToIndex(index, { align: reverse() ? "end" : "start" })
   }
 
   const virtualItemByKey = createMemo(
@@ -655,7 +778,7 @@ export function createTimelineVirtualizer(input: Input) {
 
       if (reveal) input.reveal?.consume(reveal.entryKey)
 
-      if (!revealed && input.follow.following()) virtualizer.scrollToEnd()
+      if (!revealed && input.follow.following()) scrollToNewest()
 
       reportOffset?.(root.scrollTop, false)
       dispatchCold(CHECK_REQUESTED)
@@ -677,7 +800,7 @@ export function createTimelineVirtualizer(input: Input) {
 
       if (index === undefined) return
       prepareNavigation()
-      virtualizer.scrollToIndex(index, { align: partIndex >= 0 ? "center" : "start" })
+      virtualizer.scrollToIndex(index, { align: partIndex >= 0 ? "center" : reverse() ? "end" : "start" })
     })
     input.setScrollToEnd?.((behavior) => {
       const root = listRoot()
@@ -687,9 +810,16 @@ export function createTimelineVirtualizer(input: Input) {
       input.follow.dispatch({ type: "follow" })
 
       // Glide only the final screen. Crossing the whole history smoothly would stream every row through the virtualizer.
-      if (behavior === "smooth")
-        virtualizer.scrollToOffset(Math.max(root.scrollTop, root.scrollHeight - root.clientHeight * 2))
-      virtualizer.scrollToEnd({ behavior })
+      if (behavior === "smooth") {
+        const logical = toLogical(root, root.scrollTop)
+        // In the HUD the start point is at most one viewport below the newest row, not above the oldest.
+        virtualizer.scrollToOffset(
+          reverse()
+            ? Math.max(0, Math.min(logical, scrollMax(root) - root.clientHeight))
+            : Math.max(logical, root.scrollHeight - root.clientHeight * 2),
+        )
+      }
+      scrollToNewest(behavior)
     })
     input.setPage?.((direction) => {
       const root = listRoot()
@@ -697,10 +827,12 @@ export function createTimelineVirtualizer(input: Input) {
       if (!active() || !root?.isConnected) return
       prepareNavigation()
       input.onUserScroll(root)
-      dispatchIntent(direction < 0)
+      // PageUp moves toward the newest row in both layouts: upward in a normal timeline, downward in the HUD.
+      dispatchIntent(reverse() ? direction > 0 : direction < 0)
       // Like the timeline's own PageUp: 80% of a page, measured above the composer that covers its bottom. The scroll
       // event then pins at the end or loads older history near the top, as a wheel scroll does.
-      virtualizer.scrollToOffset(root.scrollTop + direction * (visibleArea()?.clientHeight || root.clientHeight) * 0.8)
+      const step = (visibleArea()?.clientHeight || root.clientHeight) * 0.8
+      virtualizer.scrollToOffset(toLogical(root, root.scrollTop) + (reverse() ? -direction : direction) * step)
     })
   })
 
@@ -751,6 +883,9 @@ export function createTimelineVirtualizer(input: Input) {
     return false
   }
 
+  // The HUD's newest row is the top of the content box, so its reachable end is a zero offset.
+  const atNewest = (root: HTMLDivElement) => (reverse() ? root.scrollTop <= END_EPSILON : atReachableEnd(root))
+
   // Returns whether the view now rests at its end with that offset reported.
   const pinColdBottom = () => {
     if (!active()) return false
@@ -760,11 +895,11 @@ export function createTimelineVirtualizer(input: Input) {
     // scrollToEnd computes its target from the DOM, not the new size cache.
     virtualContent.style.height = `${virtualizer.getTotalSize()}px`
 
-    if (!atReachableEnd(root)) virtualizer.scrollToEnd()
+    if (!atNewest(root)) scrollToNewest()
 
     // Report after core size adjustments finish so they cannot apply a delta
     // twice. This avoids waiting a frame for the native scroll event.
-    if (virtualizer.scrollOffset !== root.scrollTop) reportOffset?.(root.scrollTop, false)
+    if (virtualizer.scrollOffset !== toLogical(root, root.scrollTop)) reportOffset?.(root.scrollTop, false)
 
     return true
   }
@@ -868,7 +1003,7 @@ export function createTimelineVirtualizer(input: Input) {
     if (
       !pinned &&
       root.scrollHeight > root.clientHeight &&
-      Math.abs((virtualizer.scrollOffset ?? 0) - root.scrollTop) > 1
+      Math.abs((virtualizer.scrollOffset ?? 0) - toLogical(root, root.scrollTop)) > 1
     )
       return "waiting"
 
@@ -911,8 +1046,8 @@ export function createTimelineVirtualizer(input: Input) {
     // TanStack owns anchoring; browser scroll anchoring would fight its adjustments.
     root.style.overflowAnchor = "none"
     setListRoot(root)
-    scrollTop = root.scrollTop
-    maxScroll = root.scrollHeight - root.clientHeight
+    scrollTop = toLogical(root, root.scrollTop)
+    maxScroll = scrollMax(root)
 
     if (active()) input.setScrollRef(root)
     viewportObserver?.observe(root)
@@ -939,7 +1074,11 @@ export function createTimelineVirtualizer(input: Input) {
   const handleListWheel = (event: WheelEvent) => {
     if (!active()) return
     input.onUserScroll(event.target)
-    dispatchIntent(event.deltaY < 0)
+    // Older history lies below the newest row in the HUD, so scrolling down asks for it.
+    dispatchIntent(reverse() ? event.deltaY > 0 : event.deltaY < 0)
+    // At the oldest end the wheel asks for more history without moving the scroll, so no scroll event
+    // would carry the request; ask here, where the intent is known.
+    input.onHistoryScroll()
   }
 
   const handleListTouchStart = (event: TouchEvent) => {
@@ -1054,7 +1193,9 @@ export function createTimelineVirtualizer(input: Input) {
 
     if (scrollKeyOwner(event.currentTarget, event.target, key) !== event.currentTarget) return
     input.onUserScroll(event.currentTarget)
-    dispatchIntent(upwardKeys.has(key))
+    dispatchIntent(reverse() ? !upwardKeys.has(key) : upwardKeys.has(key))
+    // A key pressed at the oldest end asks for history without moving the scroll.
+    input.onHistoryScroll()
   }
 
   const handleListScroll = (event: Event & { currentTarget: HTMLDivElement }) => {
@@ -1062,8 +1203,8 @@ export function createTimelineVirtualizer(input: Input) {
     const root = event.currentTarget
     scrollEvent.previousTop = scrollTop
     scrollEvent.previousMaxScroll = maxScroll
-    scrollTop = root.scrollTop
-    maxScroll = root.scrollHeight - root.clientHeight
+    scrollTop = toLogical(root, root.scrollTop)
+    maxScroll = scrollMax(root)
     scrollEvent.scrollTop = scrollTop
     scrollEvent.maxScroll = maxScroll
     input.follow.dispatch(scrollEvent)
@@ -1095,7 +1236,7 @@ export function createTimelineVirtualizer(input: Input) {
           data-timeline-key={rowProps.rowKey}
           style={{
             position: "absolute",
-            top: `${item().start - topOffset() - rendering.scrollAdjustment}px`,
+            top: `${rowTop(item().start, item().size)}px`,
             left: "0",
             width: "100%",
             height: `${item().size}px`,
@@ -1123,7 +1264,7 @@ export function createTimelineVirtualizer(input: Input) {
                 })
                 virtualizer.resizeItem(item().index, element.offsetHeight)
                 virtualContent.style.height = `${virtualizer.getTotalSize()}px`
-                virtualizer.scrollToEnd()
+                scrollToNewest()
               })
             }}
             data-index={item().index}
@@ -1154,7 +1295,8 @@ export function createTimelineVirtualizer(input: Input) {
             "opacity-0 translate-y-1 motion-reduce:translate-y-0 duration-[110ms] ease-[cubic-bezier(.4,0,1,1)]":
               !input.scroll().overflow || !input.scroll().jump,
           }}
-          style={{ bottom: `${bottomInset() + 32}px` }}
+          // The reverse HUD's newest end is the top, so the jump button sits under the header there.
+          style={reverse() ? { top: `${overlayGap() + 12}px` } : { bottom: `${bottomInset() + 32}px` }}
           inert={!input.scroll().overflow || !input.scroll().jump}
         >
           <button
@@ -1167,7 +1309,14 @@ export function createTimelineVirtualizer(input: Input) {
             }}
             onClick={() => input.onResumeScroll(prefersReducedMotion() ? "auto" : "smooth")}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              class={reverse() ? "rotate-180" : undefined}
+            >
               <path
                 d="M12.3333 8.66665L8 13L3.66667 8.66665M8 12.6667V2.83332"
                 stroke="currentColor"
@@ -1176,6 +1325,9 @@ export function createTimelineVirtualizer(input: Input) {
             </svg>
           </button>
         </div>
+        {/* The reverse HUD keeps the title block (with the composer) outside the scrolling
+            viewport, so the band's fade never hides the composer. The dev skin scrolls it away. */}
+        <Show when={hud && reverse() && input.showHeader()}>{props.header}</Show>
         <ScrollView
           data-slot="session-timeline-scroll"
           viewportRef={bindListRoot}
@@ -1194,8 +1346,15 @@ export function createTimelineVirtualizer(input: Input) {
           class="relative min-w-0 w-full h-full"
           style={{ "--sticky-accordion-top": input.showHeader() ? "var(--session-header-height, 48px)" : "0px" }}
         >
-          <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
-            {props.header}
+          <Show when={!hud || !reverse()}>
+            <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
+              {props.header}
+            </Show>
+          </Show>
+          {/* The overlaid HUD header is not in flow; this spacer gives the newest row the same
+              leading space, and scrollMargin tells the virtualizer about it. */}
+          <Show when={hud && reverse() && overlayGap() > 0}>
+            <div aria-hidden="true" style={{ height: `${overlayGap()}px` }} />
           </Show>
           <div
             data-timeline-virtual-content
@@ -1224,7 +1383,9 @@ export function createTimelineVirtualizer(input: Input) {
               class="absolute top-0 left-0 w-full"
               style={{
                 height: `${tailSize()}px`,
-                transform: `translateY(${virtualizer.getTotalSize() - tailSize() - rendering.scrollAdjustment}px)`,
+                transform: reverse()
+                  ? "translateY(0px)"
+                  : `translateY(${virtualizer.getTotalSize() - tailSize() - rendering.scrollAdjustment}px)`,
               }}
             >
               {props.bottomSpacer}

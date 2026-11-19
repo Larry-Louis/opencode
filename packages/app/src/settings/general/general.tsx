@@ -9,6 +9,7 @@ import { PluginSettingsSections } from "@/runtime/plugin/settings-page-view"
 import {
   type BackgroundActivity,
   type FollowUpBehavior,
+  type HudStyle,
   type TimelineWidth,
   type WorkspaceDefaultDestination,
   useSettings,
@@ -195,6 +196,35 @@ const TimelineWidthSetting = () => {
   )
 }
 
+const HudStyleSetting = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+
+  const options = createMemo((): { value: HudStyle; label: string }[] => [
+    { value: "reverse", label: language.t("settings.timeline.row.hudStyle.reverse") },
+    { value: "dev", label: language.t("settings.timeline.row.hudStyle.dev") },
+  ])
+
+  return (
+    <SettingsRow
+      title={language.t("settings.timeline.row.hudStyle.title")}
+      description={language.t("settings.timeline.row.hudStyle.description")}
+    >
+      <Select
+        data-action="settings-hud-style"
+        aria-label={language.t("settings.timeline.row.hudStyle.title")}
+        options={options()}
+        current={options().find((option) => option.value === settings.general.hudStyle())}
+        value={(option) => option.value}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        onSelect={(option) => option && settings.general.setHudStyle(option.value)}
+      />
+    </SettingsRow>
+  )
+}
+
 const LanguageSetting = () => {
   const language = useLanguage()
 
@@ -252,6 +282,9 @@ export const SettingsGeneral: Component = () => {
       <h3 class="settings-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsList>
         <InterfaceModeSetting />
+        <Show when={desktop()}>
+          <HudStyleSetting />
+        </Show>
         <LanguageSetting />
 
         <WorkspaceDestinationSetting />

@@ -334,6 +334,14 @@ function PopupsDialog() {
                     </Menu.SubContent>
                   </Menu.Portal>
                 </Menu.Sub>
+                <Menu.Sub>
+                  <Menu.SubTrigger>Export</Menu.SubTrigger>
+                  <Menu.Portal>
+                    <Menu.SubContent>
+                      <Menu.Item>PDF</Menu.Item>
+                    </Menu.SubContent>
+                  </Menu.Portal>
+                </Menu.Sub>
               </Menu.Content>
             </Menu.Portal>
           </Menu>

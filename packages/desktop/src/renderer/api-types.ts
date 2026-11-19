@@ -14,6 +14,15 @@ import type {
   TitlebarTheme,
 } from "../shared/ipc-contract"
 
+export type HudGlassPanel = {
+  x: number
+  y: number
+  width: number
+  height: number
+  radius: number
+  dpr: number
+}
+
 export type ElectronAPI = {
   awaitInitialization(): Promise<ServerReadyData>
   reconnectService(signal?: AbortSignal): Promise<ServerReadyData>
@@ -71,6 +80,7 @@ export type ElectronAPI = {
   hudSetWorkspaceTransfer(enabled: boolean): Promise<void>
   hudSetIgnoreMouse(ignore: boolean): Promise<void>
   hudSetFrost(enabled: boolean): Promise<void>
+  hudSetGlassPanels(panels: readonly HudGlassPanel[]): Promise<void>
   onHudStateChanged(cb: (state: { open: boolean }) => void): () => void
   themeReady(): Promise<void>
   onMenuCommand(cb: (id: string) => void): () => void
