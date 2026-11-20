@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
+
 export function parseCliVersion(output: string) {
   const marker = output.lastIndexOf(" v")
   const version = marker === -1 ? output : output.slice(marker + 2)
@@ -32,6 +35,15 @@ export function shouldRetryEnsure(version: string | undefined, message: string) 
 
 export function stageName(version: string, arch = process.arch) {
   return `${version}-${arch}`.replace(/[^a-zA-Z0-9._-]/g, "-")
+}
+
+/** The channel the bundled CLI was built for; `fallback` covers bundles from before it was recorded. */
+export function bundledChannel(directory: string, fallback: string) {
+  try {
+    return readFileSync(path.join(directory, "opencode-cli.channel"), "utf8").trim() || fallback
+  } catch {
+    return fallback
+  }
 }
 
 export function keptStages(bundledVersion: string, runningVersion?: string, arch = process.arch) {

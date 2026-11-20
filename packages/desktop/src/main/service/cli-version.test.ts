@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
-import { keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { bundledChannel, keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
 
 describe("cli-version", () => {
   test.each([
@@ -29,5 +32,32 @@ describe("cli-version", () => {
     { version: "2.0.32", message: "Background service failed to start", expected: false },
   ])("shouldRetryEnsure($version, $message) -> $expected", (input) => {
     expect(shouldRetryEnsure(input.version, input.message)).toBe(input.expected)
+  })
+
+  test("bundledChannel reads the channel recorded next to the executable", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "opencode-bundled-channel-"))
+
+    try {
+      await writeFile(path.join(dir, "opencode-cli.channel"), "preview-a\n")
+
+      expect(bundledChannel(dir, "dev")).toBe("preview-a")
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  test.each([
+    { name: "missing", value: undefined },
+    { name: "empty", value: "" },
+  ])("bundledChannel falls back for a $name channel file", async ({ value }) => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "opencode-bundled-channel-"))
+
+    try {
+      if (value !== undefined) await writeFile(path.join(dir, "opencode-cli.channel"), value)
+
+      expect(bundledChannel(dir, "dev")).toBe("dev")
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })

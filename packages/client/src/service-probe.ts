@@ -35,9 +35,20 @@ function fail(message: string) {
   return { _tag: "fail" as const, error: new Error(message) }
 }
 
+/** The registration file name a service of `channel` uses; released channels share `service.json`. */
+export function serviceFilename(channel: string) {
+  if (channel === "latest" || channel === "dev" || channel === "beta" || channel === "next") return "service.json"
+  return `service-${channel.replace(/[^a-zA-Z0-9._-]/g, "-")}.json`
+}
+
+/** The default registration file of a service of `channel`, under the state directory. */
+export function serviceRegistration(channel: string) {
+  return join(process.env["XDG_STATE_HOME"] ?? join(homedir(), ".local", "state"), "opencode", serviceFilename(channel))
+}
+
 /** The default registration file. */
 export function fallback() {
-  return join(process.env["XDG_STATE_HOME"] ?? join(homedir(), ".local", "state"), "opencode", "service.json")
+  return serviceRegistration("latest")
 }
 
 /** Whether two registrations describe the same service instance. */

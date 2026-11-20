@@ -4,10 +4,10 @@ import { contenderPool, spawnServiceContender } from "../service-contender.js"
 import { defaultEnsureTiming, ensureTiming, type EnsureTiming } from "../service-timing.js"
 import { matchesVersion } from "../service-version.js"
 import { PtyHandoff } from "../pty-handoff.js"
-import { decide, fallback, headers, probeResult, same } from "../service-probe.js"
+import { decide, fallback, headers, probeResult, same, serviceFilename, serviceRegistration } from "../service-probe.js"
 
 export * from "../service.js"
-export { fallback, headers }
+export { fallback, headers, serviceFilename, serviceRegistration }
 
 // Find, start, and stop the local opencode background service.
 //

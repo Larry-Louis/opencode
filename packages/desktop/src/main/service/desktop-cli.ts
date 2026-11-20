@@ -6,10 +6,11 @@ import { promisify } from "node:util"
 import { app } from "electron"
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
 import installer from "../../../../../install?raw"
+import { CHANNEL } from "../constants"
 import { DesktopPaths } from "../paths"
 import { BUNDLED_CLI_VERSION_KEY } from "../storage/keys"
 import { getStore } from "../storage/store"
-import { parseCliVersion, stageName } from "./cli-version"
+import { bundledChannel, parseCliVersion, stageName } from "./cli-version"
 import { DesktopCliState } from "./desktop-cli-state"
 
 const execFileAsync = promisify(execFile)
@@ -19,6 +20,8 @@ const RUN_TIMEOUT_MS = 30_000
 
 export interface Resolved {
   readonly version: string
+  /** The channel the CLI was built for; it decides the service registration file. */
+  readonly channel: string
   readonly command: readonly string[]
   readonly binary?: string
 }
@@ -62,6 +65,7 @@ const make = Effect.fn("DesktopCli.resolve")(function* () {
   const cli = development
     ? {
         version,
+        channel: "local",
         // Bun's transpiler cache key includes the define table, and the dev version changes on every
         // run. Reading it from the inherited environment keeps the define fixed and the cache warm.
         command: [
@@ -89,9 +93,11 @@ const resolveBundledCli = Effect.fn("DesktopCli.resolveBundled")(function* (isol
 
   yield* Effect.logInfo("v2 CLI executable resolved", { bundled, packaged: app.isPackaged })
   const version = yield* bundledVersion(bundled)
+  const channel = yield* Effect.sync(() => bundledChannel(path.dirname(bundled), CHANNEL))
+  yield* Effect.logInfo("v2 CLI channel resolved", { channel })
   const binary = app.isPackaged || isolated ? yield* installCli(bundled, version) : bundled
 
-  return { version, binary, command: [binary] }
+  return { version, channel, binary, command: [binary] }
 })
 
 // Spawning the bundled executable for `--version` costs ~400 ms of startup on a 200 MB binary (and

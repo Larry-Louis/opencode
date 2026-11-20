@@ -99,7 +99,6 @@ const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: Background
 
 const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: BackgroundServiceMachine.ConnectMode) {
   yield* Effect.logInfo("starting v2 background service")
-  const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
   const isolated = !app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
   const cli = yield* desktopCli.resolve
@@ -107,15 +106,9 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
 
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
-
-  const file =
-    process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local"
-      ? path.join(
-          process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state"),
-          "opencode",
-          "service-local.json",
-        )
-      : undefined
+  // The bundled CLI writes the registration of its own build channel, which only matches the app's
+  // channel for released builds. Follow the CLI so a source or preview build is found at all.
+  const file = client.serviceRegistration(cli.channel)
 
   return { cli, client, file, isolated, version }
 })

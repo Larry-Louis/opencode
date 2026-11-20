@@ -2,7 +2,9 @@ import { NodeFileSystem } from "@effect/platform-node"
 import { expect, test } from "bun:test"
 import { Effect, FileSystem } from "effect"
 import { writeFile } from "node:fs/promises"
-import { Service, type EnsureReason } from "../src/effect/service"
+import os from "node:os"
+import path from "node:path"
+import { Service, serviceFilename, serviceRegistration, type EnsureReason } from "../src/effect/service"
 import {
   catchesSigterm,
   expectNotListening,
@@ -484,6 +486,26 @@ test("replaces an incompatible owner that appears during startup", async () => {
 function run<A, E>(effect: Effect.Effect<A, E, FileSystem.FileSystem>) {
   return Effect.runPromise(effect.pipe(Effect.provide(NodeFileSystem.layer)))
 }
+
+test("release channels share a registration and preview channels keep their own", () => {
+  for (const channel of ["latest", "dev", "beta", "next"]) expect(serviceFilename(channel)).toBe("service.json")
+
+  expect(serviceFilename("local")).toBe("service-local.json")
+  expect(serviceFilename("preview-a")).toBe("service-preview-a.json")
+  expect(serviceFilename("preview/a")).toBe("service-preview-a.json")
+
+  const state = path.join(os.tmpdir(), "opencode-state")
+  const previous = process.env.XDG_STATE_HOME
+  process.env.XDG_STATE_HOME = state
+
+  try {
+    expect(serviceRegistration("dev")).toBe(path.join(state, "opencode", "service.json"))
+    expect(serviceRegistration("preview-a")).toBe(path.join(state, "opencode", "service-preview-a.json"))
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME
+    else process.env.XDG_STATE_HOME = previous
+  }
+})
 
 async function status(url: string) {
   return fetch(new URL("/api/info", url), { signal: AbortSignal.timeout(1_000) }).then((response) => response.json())

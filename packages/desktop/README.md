@@ -29,7 +29,9 @@ Both read the same environment as every other release package:
 
 The CLI is placed outside `app.asar` in the application's resources directory, and packaging fails if it is missing.
 `bun run build` uses `packages/cli/dist` when that holds the target's CLI. Otherwise `dev` (and `local`, unset or unrecognized)
-downloads the published dev CLI, `beta` downloads the beta CLI, and `prod`/`latest` fail.
+downloads the published dev CLI, `beta` downloads the beta CLI, and `prod`/`latest` fail. The bundled CLI records the
+channel it was built for, and the app registers and discovers its background service under that channel's file, so a CLI
+built from a preview branch stays isolated from the installed app's service.
 
 `bun dev` is separate from packaging: it uses local renderer/server mode, the dev app identity, and the CLI source by
 default. `bun dev --download-server <version>` instead downloads that CLI version for local development.

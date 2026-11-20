@@ -5,7 +5,9 @@ import { Option, Schema } from "effect"
 
 const CLI_VERSION = "dev"
 
-const Manifest = Schema.fromJsonString(Schema.Struct({ version: Schema.NonEmptyString }))
+const Manifest = Schema.fromJsonString(
+  Schema.Struct({ version: Schema.NonEmptyString, opencodeChannel: Schema.optional(Schema.NonEmptyString) }),
+)
 
 export type Channel = "dev" | "beta" | "prod"
 
@@ -118,10 +120,16 @@ async function copyCliToResources(pkg: string, dest: string) {
 
   if (!manifest) throw new Error(`Bundled CLI package has no version: ${pkg}`)
   await Bun.write(versionFile(dest), manifest.version)
+  // The app's client looks for the registration file of this channel, so the two always agree.
+  await Bun.write(channelFile(dest), manifest.opencodeChannel ?? resolveChannel())
 }
 
 export function versionFile(cli: string) {
   return join(dirname(cli), "opencode-cli.version")
+}
+
+export function channelFile(cli: string) {
+  return join(dirname(cli), "opencode-cli.channel")
 }
 
 async function prepareCli(dest: string) {
