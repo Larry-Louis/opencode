@@ -59,7 +59,7 @@ export const api: ElectronAPI = {
   hudSetGlassPanels: (panels) => invoke("HudSetGlassPanels", { panels }),
   onHudStateChanged: (cb) => listen("HudStateChanged", (event) => cb({ open: event.open })),
   themeReady: () => invoke("WindowThemeReady"),
-  onMenuCommand: (cb) => listen("MenuCommandTriggered", (event) => cb(event.id)),
+  onMenuCommand: (cb) => listen("MenuCommandTriggered", (event) => cb(event.id, event.accelerator)),
   onDeepLink: (cb) => listen("DeepLinksOpened", (event) => cb({ attempt: event.attempt, urls: mutable(event.urls) })),
 
   openDirectoryPicker: (opts) => invoke("FilesOpenDirectoryPicker", { options: opts }).then(mutable),
@@ -70,7 +70,6 @@ export const api: ElectronAPI = {
   saveFile: (opts, content) => invoke("FilesSaveFile", { options: opts, content }),
   openExternal: (url) => send("FilesOpenExternal", { url }),
   openBrowser: (url) => invoke("FilesOpenBrowser", { url }),
-  openLocalFile: (url) => send("FilesOpenLocalFile", { url }),
   openPath: (path, app) => invoke("FilesOpenPath", { path, application: app }).then((value) => value ?? undefined),
   revealPath: (path) => invoke("FilesRevealPath", { path }),
   readClipboardImage: () =>

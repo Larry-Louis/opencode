@@ -287,6 +287,17 @@ export const SettingsGeneral: Component = () => {
         <Show when={desktop()}>
           <HudStyleSetting />
         </Show>
+        <SettingsRow
+          title={language.t("settings.general.row.sharedSidePanel.title")}
+          description={language.t("settings.general.row.sharedSidePanel.description")}
+        >
+          <div data-action="settings-shared-side-panel">
+            <Switch
+              checked={settings.general.sharedSidePanel()}
+              onChange={(checked) => settings.general.setSharedSidePanel(checked)}
+            />
+          </div>
+        </SettingsRow>
         <LanguageSetting />
 
         <WorkspaceDestinationSetting />
