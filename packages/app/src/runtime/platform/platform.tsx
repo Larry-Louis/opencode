@@ -58,6 +58,8 @@ export type HudWindowing = {
   solid: boolean
   clickThrough: boolean
   workspaceTransfer: boolean
+  /** Native glass panels can be shown behind the HUD's surfaces. */
+  nativeGlass: boolean
 }
 
 /** The floating HUD's native window, exposed only by the desktop platform. */

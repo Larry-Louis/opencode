@@ -23,6 +23,17 @@ export type HudWindowing = {
   readonly clickThrough: boolean
   /** Keep the grabbed window visible while the user changes virtual desktops. */
   readonly workspaceTransfer: boolean
+  /** Native glass panels are available. The controller overrides this with the env opt-in. */
+  readonly nativeGlass: boolean
+}
+
+/**
+ * Native glass panels are separate overlay windows. Electron flickers the Windows cursor while an
+ * overlay covers the HUD (electron/electron#48035), so they stay opt-in behind an env switch until
+ * that is fixed. Callers show the CSS sheets when this is false.
+ */
+export function nativeGlassEnabled(env: NodeJS.ProcessEnv, supported: boolean) {
+  return supported && env.OPENCODE_DESKTOP_HUD_GLASS === "1"
 }
 
 function requestedOzonePlatform(env: NodeJS.ProcessEnv, argv: readonly string[]): string | null {
@@ -69,6 +80,7 @@ export function resolveHudWindowing(
       solid: false,
       clickThrough: true,
       workspaceTransfer: false,
+      nativeGlass: false,
     }
 
   const backend = ozoneBackend(env, argv)
@@ -82,6 +94,7 @@ export function resolveHudWindowing(
       solid: false,
       clickThrough: false,
       workspaceTransfer: false,
+      nativeGlass: false,
     }
 
   return {
@@ -92,5 +105,6 @@ export function resolveHudWindowing(
     solid: true,
     clickThrough: false,
     workspaceTransfer: true,
+    nativeGlass: false,
   }
 }

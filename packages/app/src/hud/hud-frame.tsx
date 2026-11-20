@@ -30,6 +30,7 @@ const defaultWindowing = (): HudWindowing => ({
   solid: false,
   clickThrough: true,
   workspaceTransfer: false,
+  nativeGlass: false,
 })
 
 /**
@@ -118,8 +119,10 @@ export function HudFrame(props: ParentProps) {
   // Windows: one native frosted panel behind each 80% surface, so the desktop blurs per card
   // instead of as one window-wide sheet. An unfocused HUD dims to a flat sheet: the desktop blur
   // only belongs to the focused, interactive state.
+  // Windows panels are opt-in: Electron flickers the cursor while an overlay window covers the HUD
+  // (electron/electron#48035), so the CSS sheets are the default there.
   createHudGlass({
-    enabled: () => reverse() && !chromeHidden() && (focused() || locked()),
+    enabled: () => reverse() && windowing().nativeGlass && !chromeHidden() && (focused() || locked()),
     onlyComposer: () => minimal(),
     topOnly: () => windowing().clickThrough && !focused() && !locked(),
     send: (panels) => api.setGlassPanels(panels),

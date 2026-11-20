@@ -1,7 +1,15 @@
 import { describe, expect, test } from "bun:test"
-import { resolveHudWindowing } from "./hud-windowing"
+import { nativeGlassEnabled, resolveHudWindowing } from "./hud-windowing"
 
 describe("HUD windowing", () => {
+  test("native glass is opt-in because overlay panels flicker the Windows cursor", () => {
+    expect(nativeGlassEnabled({}, true)).toBe(false)
+    expect(nativeGlassEnabled({ OPENCODE_DESKTOP_HUD_GLASS: "0" }, true)).toBe(false)
+    expect(nativeGlassEnabled({ OPENCODE_DESKTOP_HUD_GLASS: "true" }, true)).toBe(false)
+    expect(nativeGlassEnabled({ OPENCODE_DESKTOP_HUD_GLASS: "1" }, false)).toBe(false)
+    expect(nativeGlassEnabled({ OPENCODE_DESKTOP_HUD_GLASS: "1" }, true)).toBe(true)
+  })
+
   test("macOS and Windows keep client placement and renderer dragging", () => {
     for (const platform of ["darwin", "win32"]) {
       const windowing = resolveHudWindowing(platform, {}, [])

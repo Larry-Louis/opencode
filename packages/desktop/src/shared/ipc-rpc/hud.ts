@@ -48,6 +48,7 @@ const HudWindowing = Schema.Struct({
   solid: Schema.Boolean,
   clickThrough: Schema.Boolean,
   workspaceTransfer: Schema.Boolean,
+  nativeGlass: Schema.Boolean,
 })
 
 export type HudWindowing = Schema.Schema.Type<typeof HudWindowing>
