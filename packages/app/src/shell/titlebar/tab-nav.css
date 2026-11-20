@@ -574,7 +574,6 @@
     transition: none;
   }
 }
-<<<<<<< HEAD
 
 /* Dragged below the minimum, the sidebar keeps only the project avatars: no labels, no directory headers. */
 [data-slot="vertical-tabs-sidebar"][data-compact] [data-tab-group-header] {
