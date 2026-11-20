@@ -210,14 +210,14 @@ export function createBrowserPane(input: {
       const sessionID = SessionID.make(target.session)
       const storageKey = `${target.server}\n${sessionID}`
       const saved = restore.load(storageKey)
-      // A server on this machine reaches the same network as this desktop, so its pages browse in the profile. Another
-      // server's pages need its network through a proxy, which Chromium sets per partition.
+      // A server on this machine reaches the same network as this desktop, so its pages browse in the shared disk
+      // profile. Another server's pages need its network through a proxy, which Chromium sets per partition, so they
+      // get a throwaway one. Blue Topaz fork: the shared profile is the `persist:` partition below, so cookies and
+      // logins survive a restart; set OPENCODE_BROWSER_PARTITION to a name without `persist:` for a throwaway jar.
       const shared = server.sameMachine
-      // Blue Topaz fork: keep browser state on disk, shared by every pane. Set OPENCODE_BROWSER_PARTITION to a
-      // name without the `persist:` prefix to get the old isolated, non-persistent behavior back.
       const partition =
         process.env.OPENCODE_BROWSER_PARTITION ??
-        (shared ? input.profile.partition : `opencode-browser-${crypto.randomUUID()}`)
+        (shared ? DISK_PARTITION : `opencode-browser-${crypto.randomUUID()}`)
 
       const remote = shared ? undefined : electron.session.fromPartition(partition)
       const abort = new AbortController()
