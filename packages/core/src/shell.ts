@@ -1,6 +1,7 @@
 export * as Shell from "./shell.js"
 
 import path from "path"
+import { isUtf8 } from "node:buffer"
 import {
   Context,
   Deferred,
@@ -22,6 +23,7 @@ import { AppProcess } from "@opencode/util/process"
 import { CrossSpawnSpawner } from "@opencode/util/cross-spawn-spawner"
 import { makeGlobalNode, makeLocationNode } from "@opencode/util/effect/app-node"
 import { FSUtil } from "@opencode/util/fs-util"
+import { TextBoundary } from "@opencode/util/text-boundary"
 import { Bus } from "./bus.js"
 import { Environment } from "./environment/index.js"
 import { FileRetention } from "./file-retention.js"
@@ -325,8 +327,7 @@ const daemonLayer = Layer.effect(
         if (run.stopping) yield* Fiber.interrupt(run.stopping)
         // Stop waiting first, so forgetting the process is not mistaken for losing it.
         if (run.wait) yield* Fiber.interrupt(run.wait)
-        // Forget the process before deleting its file. This also kills what is left of its group, even after a
-        // successful exit, which a spawned command would leave running: the daemon cannot forget a process otherwise.
+        // Terminate a running command or just forget a finished one before deleting its file.
         yield* pty.terminatePipe(run.process).pipe(Effect.ignore)
         yield* Effect.promise(() => unlink(run.info.file).catch(() => {}))
         yield* Deferred.fail(run.done, new NotFoundError({ id }))
@@ -428,13 +429,6 @@ const daemonLayer = Layer.effect(
                   }),
                 ),
               ),
-            ),
-            // Like spawned commands: what a failed command left running in its group is stopped with it, while a
-            // successful one may leave background processes (`cmd &`) behind.
-            Effect.tap((outcome) =>
-              outcome.status === "exited" && outcome.exit !== undefined && outcome.exit !== 0
-                ? pty.signalPipe(run.process, "SIGTERM").pipe(Effect.ignore)
-                : Effect.void,
             ),
             Effect.flatMap((outcome) => finish(run, outcome)),
           ),
@@ -604,6 +598,7 @@ const layer = () =>
       const bus = yield* Bus.Service
       const location = yield* Location.Service
       const global = yield* Global.Service
+      const fs = yield* FSUtil.Service
       const shell = yield* ShellSelect.Service
       const environment = yield* Environment.Service
       const hooks = yield* PluginHooks.Service
@@ -620,9 +615,8 @@ const layer = () =>
         location.workspaceID === undefined && PersistentPty.available ? yield* daemon.at(location) : undefined
 
       const outputDir = path.join(global.data, DIRECTORY, location.project.id)
-      const { mkdir, unlink, stat } = yield* Effect.promise(() => import("fs/promises"))
+      const { unlink, stat } = yield* Effect.promise(() => import("fs/promises"))
       const { createWriteStream, createReadStream } = yield* Effect.promise(() => import("fs"))
-      yield* Effect.promise(() => mkdir(outputDir, { recursive: true }))
 
       yield* Effect.addFinalizer(() =>
         Effect.gen(function* () {
@@ -747,13 +741,23 @@ const layer = () =>
         const command = yield* require(id)
         const cursor = input?.cursor ?? 0
         const limit = input?.limit ?? 65536
+        const running = command.info.status === "running"
         const size = yield* sizeOf(command)
         if (cursor >= size) return { output: "", cursor: size, size, truncated: false }
         const start = Math.max(0, cursor)
-        const bytes = yield* readRange(command.info.file, start, Math.min(limit, size - start))
+        if (limit <= 0) return { output: "", cursor: start, size, truncated: false }
+        // A UTF-8 character can straddle either edge by up to three bytes.
+        const offset = Math.max(0, start - 3)
+        const bytes = yield* readRange(command.info.file, offset, Math.min(size, start + limit + 3) - offset)
+        const from = start - offset
+        const to = Math.min(bytes.length, from + limit)
+        const first = splitCharacter(bytes, from, running)?.end ?? from
+        const last = splitCharacter(bytes, to, running)
+        // Keep the usual limit unless even the first complete character would not fit.
+        const end = last && last.start === first && last.end !== undefined ? last.end : (last?.start ?? to)
         return {
-          output: bytes.toString("utf8"),
-          cursor: start + bytes.length,
+          output: bytes.toString("utf8", first, end),
+          cursor: offset + Math.max(first, end),
           size,
           truncated: false,
         }
@@ -825,7 +829,7 @@ const layer = () =>
           // Read the byte before the window too, to tell whether the window starts on a line boundary.
           const before = Math.max(0, start - 1)
           const window = yield* readRange(info.file, before, size - before)
-          const page = window.subarray(charBoundary(window, start - before)).toString("utf8")
+          const page = TextBoundary.utf8Tail(window, size - start)
           const partial = start > 0 && window[0] !== 10
           const endsWithNewline = page.endsWith("\n")
           const lines = page.split("\n")
@@ -901,6 +905,11 @@ const layer = () =>
         if (before) yield* before(invocation)
         // Absolute for local commands, so the command reports the same cwd wherever it runs.
         if (location.workspaceID === undefined) invocation.cwd = path.resolve(location.directory, invocation.cwd)
+
+        // Created per command: the directory can be removed while the Location stays open.
+        yield* fs
+          .ensureDir(outputDir)
+          .pipe(Effect.mapError((cause) => new AppProcess.AppProcessError({ command: invocation.command, cause })))
 
         const id = Shell.ID.ascending()
         const args = ShellSelect.args(invocation.shell, invocation.command)
@@ -1122,6 +1131,21 @@ const layer = () =>
     }),
   )
 
+// Find a character crossing this byte offset. A valid prefix at a live EOF has no end yet.
+function splitCharacter(bytes: Buffer, cut: number, running: boolean) {
+  for (let start = cut - 1; start >= Math.max(0, cut - 3); start--) {
+    const lead = bytes[start]
+    if ((lead & 0xc0) === 0x80) continue
+    if (lead < 0xc2 || lead > 0xf4) return
+    const end = start + (lead < 0xe0 ? 2 : lead < 0xf0 ? 3 : 4)
+    if (end <= cut) return
+    const char = bytes.subarray(start, end)
+    if (end <= bytes.length) return isUtf8(char) ? { start, end } : undefined
+    if (running && new TextDecoder().decode(char, { stream: true }) === "") return { start, end: undefined }
+    return
+  }
+}
+
 // Spans carry only the command text, truncated; never env, stdin or output. Shells outlive the turn that started
 // them, so the session comes from the shell's own metadata rather than the caller's span annotations.
 function annotate(info: Info) {
@@ -1142,13 +1166,6 @@ function spanCommand(command: string) {
   return `${command.slice(0, SPAN_COMMAND_LIMIT).toWellFormed()}…`
 }
 
-// Moves past UTF-8 continuation bytes (at most 3) so a byte cut never splits a character.
-function charBoundary(bytes: Buffer, offset: number) {
-  const limit = Math.min(bytes.length, offset + 3)
-  for (let index = offset; index < limit; index++) if ((bytes[index] & 0xc0) !== 0x80) return index
-  return limit
-}
-
 function formatSize(bytes: number) {
   const kb = bytes / 1024
   return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.round(kb)} KB`
@@ -1161,6 +1178,7 @@ export const node = makeLocationNode({
     Bus.node,
     Location.node,
     Global.node,
+    FSUtil.node,
     ShellSelect.node,
     Environment.node,
     PluginHooks.node,

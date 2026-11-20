@@ -1,8 +1,12 @@
 export default {
-  "title": "目标",
+  "active": "正在跟进目标",
   "paused": "目标已暂停",
-  "met": "目标已达成",
+  "reached": "目标已达成",
+  "statusActive": "进行中",
+  "statusPaused": "已暂停",
+  "statusFinished": "已完成",
   "pause": "暂停",
   "resume": "继续",
   "clear": "清除",
+  "dismiss": "关闭",
 }

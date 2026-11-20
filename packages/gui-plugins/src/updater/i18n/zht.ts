@@ -38,4 +38,6 @@ export default {
   "web.reset.title": "從伺服器重新載入",
   "web.reset.description": "清除應用程式已儲存的副本，並載入伺服器的目前版本",
   "web.reset.action": "從伺服器重新載入",
+  "action.unavailable": "更新不可用",
+  "check.unavailable": "此建置由 OpenCode 之外的管道更新，例如你的套件管理員。",
 }

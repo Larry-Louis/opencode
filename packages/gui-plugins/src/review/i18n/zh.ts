@@ -20,4 +20,5 @@ export default {
   "command.open": "打开审查",
   "load.failed": "无法加载更改",
   "load.timeout": "服务器响应超时",
-  "offline": "无法连接此服务器",}
+  "offline": "无法连接此服务器",
+}

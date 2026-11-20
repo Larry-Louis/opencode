@@ -402,4 +402,11 @@ export const dict = {
   "ui.tool.fetch": "抓取",
   "ui.common.showLess": "收合",
   "ui.message.undoMessage": "復原",
+  "ui.lineComment.add": "新增留言",
+  "ui.lineComment.actions": "選取操作",
+  "ui.timeline.subagent.name": "{{name}} 代理程式",
+  "ui.timeline.subagent.updated": "已更新",
+  "ui.timeline.subagent.completed": "已完成",
+  "ui.message.wrapLines": "自動換行",
+  "ui.message.unwrapLines": "不自動換行",
 } satisfies Partial<Record<Keys, string>>

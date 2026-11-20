@@ -7,6 +7,7 @@ import {
   settingsPersistence,
   defaultSettings,
   recentSessionsAvailable,
+  resolveSidebarOrganize,
   monoDefault,
   monoFontFamily,
   sansDefault,
@@ -97,8 +98,8 @@ describe("settings schema", () => {
         backgroundActivity: "left",
         timelineWidth: "comfortable",
         hudStyle: "reverse",
-        newIcons: false,
         foldUserMessages: false,
+        wrapCodeBlocks: false,
         newQuestionUI: false,
         sidebarOrganize: "list",
         mobileTitlebarPosition: "top",
@@ -130,9 +131,17 @@ describe("settings schema", () => {
     })
   })
 
-  test.each(["list", "projects", "customize", "recent"])("round trips saved side-tab organization %s", (mode) => {
-    const settings = decode({ general: { sidebarOrganize: mode } })
-    expect(decode(encode(settings)).general.sidebarOrganize).toBe(mode)
+  test.each(["list", "projects", "customize", "recent", "consolidated"])(
+    "round trips saved side-tab organization %s",
+    (mode) => {
+      const settings = decode({ general: { sidebarOrganize: mode } })
+      expect(decode(encode(settings)).general.sidebarOrganize).toBe(mode)
+    },
+  )
+
+  test("the retired Projects organization moves to Consolidated where offered, and to Customize elsewhere", () => {
+    expect(resolveSidebarOrganize("projects", ["list", "customize", "recent", "consolidated"])).toBe("consolidated")
+    expect(resolveSidebarOrganize("projects", ["list", "customize"])).toBe("customize")
   })
 
   test("the retired Recent sessions switch does not opt into Recent organization", () => {
