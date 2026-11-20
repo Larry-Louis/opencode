@@ -374,7 +374,11 @@ describe("current session timeline rows", () => {
     expect(result.rows[1]).toMatchObject({
       group: { type: "context", refs: [{ partID: "msg_tool_projection_assistant:reasoning:0" }, { partID: "read" }] },
     })
-    expect(result.rows[2]).toMatchObject({ ref: { partID: "msg_tool_projection_assistant:reasoning:1" } })
+    // The live thought keeps the gap its settled group gets, so the capsule does not jump when the stream ends.
+    expect(result.rows[2]).toMatchObject({
+      ref: { partID: "msg_tool_projection_assistant:reasoning:1" },
+      spacing: "content",
+    })
   })
 
   test("keeps actual thinking with the active prompt above an undelivered prompt", () => {

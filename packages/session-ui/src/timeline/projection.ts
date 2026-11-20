@@ -584,7 +584,15 @@ export namespace Timeline {
       if (messages.at(-1) !== lastAssistant) return
 
       // The live reasoning row closes its own step, so notices that arrive meanwhile follow it.
-      if (thinking) rows.push(new TimelineRow.Thinking({ userMessageID: turnID, ref: thinking }))
+      // It takes the gap its settled group will get, so the capsule does not jump when the stream ends.
+      if (thinking)
+        rows.push(
+          new TimelineRow.Thinking({
+            userMessageID: turnID,
+            ref: thinking,
+            spacing: assistantGroupIndex > 0 ? "content" : undefined,
+          }),
+        )
 
       if (lastStep?.type !== "assistant") return
 

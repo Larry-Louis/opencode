@@ -33,7 +33,7 @@ export function createHudGlass(input: {
   enabled: () => boolean
   /** The unfocused transcript fades after its top half; only the opaque part gets panels. */
   topOnly: () => boolean
-  /** Minimal mode keeps a panel only behind the composer; the other surfaces are clear. */
+  /** Minimal mode keeps a panel behind the composer and the tool capsules; prose stays clear. */
   onlyComposer?: () => boolean
   send: (panels: readonly HudGlassPanel[]) => Promise<void>
 }) {
@@ -103,6 +103,16 @@ export function createHudGlass(input: {
   onCleanup(stop)
 }
 
+function isCapsule(element: HTMLElement) {
+  return element.matches(
+    [
+      '[data-component="tool-trigger"][data-pill-kind]',
+      '[data-component="read-tool-group"]',
+      '[data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"]',
+    ].join(", "),
+  )
+}
+
 function collect(topOnly: boolean, onlyComposer: boolean) {
   const dpr = window.devicePixelRatio || 1
   const width = window.innerWidth
@@ -114,7 +124,7 @@ function collect(topOnly: boolean, onlyComposer: boolean) {
   const limit = scrollBox ? scrollBox.top + scrollBox.height * 0.45 : Number.POSITIVE_INFINITY
 
   for (const element of document.querySelectorAll<HTMLElement>(SURFACES)) {
-    if (onlyComposer && element.getAttribute("data-component") !== "composer") continue
+    if (onlyComposer && element.getAttribute("data-component") !== "composer" && !isCapsule(element)) continue
     // A paragraph inside a list item has no sheet of its own; the item's panel covers it.
     if (element.closest("li") && element.tagName !== "LI") continue
     // Nested lists sit inside the outer item's panel.
