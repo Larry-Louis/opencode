@@ -652,25 +652,6 @@ export namespace Timeline {
     })
     appendAssistantSegment(assistantSegment)
 
-    // A settled turn reads as what the model wrote: each answer stays visible, and the thinking and tool work between
-    // answers folds into its own disclosure, the way a single thought or tool node does on its own.
-    if (view.settled && detail && detail.tools.placement !== "hidden") {
-      const answers = new Set(
-        assistantMessages.flatMap((message) =>
-          contentEntries(message)
-            .filter(
-              (entry) =>
-                entry.content.type === "text" &&
-                isRenderable(entry.content, showReasoning, detail) &&
-                !commentary.has(entry.content),
-            )
-            .map((entry) => `${message.id}:${entry.id}`),
-        ),
-      )
-
-      return answers.size > 0 ? foldTurnProcess(rows, answers) : rows
-    }
-
     return rows
   }
 
