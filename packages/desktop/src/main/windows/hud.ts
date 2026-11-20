@@ -17,7 +17,7 @@ import { transitionHud, type HudEvent, type HudState } from "./hud-machine"
 import { captureHudContext, type HudCapture } from "./hud-context"
 import { promoteHudOnHyprland } from "./hud-hyprland"
 import { hudStateFile, readHudState, writeHudState } from "./hud-state"
-import { resolveHudWindowing, type HudWindowing } from "./hud-windowing"
+import { nativeGlassEnabled, resolveHudWindowing, type HudWindowing } from "./hud-windowing"
 import { presentWindow } from "./present"
 
 /** The window is forced closed this long after a graceful close, so a hung renderer cannot leave a
@@ -87,6 +87,8 @@ export function createHudController(input: {
       // Diagnostics only.
     }
   }
+
+  const nativeGlass = () => nativeGlassEnabled(process.env, isSupported())
 
   const destroyGlassPanels = () => {
     glassPanels.forEach((panel) => panel.destroy())
@@ -380,7 +382,7 @@ export function createHudController(input: {
       return captureHudContext(win.getBounds(), screenshot)
     },
     windowing() {
-      return resolveHudWindowing()
+      return { ...resolveHudWindowing(), nativeGlass: nativeGlass() }
     },
     setWorkspaceTransfer(enabled) {
       const current = win
@@ -425,6 +427,10 @@ export function createHudController(input: {
     },
     setGlassPanels(panels) {
       const current = win
+
+      // Overlay panels flicker the Windows cursor (electron/electron#48035); the CSS sheets stand
+      // in until that is fixed, and OPENCODE_DESKTOP_HUD_GLASS=1 opts back in.
+      if (!nativeGlass()) return
 
       if (!current || current.isDestroyed() || !isSupported()) return logGlass(panels.length)
 

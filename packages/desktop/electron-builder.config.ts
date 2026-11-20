@@ -107,7 +107,7 @@ const getBase = (appId: string): Configuration => {
       {
         from: "resources/",
         to: "",
-        filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
+        filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version", "opencode-cli.channel"],
       },
     ],
     afterPack: async (context) => {
@@ -127,6 +127,10 @@ const getBase = (appId: string): Configuration => {
       const version = path.join(path.dirname(cli), "opencode-cli.version")
 
       if ((await stat(version)).size === 0) throw new Error(`Bundled CLI version must be a non-empty file: ${version}`)
+
+      const channel = path.join(path.dirname(cli), "opencode-cli.channel")
+
+      if ((await stat(channel)).size === 0) throw new Error(`Bundled CLI channel must be a non-empty file: ${channel}`)
 
       // With an Icon Composer mac.icon, electron-builder bundles the ICNS that actool generates as the pre-macOS 26
       // fallback. That one tops out at 256px and draws a light ring around the squircle, so ship ours instead.

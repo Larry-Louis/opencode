@@ -56,6 +56,7 @@ export namespace TimelineRow {
   export class Thinking extends Data.TaggedClass("Thinking")<{
     userMessageID: string
     ref: PartRef
+    spacing?: "tool" | "content"
   }> {}
 
   /**

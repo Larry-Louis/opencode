@@ -231,6 +231,9 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
       {
         name: `@opencode/${name}`,
         version: Script.version,
+        // The desktop copies this next to the bundled executable so its client looks for the same
+        // service registration file the CLI writes, even when the CLI was built from a preview branch.
+        opencodeChannel: Script.channel,
         license: "MIT",
         repository: { type: "git", url: "git+https://github.com/anomalyco/opencode.git" },
         os: [item.os],

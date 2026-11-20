@@ -700,6 +700,9 @@ export function createSessionTimelineRowRenderer(input: {
     return { label: message.description ?? message.text }
   }
 
+  const rowSpacing = (row: FramedTimelineRow) =>
+    Predicate.isTagged(row, "AssistantPart") || Predicate.isTagged(row, "Thinking") ? row.spacing : undefined
+
   const Frame = (props: { row: FramedTimelineRow; grow?: boolean; children: JSX.Element }) => (
     <div
       ref={(el) => {
@@ -708,12 +711,12 @@ export function createSessionTimelineRowRenderer(input: {
       id={Predicate.isTagged(props.row, "UserMessage") ? input.anchor?.(props.row.userMessageID) : undefined}
       data-message-id={props.row.userMessageID}
       data-timeline-row={props.row._tag}
-      data-timeline-spacing={Predicate.isTagged(props.row, "AssistantPart") ? props.row.spacing : undefined}
+      data-timeline-spacing={rowSpacing(props.row)}
       classList={{
         "min-w-0 w-full max-w-full": true,
         "md:max-w-session md:mx-auto": input.centered?.(),
-        "pt-2": Predicate.isTagged(props.row, "AssistantPart") && props.row.spacing === "tool",
-        "pt-4": Predicate.isTagged(props.row, "AssistantPart") && props.row.spacing === "content",
+        "pt-2": rowSpacing(props.row) === "tool",
+        "pt-4": rowSpacing(props.row) === "content",
         "pt-6": Predicate.isTagged(props.row, "Error"),
       }}
     >

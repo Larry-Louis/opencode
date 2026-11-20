@@ -209,6 +209,22 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   width: calc(100% - 20px) !important;
 }
 
+/* The reverse HUD mirrors the rows, so the newest sits at the top and a row's logical gap above it
+   falls below it on screen. The spacing classes (pt-2/pt-4) therefore have to move to the mirrored
+   side; left as padding-top they space the older neighbour instead, and the newest row (the live
+   thought) ends up flush against the row below it. The dev skin keeps the normal order. */
+:root[data-hud]:not([data-hud-style="dev"]) [data-hud-transcript] [data-timeline-spacing] {
+  padding-top: 0 !important;
+}
+
+:root[data-hud]:not([data-hud-style="dev"]) [data-hud-transcript] [data-timeline-spacing="tool"] {
+  padding-bottom: 8px;
+}
+
+:root[data-hud]:not([data-hud-style="dev"]) [data-hud-transcript] [data-timeline-spacing="content"] {
+  padding-bottom: 16px;
+}
+
 :root[data-hud] [data-slot="session-turn-message-content"] {
   color: var(--hud-user);
 }
@@ -1135,7 +1151,9 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   padding: 4px;
 }
 
-/* Minimal mode: the words stay, the capsule sheets go. Only the composer keeps its surface. */
+/* Minimal mode: the words stay, the capsule sheets go. Only the composer keeps its surface.
+   Tool capsules are the exception: a run's shells, reads, edits and patch rows are the only
+   structure left once the prose sheets are gone, so their per-kind tint stays behind them. */
 :root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-transcript] {
   --hud-frost: none;
 }
@@ -1146,10 +1164,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
     [data-component="markdown"] p,
     [data-component="markdown"] blockquote,
     [data-component="markdown"] pre,
-    [data-component="tool-trigger"][data-pill-kind],
-    [data-component="read-tool-group"],
     [data-slot="text-part-meta"],
-    [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"],
     [data-component="user-message"] [data-slot="user-message-text"],
     [data-component="session-working"],
     [data-component="task-tool-card"],
@@ -1165,6 +1180,27 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-component="hud-frame"][data-hud-minimal]
   [data-hud-transcript] [data-component="markdown"] li::before {
   background: none !important;
+}
+
+/* A restored capsule is not bare content: its ink keeps the HUD's normal edge instead of the
+   glow that clear text needs over the desktop. */
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-content]
+  :is(
+    [data-component="tool-trigger"][data-pill-kind],
+    [data-component="read-tool-group"],
+    [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"]
+  ) {
+  text-shadow: var(--hud-text-shadow);
+}
+
+:root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-content]
+  :is(
+    [data-component="tool-trigger"][data-pill-kind],
+    [data-component="read-tool-group"],
+    [data-component="accordion"][data-scope="apply-patch"] [data-slot="accordion-trigger"]
+  )
+  :is(svg, [data-component="project-avatar-v2"]) {
+  filter: none;
 }
 
 :root[data-hud] [data-component="hud-frame"][data-hud-minimal] [data-hud-rail] {

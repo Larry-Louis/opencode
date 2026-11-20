@@ -76,6 +76,7 @@ export type ElectronAPI = {
     solid: boolean
     clickThrough: boolean
     workspaceTransfer: boolean
+    nativeGlass: boolean
   }>
   hudSetWorkspaceTransfer(enabled: boolean): Promise<void>
   hudSetIgnoreMouse(ignore: boolean): Promise<void>
