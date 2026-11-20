@@ -1592,4 +1592,5 @@ export const dict = {
   "settings.providers.disconnect.description": "已儲存的憑證將被刪除，其模型將無法使用。",
   "settings.providers.disconnect.consoleDescription.one": "你的登入將被移除，來自 {{workspace}} 的 {{count}} 個提供者將無法使用。",
   "settings.providers.disconnect.consoleDescription.other": "你的登入將被移除，來自 {{workspace}} 的 {{count}} 個提供者將無法使用。",
+  "desktop.cameraUsage": "攝影機",
 } satisfies Partial<Record<Keys, string>>

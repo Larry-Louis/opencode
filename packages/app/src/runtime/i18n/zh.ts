@@ -1594,6 +1594,7 @@ export const dict = {
   "settings.providers.disconnect.description": "已保存的凭据将被删除，其模型将不可用。",
   "settings.providers.disconnect.consoleDescription.one": "你的登录将被移除，来自 {{workspace}} 的 {{count}} 个提供商将不可用。",
   "settings.providers.disconnect.consoleDescription.other": "你的登录将被移除，来自 {{workspace}} 的 {{count}} 个提供商将不可用。",
+  "desktop.cameraUsage": "摄像头",
 } satisfies Partial<Record<Keys, string>>
 
 export default dict

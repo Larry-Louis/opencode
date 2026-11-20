@@ -27,4 +27,6 @@ export default {
   // 2026-11-14 补译
   "close.failed": "无法关闭终端",
   "request.timedOut": "服务器响应超时",
+  "link.confirm": "打开此终端链接？",
+  "link.open": "打开链接",
 }

@@ -28,4 +28,6 @@ export default {
   // 2026-11-14 補譯：審計後新增的鍵
   "close.failed": "無法關閉終端機",
   "request.timedOut": "伺服器回應逾時",
+  "link.confirm": "開啟此終端機連結？",
+  "link.open": "開啟連結",
 }

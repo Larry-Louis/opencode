@@ -21,4 +21,6 @@ export default {
   "load.failed": "無法載入變更",
   "load.timeout": "伺服器回應逾時",
   "offline": "無法連線到此伺服器",
+  "sidebar.noChanges": "沒有變更的檔案。使用「開啟檔案」瀏覽工作區。",
+  "sidebar.unavailable": "檔案清單無法使用。",
 }
