@@ -680,7 +680,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
    project's recent sessions in a menu instead of widening the bar. */
 :root[data-hud] [data-hud-rail] {
   display: flex;
-  width: 44px;
+  width: 38px;
   flex: none;
   flex-direction: column;
   align-self: stretch;
@@ -716,10 +716,10 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex: none;
-  border-radius: 8px;
+  border-radius: 7px;
   color: inherit;
   cursor: default;
   transition: background-color 120ms ease;
@@ -745,9 +745,9 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-project][data-status]::after {
   content: "";
   position: absolute;
-  inset: -1px;
-  border: 1.5px solid var(--v2-text-text-accent);
-  border-radius: 9px;
+  inset: 0;
+  border: 1px solid var(--v2-text-text-accent);
+  border-radius: 7px;
   pointer-events: none;
 }
 
@@ -771,8 +771,8 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-project][data-status="unread"]::before {
   content: "";
   position: absolute;
-  inset-block-start: 3px;
-  inset-inline-end: 3px;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
   width: 6px;
   height: 6px;
   border-radius: 999px;
