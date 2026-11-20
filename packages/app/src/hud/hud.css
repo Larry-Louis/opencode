@@ -520,12 +520,14 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 /* The lock button's third state leaves only the composer on screen: the band, the
    rail and the title strip go away. The strip returns while the pointer rests on
    it (or the composer has the caret) so the mode can always be cycled back. The
-   idle rules above are highly specific, so the forced state overrides them. */
+   idle rules above are highly specific, so the forced state overrides them. The
+   composer is a child of the title block, so only the title row itself is hidden:
+   hiding the whole block would leave no way back into the HUD. */
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] {
   background: transparent;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-session-title] > div:first-child,
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-session-title] .session-header-layout,
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-transcript] [data-slot="session-timeline-scroll"],
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-rail] {
   opacity: 0 !important;
