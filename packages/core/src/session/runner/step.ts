@@ -23,6 +23,7 @@ import { SessionModelRequest } from "../model-request.js"
 import { SessionSchema } from "../schema.js"
 import { toSessionError } from "../to-session-error.js"
 import { SessionUsage } from "../usage.js"
+import { OctopusStats } from "../../octopus-stats.js"
 import { SessionRunnerModel } from "./model.js"
 import { createLLMEventPublisher } from "./publish-llm-event.js"
 import { SessionRunnerRetry } from "./retry.js"
@@ -301,7 +302,14 @@ export const make = Effect.gen(function* () {
           const usage = record.finish ? SessionUsage.record(record.finish.usage, input.model.cost) : undefined
           if (usage) yield* Effect.annotateCurrentSpan("opencode.usage.cost_usd", usage.cost)
           if (record.failure) yield* publisher.publishStepFailure({ ...usage, snapshot, files })
-          if (record.finish && usage && !record.failure)
+          if (record.finish && usage && !record.failure) {
+            // Direct-provider usage is reported to Octopus; gateway-routed steps are skipped inside.
+            yield* OctopusStats.report({
+              providerID: input.model.ref.providerID,
+              modelID: input.model.ref.id,
+              tokens: usage.tokens,
+              cost: usage.cost,
+            })
             yield* bus.publish(SessionEvent.Step.Ended, {
               sessionID: input.sessionID,
               assistantMessageID: yield* publisher.startAssistant(),
@@ -312,6 +320,7 @@ export const make = Effect.gen(function* () {
               snapshot,
               files,
             })
+          }
         }
 
         if (llmError && retry?.retry && tools.declines.length === 0 && !tools.interrupted)

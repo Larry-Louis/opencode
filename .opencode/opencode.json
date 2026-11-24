@@ -1,6 +1,6 @@
 	{
   "plugin": ["octto", "oh-my-openagent@latest", "opencode-websearch-cited@1.2.0"],
-  "model": "octopus/deepseek-v4-flash",
+  "model": "octopus/deepseek-flash",
   "$schema": "https://opencode.ai/config.json",
   "shell": "powershell",
   "disabled_providers": [],
@@ -9,7 +9,7 @@
       "model": "github-copilot/gpt-5.6-luna"
     },
     "compaction": {
-      "model": "octopus/deepseek-v4-flash"
+      "model": "octopus/deepseek-flash"
     },
     "deep": {
       "model": "github-copilot/gpt-5.6-luna"
@@ -92,19 +92,6 @@
             "output": 65536
           }
         },
-        "deepseek-v4-flash": {
-          "name": "Deepseek V4 Flash",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
         "deepseek-v4-pro": {
           "name": "Deepseek V4 Pro",
           "attachment": true,
@@ -118,86 +105,8 @@
             "output": 65536
           }
         },
-        "deepseek-v4-flash-vision-exp": {
-          "name": "Deepseek V4 Flash vision exp",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
-        "deepseek-v4-flash-api": {
-          "name": "Deepseek V4 Flash API",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
-        "deepseek-v4-pro-api": {
-          "name": "Deepseek V4 Pro API",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
-        "gemini-3-pro-api": {
-          "name": "Gemini 3 Pro",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text", "image"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
-        "gemini-3-flash": {
-          "name": "Gemini 3 Flash",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text", "image"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          }
-        },
-		"mimo-v2.5": {
+        "mimo-v2.5": {
           "name": "Mimo V2.5",
-          "attachment": true,
-          "tool_call": true,
-          "modalities": {
-            "input": ["text", "image"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 1000000,
-            "output": 65536
-          }
-        },
-		"ox-alpha-free": {
-          "name": "Ox Alpha Free",
           "attachment": true,
           "tool_call": true,
           "modalities": {

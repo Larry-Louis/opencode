@@ -12,6 +12,7 @@ import { ConfigLSP } from "@opencode/schema/config/lsp"
 import { ConfigMedia } from "@opencode/schema/config/media"
 import { ConfigModel } from "@opencode/schema/config/model"
 import { ConfigMCP } from "@opencode/schema/config/mcp"
+import { ConfigOctopus } from "@opencode/schema/config/octopus"
 import { ConfigPlugin } from "@opencode/schema/config/plugin"
 import { ConfigPolicy } from "@opencode/schema/config/policy"
 import { ConfigProvider } from "@opencode/schema/config/provider"
@@ -195,6 +196,7 @@ export function normalize(input: unknown): Result {
   normalizePolicies(input, encoded, diagnostics)
   normalizeExperimental(input, encoded, diagnostics)
   normalizeWatcher(input, encoded, diagnostics)
+  normalizeOctopus(input, encoded, diagnostics)
   normalizeFormatter(input, encoded, diagnostics)
   normalizeLsp(input, encoded, diagnostics)
 
@@ -469,6 +471,16 @@ function normalizeExperimental(
   }
   if (Object.keys(result).length || (isRecord(input.experimental) && !Object.keys(input.experimental).length))
     encoded.experimental = result
+}
+
+function normalizeOctopus(
+  input: Record<string, unknown>,
+  encoded: Record<string, unknown>,
+  diagnostics: Diagnostic[],
+) {
+  if (!own(input, "octopus")) return
+  const value = decodeEncoded(ConfigOctopus.Info, input.octopus, ["octopus"], diagnostics)
+  if (value !== undefined) encoded.octopus = value
 }
 
 function normalizeWatcher(input: Record<string, unknown>, encoded: Record<string, unknown>, diagnostics: Diagnostic[]) {
