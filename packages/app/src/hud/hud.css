@@ -32,7 +32,6 @@
   --hud-glass-strong: rgb(12 14 18 / 0.8);
   --hud-glass-band: rgb(12 14 18 / 0.8);
   --hud-hairline: rgb(255 255 255 / 0.13);
-  --hud-frame-bg: rgb(12 14 18 / 0.45);
   --hud-pill-bg: rgb(12 14 18 / 0.8);
   --hud-user: #ffcf6b;
   --hud-text-shadow: 0 0 3px rgb(0 0 0 / 1);
@@ -85,7 +84,6 @@ html[data-hud][data-theme][data-color-scheme="dark"] {
   --hud-glass-strong: rgb(12 14 18 / 0.8);
   --hud-glass-band: rgb(12 14 18 / 0.8);
   --hud-hairline: rgb(255 255 255 / 0.13);
-  --hud-frame-bg: rgb(12 14 18 / 0.45);
   --hud-pill-bg: rgb(12 14 18 / 0.8);
   --hud-user: #ffcf6b;
   --hud-text-shadow: 0 0 3px rgb(0 0 0 / 1);
@@ -127,7 +125,6 @@ html[data-hud][data-theme][data-color-scheme="light"] {
   --hud-glass-strong: rgb(255 255 255 / 0.8);
   --hud-glass-band: rgb(250 251 253 / 0.8);
   --hud-hairline: rgb(20 23 28 / 0.12);
-  --hud-frame-bg: rgb(255 255 255 / 0.5);
   --hud-pill-bg: rgb(255 255 255 / 0.8);
   --hud-user: #9a5b00;
   --hud-text-shadow: 0 0 3px rgb(255 255 255 / 1);
@@ -156,11 +153,8 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
   transition: background-color 180ms ease;
 }
 
-/* The pinned HUD joins the window's gaps into one smoked sheet. Unpinned modes
-   leave the gaps clear so a hidden top half shows the app behind, not a tint. */
-:root[data-hud] [data-component="hud-frame"][data-hud-locked] {
-  background: var(--hud-frame-bg);
-}
+/* The pinned HUD keeps the frame clear like every other mode: only the band, rail
+   and composer paint their own glass, so the app behind shows through the gaps. */
 
 [data-component="hud-frame"] [data-hud-drag],
 [data-component="hud-frame"] button,
