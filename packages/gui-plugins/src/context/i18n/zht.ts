@@ -29,4 +29,5 @@ export default {
   "export.failed.title": "匯出工作階段失敗",
   "export.failed.description": "匯出工作階段時發生錯誤",
 
-  "usage.toggle": "切換工作階段上下文",}
+  "usage.toggle": "切換工作階段上下文",
+}

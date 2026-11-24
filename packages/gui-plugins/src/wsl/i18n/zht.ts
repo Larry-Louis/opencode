@@ -50,4 +50,5 @@ export default {
   "error.failedPort": "無法取得連接埠",
   "menu.remove": "移除",
 
-  "error.busy": "{{distro}} 正在忙於其他工作。請在其完成後重試。",}
+  "error.busy": "{{distro}} 正在忙於其他工作。請在其完成後重試。",
+}

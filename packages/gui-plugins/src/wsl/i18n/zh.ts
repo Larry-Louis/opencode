@@ -50,4 +50,5 @@ export default {
   "error.failedPort": "无法获取端口",
   "menu.remove": "移除",
 
-  "error.busy": "{{distro}} 正在忙于其他任务。请在其完成后重试。",}
+  "error.busy": "{{distro}} 正在忙于其他任务。请在其完成后重试。",
+}

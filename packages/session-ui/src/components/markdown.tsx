@@ -34,6 +34,7 @@ import { markdownBlockKey, type MarkdownToken } from "./markdown-worker-protocol
 import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-state"
 import {
   getCachedMarkdown,
+  enableMarkdownAppLinks,
   getReadyMarkdown,
   renderCachedMarkdown,
   touchCachedMarkdown,
@@ -150,6 +151,8 @@ type CodeLabels = {
   copy: string
   copied: string
   maximize: string
+  wrap: string
+  unwrap: string
 }
 
 type CodeButtonState = {
@@ -207,7 +210,7 @@ function MarkdownCopyButton(props: { labels: CodeLabels; copied: boolean }) {
   const label = () => (props.copied ? props.labels.copied : props.labels.copy)
 
   return (
-    <Tooltip placement="top" value={label()}>
+    <Tooltip placement="top" value={label()} forceOpen={props.copied || undefined}>
       <IconButton
         type="button"
         size="normal"
@@ -215,7 +218,7 @@ function MarkdownCopyButton(props: { labels: CodeLabels; copied: boolean }) {
         aria-label={label()}
         icon={
           <>
-            <Icon name="outline-copy" data-copy-icon />
+            <Icon name="copy" data-copy-icon />
             <Icon name="check" data-check-icon />
           </>
         }
@@ -224,7 +227,106 @@ function MarkdownCopyButton(props: { labels: CodeLabels; copied: boolean }) {
   )
 }
 
-const codeButtons = '[data-slot="markdown-copy-button"], [data-slot="markdown-mermaid-maximize"]'
+// A block's own wrap choice lives in its `data-wrap`; without one it follows the provider's default.
+function createWrapButton(wrapper: HTMLElement, labels: CodeLabels, wrapDefault: () => boolean) {
+  const host = document.createElement("div")
+  host.setAttribute("data-slot", "markdown-wrap-button")
+
+  const state: Partial<CodeButtonState> = {}
+
+  const dispose = render(() => {
+    const [labelState, setLabels] = createSignal(labels, { equals: false })
+    const [override, setOverride] = createSignal<boolean>()
+    const wrapped = () => override() ?? wrapDefault()
+    const label = () => (wrapped() ? labelState().unwrap : labelState().wrap)
+    state.setLabels = setLabels
+
+    const toggle = () => {
+      const next = !wrapped()
+      // Choosing the default again follows the setting from then on.
+      const value = next === wrapDefault() ? undefined : next
+      setOverride(value)
+
+      if (value === undefined) return delete wrapper.dataset.wrap
+      wrapper.dataset.wrap = String(value)
+    }
+
+    return (
+      <Tooltip placement="top" value={label()}>
+        <IconButton
+          type="button"
+          size="normal"
+          variant="ghost-muted"
+          aria-label={label()}
+          icon={<Icon name="text-wrap" />}
+          onClick={toggle}
+        />
+      </Tooltip>
+    )
+  }, host)
+
+  state.dispose = dispose
+  // SAFETY: `render` runs its function synchronously, so the setter is assigned before this line.
+  codeButtonState.set(host, state as CodeButtonState)
+
+  return host
+}
+
+function appendCodeButtons(wrapper: HTMLElement, labels: CodeLabels, wrapDefault: () => boolean) {
+  const toolbar = document.createElement("div")
+  toolbar.setAttribute("data-slot", "markdown-code-toolbar")
+  toolbar.append(createWrapButton(wrapper, labels, wrapDefault), createCopyButton(labels))
+  wrapper.append(toolbar)
+  codeOverflow()?.observe(wrapper)
+}
+
+// The wrap button shows only on a block whose lines are wider than the block. Each check measures the blocks unwrapped
+// in one synchronous layout and restores them before the observer compares sizes again, so it reports no resize.
+let overflowObserver: ResizeObserver | undefined
+
+function codeOverflow() {
+  if (typeof ResizeObserver === "undefined") return
+  overflowObserver ??= new ResizeObserver((entries) =>
+    measureCodeOverflow(entries.map((entry) => entry.target).filter((el) => el instanceof HTMLElement)),
+  )
+
+  return overflowObserver
+}
+
+function measureCodeOverflow(wrappers: HTMLElement[]) {
+  wrappers.forEach((wrapper) => wrapper.toggleAttribute("data-code-measure", true))
+
+  const overflow = wrappers.map((wrapper) => {
+    const pre = wrapper.querySelector(":scope > pre")
+
+    return !!pre && pre.scrollWidth > pre.clientWidth
+  })
+
+  wrappers.forEach((wrapper, index) => {
+    wrapper.removeAttribute("data-code-measure")
+    wrapper.toggleAttribute("data-code-overflow", overflow[index])
+  })
+}
+
+// A line can grow wider without the block resizing, so a hovered block checks again before its buttons show.
+function setupCodeOverflow(root: HTMLDivElement) {
+  const handleOver = (event: PointerEvent) => {
+    if (!(event.target instanceof Element)) return
+    const wrapper = event.target.closest('[data-component="markdown-code"]')
+
+    if (!(wrapper instanceof HTMLElement)) return
+
+    if (event.relatedTarget instanceof Node && wrapper.contains(event.relatedTarget)) return
+    measureCodeOverflow([wrapper])
+  }
+
+  root.addEventListener("pointerover", handleOver)
+
+  return () => root.removeEventListener("pointerover", handleOver)
+}
+
+const codeButtons =
+  '[data-slot="markdown-copy-button"], [data-slot="markdown-mermaid-maximize"], [data-slot="markdown-wrap-button"]'
 
 const codeHostSelector = `${codeButtons}, [data-component="markdown-code"]`
 
@@ -236,6 +338,7 @@ function disposeCodeHosts(root: Element) {
 
   hosts.forEach((host) => {
     disposeCodeButton(host)
+    overflowObserver?.unobserve(host)
     codeDrivers.get(host)?.dispatch({ type: "disposed" })
     codeDrivers.delete(host)
   })
@@ -398,7 +501,7 @@ function createCodeDriver(wrapper: HTMLElement, labels: CodeLabels): CodeDriver 
     if (effect.type === "mount-actions") {
       if (!blocks) return
       actions = createCodeActions(blocks, effect.block)
-      wrapper.insertBefore(actions.host, wrapper.querySelector(':scope > [data-slot="markdown-copy-button"]'))
+      wrapper.querySelector(':scope > [data-slot="markdown-code-toolbar"]')?.prepend(actions.host)
 
       return
     }
@@ -820,6 +923,7 @@ export function Markdown(
   const markdown = useMarkdown()
   const previewImages = createImagePreview()
   const previewDiagrams = createDiagramPreview()
+  const wrapDefault = () => !!markdown?.codeWrap
   const [root, setRoot] = createSignal<HTMLDivElement>()
   const owner = createUniqueId()
   const lifetime = new AbortController()
@@ -1072,6 +1176,7 @@ export function Markdown(
   )
 
   let copyCleanup: (() => void) | undefined
+  let overflowCleanup: (() => void) | undefined
   let linkCleanup: (() => void) | undefined
   let diagramCleanup: (() => void) | undefined
   let faviconCleanup: (() => void) | undefined
@@ -1125,6 +1230,8 @@ export function Markdown(
       copy: i18n.t("ui.message.copy"),
       copied: i18n.t("ui.message.copied"),
       maximize: i18n.t("ui.diagramPreview.open"),
+      wrap: i18n.t("ui.message.wrapLines"),
+      unwrap: i18n.t("ui.message.unwrapLines"),
     }
 
     const nextCodeKeys = new Set(content.filter((block) => block.mode === "code").map((block) => block.key))
@@ -1146,7 +1253,18 @@ export function Markdown(
 
       const check = kept
         ? inlineCodeChecks.get(current)?.pending
-        : updateBlock(container, index, block, labels, plugins, sessionLinks, lifetime.signal, localFileExists)
+        : updateBlock(
+            container,
+            index,
+            block,
+            labels,
+            wrapDefault,
+            plugins,
+            sessionLinks,
+            lifetime.signal,
+            markdown?.appLinks,
+            localFileExists,
+          )
 
       return check ? [check] : []
     })
@@ -1184,7 +1302,9 @@ export function Markdown(
     if (
       appliedLabels?.copy !== labels.copy ||
       appliedLabels?.copied !== labels.copied ||
-      appliedLabels?.maximize !== labels.maximize
+      appliedLabels?.maximize !== labels.maximize ||
+      appliedLabels?.wrap !== labels.wrap ||
+      appliedLabels?.unwrap !== labels.unwrap
     )
       container
         .querySelectorAll<HTMLElement>(codeButtons)
@@ -1193,6 +1313,8 @@ export function Markdown(
     appliedLabels = labels
 
     if (!copyCleanup) copyCleanup = setupCodeCopy(container)
+
+    if (!overflowCleanup) overflowCleanup = setupCodeOverflow(container)
 
     if (!linkCleanup) linkCleanup = setupLocalLinks(container, () => markdown?.openLocalFile, () => markdown?.localFileMenu)
 
@@ -1221,6 +1343,8 @@ export function Markdown(
 
     if (copyCleanup) copyCleanup()
 
+    if (overflowCleanup) overflowCleanup()
+
     if (linkCleanup) linkCleanup()
 
     if (diagramCleanup) diagramCleanup()
@@ -1245,6 +1369,7 @@ export function Markdown(
     <div
       data-component="markdown"
       data-streaming={local.streaming ? "" : undefined}
+      data-code-wrap={wrapDefault() ? "" : undefined}
       dir="auto"
       classList={{
         ...local.classList,
@@ -1305,15 +1430,17 @@ function updateBlock(
   index: number,
   block: RenderedBlock,
   labels: CodeLabels,
+  wrapDefault: () => boolean,
   plugins: CodePlugins | undefined,
   sessionLinks: ((id: string) => string | undefined) | undefined,
   signal: AbortSignal,
+  appLinks: boolean | undefined,
   localFileExists?: MarkdownLocalFileExists,
 ) {
-  const current = container.children[index]
+    const current = container.children[index]
 
   if (block.mode === "code") {
-    updateCodeBlock(container, current, block, labels, plugins)
+    updateCodeBlock(container, current, block, labels, wrapDefault, plugins)
 
     return
   }
@@ -1346,6 +1473,8 @@ function updateBlock(
 
   if (source === next) disposeCodeHosts(next)
   source.innerHTML = block.html
+
+  if (appLinks) enableMarkdownAppLinks(source)
   const pending = markInlineCode(source, next, block.mode === "live", signal, localFileExists)
   markCodeLinks(source)
   wrapTables(source)
@@ -1381,7 +1510,7 @@ function updateBlock(
       )
       pre.replaceWith(wrapper)
       wrapper.appendChild(pre)
-      wrapper.appendChild(createCopyButton(labels))
+      appendCodeButtons(wrapper, labels, wrapDefault)
       decorateCode(wrapper, code, true, plugins, labels)
     })
   }
@@ -1406,6 +1535,7 @@ function updateCodeBlock(
   current: Element | undefined,
   block: Extract<RenderedBlock, { mode: "code" }>,
   labels: CodeLabels,
+  wrapDefault: () => boolean,
   plugins: CodePlugins | undefined,
 ) {
   const existing =
@@ -1470,7 +1600,7 @@ function updateCodeBlock(
   ;[...block.stable, ...block.unstable].map(createTokenSpan).forEach((span) => codeElement.appendChild(span))
   pre.appendChild(codeElement)
   wrapper.appendChild(pre)
-  wrapper.appendChild(createCopyButton(labels))
+  appendCodeButtons(wrapper, labels, wrapDefault)
   decorateCode(wrapper, codeElement, block.complete, plugins, labels)
   next.appendChild(wrapper)
   renderedCodeTokens.set(next, {

@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   ModelRef,
   SessionMessageAssistant,
   SessionMessageIdle,
@@ -15,6 +15,7 @@ import {
   currentToolGroupedRead,
   currentToolHasLoadedFiles,
 } from "../message/current-tool-state"
+import { turnCommentary } from "./commentary"
 import { TimelineRow, type PartGroup, type PartRef, type TimelineRowMap } from "./timeline-row"
 import { timelineCategory, timelineNoticePlacement, timelineNoticeRequired, type TimelineDetail } from "./detail"
 import {
@@ -41,7 +42,7 @@ type FailedIdle = SessionMessageIdle & {
 }
 
 type Entry =
-  | { type: "assistant"; message: SessionMessageAssistant }
+  | { type: "assistant"; message: SessionMessageAssistant; run: number }
   | { type: "notice"; message: Notice }
   | { type: "idle"; message: FailedIdle }
   | { type: "diff"; message: SessionMessageIdle; from: string; files: string[] }
@@ -284,6 +285,7 @@ export namespace Timeline {
     const turnByUserID = new Map<string, Turn>()
     const leading: Notice[] = []
     let current: Turn | undefined
+    let openRun = 0
     // Everything since the last idle marker is one turn, including prompts steered in meanwhile.
     let execution: { opener: string; turn: Turn; files: Set<string> } | undefined
 
@@ -320,6 +322,7 @@ export namespace Timeline {
 
       if (message.type === "idle") {
         appendIdle(message)
+        openRun++
 
         // The summary follows the turn's last prompt, after any failure the marker reports.
         // Sorted like the diff route's git order, so the list keeps its order when the diffs arrive.
@@ -340,19 +343,19 @@ export namespace Timeline {
       const existing = current?.user ? current : undefined
 
       if (existing?.user) {
-        existing.entries.push({ type: "assistant", message })
+        existing.entries.push({ type: "assistant", message, run: openRun })
         current = existing
 
         return
       }
 
       if (current && !current.user && !current.shell) {
-        current.entries.push({ type: "assistant", message })
+        current.entries.push({ type: "assistant", message, run: openRun })
 
         return
       }
 
-      const turn: Turn = { id: message.id, time: message.time, entries: [{ type: "assistant", message }] }
+      const turn: Turn = { id: message.id, time: message.time, entries: [{ type: "assistant", message, run: openRun }] }
       turns.push(turn)
       current = turn
     })
@@ -400,8 +403,11 @@ export namespace Timeline {
     const commentary = new Set(
       detail && detail.commentary.placement !== "separate"
         ? turns.flatMap((turn) =>
-            turnCommentary(turn.entries, viewTurnPhase(phaseOf(turn)).settled, (content) =>
-              isRenderable(content, showReasoning, detail),
+            turnCommentary(
+              turn.entries.filter((entry) => entry.type === "assistant"),
+              openRun,
+              viewTurnPhase(phaseOf(turn)).settled,
+              (content) => isRenderable(content, showReasoning, detail),
             ),
           )
         : [],
@@ -646,25 +652,6 @@ export namespace Timeline {
     })
     appendAssistantSegment(assistantSegment)
 
-    // A settled turn reads as what the model wrote: each answer stays visible, and the thinking and tool work between
-    // answers folds into its own disclosure, the way a single thought or tool node does on its own.
-    if (view.settled && detail && detail.tools.placement !== "hidden") {
-      const answers = new Set(
-        assistantMessages.flatMap((message) =>
-          contentEntries(message)
-            .filter(
-              (entry) =>
-                entry.content.type === "text" &&
-                isRenderable(entry.content, showReasoning, detail) &&
-                !commentary.has(entry.content),
-            )
-            .map((entry) => `${message.id}:${entry.id}`),
-        ),
-      )
-
-      return answers.size > 0 ? foldTurnProcess(rows, answers) : rows
-    }
-
     return rows
   }
 
@@ -788,111 +775,6 @@ function shellFailed(message: SessionMessageShell) {
   return (
     message.status === "timeout" || (message.status === "exited" && message.exit !== undefined && message.exit !== 0)
   )
-}
-
-// Text that a tool call follows in the same turn is commentary; text after the last tool call is the answer.
-// OpenAI Responses models label each message with a phase, which wins over position. A settled turn
-// without an answer keeps its last text, so an interrupted turn still ends with something to read.
-function turnCommentary(entries: Entry[], settled: boolean, visible: (content: Content) => boolean) {
-  const messages = entries.flatMap((entry) => (entry.type === "assistant" ? [entry.message] : []))
-  const contents = messages.flatMap((message) => message.content)
-  const lastTool = contents.findLastIndex((content) => content.type === "tool")
-
-  // A message that ends in text ended on an answer: work it starts later runs in a message of its own, and that
-  // answer must stay readable instead of folding into the work that follows it.
-  const answers = new Set(
-    settled
-      ? messages.flatMap((message) => {
-          const lastTool = message.content.findLastIndex((content) => content.type === "tool")
-
-          return message.content.flatMap((content, index) =>
-            content.type === "text" && index > lastTool && content.native?.phase !== "commentary" ? [content] : [],
-          )
-        })
-      : [],
-  )
-
-  const commentary = contents.filter(
-    (content, index) =>
-      content.type === "text" &&
-      !answers.has(content) &&
-      (content.native?.phase === "commentary" || (content.native?.phase !== "final_answer" && index < lastTool)),
-  )
-
-  const texts = contents.filter((content) => content.type === "text" && visible(content))
-
-  if (!settled || texts.some((content) => !commentary.includes(content))) return commentary
-
-  return commentary.filter((content) => content !== texts.at(-1))
-}
-
-// A finished turn keeps every answer visible and folds the work between answers into one disclosure each, so a turn
-// that answered, ran a shell, then answered again still reads as both answers with their own collapsed work.
-function foldTurnProcess(rows: TimelineRow.TimelineRow[], answers: ReadonlySet<string>) {
-  const folded: TimelineRow.TimelineRow[] = []
-  let run: TimelineRow.TimelineRow[] = []
-
-  const refs = (row: TimelineRow.TimelineRow) => {
-    if (Predicate.isTagged(row, "Notice") || Predicate.isTagged(row, "Shell"))
-      return [{ messageID: row.messageID, partID: row.messageID }]
-
-    if (!Predicate.isTagged(row, "AssistantPart")) return []
-
-    return row.group.type === "part" ? [row.group.ref] : row.group.refs
-  }
-
-  const push = () => {
-    const head = run[0]
-
-    if (!head) return
-
-    const process = run.flatMap(refs)
-
-    // A lone step reads the same as the node it already is, so only real runs become a disclosure.
-    if (process.length < 2) {
-      folded.push(...run)
-      run = []
-
-      return
-    }
-
-    const part = Predicate.isTagged(head, "AssistantPart") ? head : undefined
-
-    folded.push(
-      new TimelineRow.AssistantPart({
-        userMessageID: head.userMessageID,
-        previousAssistantPart: part?.previousAssistantPart ?? false,
-        // The disclosure opens a block of work, so it keeps the content spacing above it.
-        spacing: "content",
-        group: { type: "context", key: `context:${process[0]!.messageID}:${process[0]!.partID}`, refs: process },
-      }),
-    )
-    run = []
-  }
-
-  for (const row of rows) {
-    const answer =
-      Predicate.isTagged(row, "AssistantPart") &&
-      row.group.type === "part" &&
-      answers.has(`${row.group.ref.messageID}:${row.group.ref.partID}`)
-
-    // Diffs, errors, dividers and the user's own prompt end the work before them.
-    const process =
-      Predicate.isTagged(row, "AssistantPart") || Predicate.isTagged(row, "Notice") || Predicate.isTagged(row, "Shell")
-
-    if (!process || answer) {
-      push()
-      folded.push(row)
-
-      continue
-    }
-
-    run.push(row)
-  }
-
-  push()
-
-  return folded
 }
 
 function groupMessages(rows: TimelineRow.TimelineRow[], detail: TimelineDetail, separate: ReadonlySet<string>) {

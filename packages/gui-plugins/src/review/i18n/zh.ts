@@ -20,4 +20,7 @@ export default {
   "command.open": "打开审查",
   "load.failed": "无法加载更改",
   "load.timeout": "服务器响应超时",
-  "offline": "无法连接此服务器",}
+  "offline": "无法连接此服务器",
+  "sidebar.noChanges": "没有更改的文件。使用“打开文件”浏览工作区。",
+  "sidebar.unavailable": "文件列表不可用。",
+}

@@ -982,7 +982,7 @@ export function CurrentReadToolGroup(props: {
         </div>
         <Show when={expandable()}>
           <span data-slot="read-tool-group-arrow" aria-hidden="true">
-            <Icon name="fill-triangle-down" size="small" />
+            <Icon name="fill-triangle-down" />
           </span>
         </Show>
       </div>
@@ -1365,7 +1365,7 @@ function ToolFileAccordion(props: {
             </div>
             <div data-slot="apply-patch-trigger-actions">
               {props.actions}
-              <Icon name="chevron-grabber-vertical" size="small" />
+              <Icon name="chevron-grabber-vertical" />
             </div>
           </div>
         }
@@ -1727,7 +1727,7 @@ ToolRegistry.register({
       <BasicTool
         {...props}
         hideDetails
-        icon="window-cursor"
+        icon="select-element"
         trigger={
           <div data-slot="basic-tool-tool-info-structured">
             <div data-slot="basic-tool-tool-info-main">
@@ -1767,7 +1767,7 @@ ToolRegistry.register({
     return (
       <BasicTool
         {...props}
-        icon="window-cursor"
+        icon="select-element"
         trigger={{
           title: title(),
           subtitle: query(),
@@ -1934,9 +1934,9 @@ export function ConsoleCopy(props: { text: string; label: string }) {
 
   return (
     <div data-slot="bash-copy">
-      <Tooltip value={label()} placement="top">
+      <Tooltip value={label()} placement="top" forceOpen={copy.copied() || undefined}>
         <IconButton
-          icon={<Icon name={copy.copied() ? "check" : "outline-copy"} size="small" />}
+          icon={<Icon name={copy.copied() ? "check" : "copy"} />}
           size="normal"
           variant="ghost-muted"
           onMouseDown={(event) => event.preventDefault()}
@@ -1991,7 +1991,7 @@ ToolRegistry.register({
     return (
       <BasicTool
         {...props}
-        icon="console"
+        icon="terminal"
         rail={false}
         hasContent={calls().length > 0 || !!error() || !!output()}
         compact
@@ -2012,7 +2012,7 @@ ToolRegistry.register({
           viewable() ? (
             <Tooltip value={i18n.t("ui.tool.execute.viewCode")} placement="top">
               <IconButton
-                icon={<Icon name="code-slash" size="small" />}
+                icon={<Icon name="code" />}
                 size="normal"
                 variant="ghost"
                 aria-label={i18n.t("ui.tool.execute.viewCode")}
@@ -2050,7 +2050,7 @@ function ExecuteDetails(props: { code: string; output: string; error?: string; c
     String(Math.max(lineCount(props.code), props.output && !props.error ? lineCount(output().text) : 0)).length
 
   return (
-    <Dialog fit containerClass="!w-[min(calc(100vw_-_32px),720px)] max-h-[calc(100vh_-_92px)]">
+    <Dialog size="large" fit>
       <DialogHeader>
         <div data-slot="execute-details-title">
           <DialogTitle>{i18n.t("ui.tool.execute")}</DialogTitle>
@@ -2064,7 +2064,7 @@ function ExecuteDetails(props: { code: string; output: string; error?: string; c
           <span data-slot="execute-details-meta">{i18n.plural("ui.tool.execute.calls", props.calls)}</span>
         </div>
       </DialogHeader>
-      <DialogBody class="min-h-0 flex-none overflow-y-auto">
+      <DialogBody class="min-h-0">
         <div data-component="execute-details" style={{ "--execute-details-number-width": `${numberDigits()}ch` }}>
           <ExecuteDetailsSection
             label={i18n.t("ui.tool.execute.code")}
@@ -2134,9 +2134,13 @@ function ExecuteDetailsSection(props: {
       <header data-slot="execute-details-section-header">
         <span data-slot="execute-details-section-label">{props.label}</span>
         <Show when={props.meta}>{(meta) => <span data-slot="execute-details-section-meta">{meta()}</span>}</Show>
-        <Tooltip value={copy.copied() ? i18n.t("ui.message.copied") : props.copyLabel} placement="top">
+        <Tooltip
+          value={copy.copied() ? i18n.t("ui.message.copied") : props.copyLabel}
+          placement="top"
+          forceOpen={copy.copied() || undefined}
+        >
           <IconButton
-            icon={<Icon name={copy.copied() ? "check" : "outline-copy"} size="small" />}
+            icon={<Icon name={copy.copied() ? "check" : "copy"} />}
             size="normal"
             variant="ghost-muted"
             aria-label={copy.copied() ? i18n.t("ui.message.copied") : props.copyLabel}
@@ -2149,13 +2153,24 @@ function ExecuteDetailsSection(props: {
   )
 }
 
+// Whether the press that ends on `row` selected text in it, which the row keeps rather than toggling. A selection that
+// neither starts nor ends in the row is not that press's: a text field keeps its selection after focus leaves it, and a
+// press on a row the host made non-selectable clears nothing.
+function selectsRowText(row: HTMLElement) {
+  const selection = window.getSelection()
+
+  if (!selection || selection.isCollapsed) return false
+
+  return row.contains(selection.anchorNode) || row.contains(selection.focusNode)
+}
+
 function ExecuteOutputRow(props: { output: string }) {
   const i18n = useI18n()
   const [open, setOpen] = createSignal(false)
   const text = createMemo(() => formatExecuteOutput(props.output).text)
 
-  const toggle = () => {
-    if (window.getSelection()?.toString()) return
+  const toggle = (event: { currentTarget: HTMLElement }) => {
+    if (selectsRowText(event.currentTarget)) return
     setOpen((value) => !value)
   }
 
@@ -2171,7 +2186,7 @@ function ExecuteOutputRow(props: { output: string }) {
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return
           event.preventDefault()
-          toggle()
+          toggle(event)
         }}
       >
         <span data-slot="execute-tool-call-marker">
@@ -2199,8 +2214,8 @@ function ExecuteCallRow(props: { call?: ExecuteToolCall; error?: string }) {
   const expandable = () => input().length > 0 || !!props.error
   const summary = () => (props.call ? args().join(", ") : props.error?.split("\n", 1)[0])
 
-  const toggle = () => {
-    if (!expandable() || window.getSelection()?.toString()) return
+  const toggle = (event: { currentTarget: HTMLElement }) => {
+    if (!expandable() || selectsRowText(event.currentTarget)) return
     setOpen((value) => !value)
   }
 
@@ -2218,7 +2233,7 @@ function ExecuteCallRow(props: { call?: ExecuteToolCall; error?: string }) {
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return
           event.preventDefault()
-          toggle()
+          toggle(event)
         }}
       >
         <Show when={failed()} fallback={<span data-slot="execute-tool-call-marker">›</span>}>
@@ -2329,7 +2344,7 @@ return <ConsoleOutput command={view().command} output={view().output} />
       <BasicTool
         {...props}
         status={view().basicStatus}
-        icon="console"
+        icon="terminal"
         kind="shell"
         rail={false}
         hasContent
@@ -2608,7 +2623,7 @@ ToolRegistry.register({
                               />
                             </Match>
                           </Switch>
-                          <Icon name="chevron-grabber-vertical" size="small" />
+                          <Icon name="chevron-grabber-vertical" />
                         </div>
                       </div>
                     }
@@ -2667,7 +2682,7 @@ ToolRegistry.register({
       <BasicTool
         {...props}
         defaultOpen={completed()}
-        icon="bubble-5"
+        icon="comment"
         kind="question"
         trigger={{
           title: i18n.t("ui.tool.questions"),

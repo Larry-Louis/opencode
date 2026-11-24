@@ -55,4 +55,7 @@ export default {
   "search.failed": "无法搜索文件",
   "search.timeout": "服务器响应超时",
   "search.offline": "无法连接该服务器",
+  "tab.activity": "智能体活动",
+  "preview.unavailable": "无法在浏览器面板中打开此工作区文件。请检查浏览器插件后重试。",
+  "preview.outside": "此 HTML 文件位于会话工作区之外，无法在浏览器面板中打开。",
 }

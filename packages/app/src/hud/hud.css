@@ -520,12 +520,14 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 /* The lock button's third state leaves only the composer on screen: the band, the
    rail and the title strip go away. The strip returns while the pointer rests on
    it (or the composer has the caret) so the mode can always be cycled back. The
-   idle rules above are highly specific, so the forced state overrides them. */
+   idle rules above are highly specific, so the forced state overrides them. The
+   composer is a child of the title block, so only the title row itself is hidden:
+   hiding the whole block would leave no way back into the HUD. */
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] {
   background: transparent;
 }
 
-:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-session-title] > div:first-child,
+:root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-session-title] .session-header-layout,
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-transcript] [data-slot="session-timeline-scroll"],
 :root[data-hud] [data-component="hud-frame"][data-hud-lock-hidden] [data-hud-rail] {
   opacity: 0 !important;
@@ -652,6 +654,15 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   pointer-events: auto;
 }
 
+/* The reverse HUD docks the composer at the top of the window, so the command list opens
+   downward into the transcript. The shared list opens upward for a bottom-docked composer,
+   which here would put it outside the window where the frame clips it. */
+:root[data-hud] [data-component="composer-suggestions"] {
+  top: calc(100% + 8px) !important;
+  bottom: auto !important;
+  transform: none !important;
+}
+
 :root[data-hud] [data-hud-drag] {
   margin: 4px 8px 6px;
   border: 1px solid var(--hud-hairline);
@@ -669,7 +680,7 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
    project's recent sessions in a menu instead of widening the bar. */
 :root[data-hud] [data-hud-rail] {
   display: flex;
-  width: 44px;
+  width: 38px;
   flex: none;
   flex-direction: column;
   align-self: stretch;
@@ -705,10 +716,10 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex: none;
-  border-radius: 8px;
+  border-radius: 7px;
   color: inherit;
   cursor: default;
   transition: background-color 120ms ease;
@@ -734,9 +745,9 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-project][data-status]::after {
   content: "";
   position: absolute;
-  inset: -1px;
-  border: 1.5px solid var(--v2-text-text-accent);
-  border-radius: 9px;
+  inset: 0;
+  border: 1px solid var(--v2-text-text-accent);
+  border-radius: 7px;
   pointer-events: none;
 }
 
@@ -760,8 +771,8 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-project][data-status="unread"]::before {
   content: "";
   position: absolute;
-  inset-block-start: 3px;
-  inset-inline-end: 3px;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
   width: 6px;
   height: 6px;
   border-radius: 999px;
@@ -1033,6 +1044,36 @@ html[data-hud][data-color-scheme="light"] [data-component="user-message"] [data-
 :root[data-hud] [data-hud-transcript] [data-component="text-part"] [data-component="markdown"] {
   display: flex;
   flex-direction: column-reverse;
+}
+
+/* A reversed block puts a heading below the content it introduces, so its spacing flips: the
+   small gap goes to that content above, and the larger section gap falls below it. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] h1 {
+  margin-top: 12px;
+  margin-bottom: 28px;
+}
+
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] h2 {
+  margin-top: 10px;
+  margin-bottom: 24px;
+}
+
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] h3 {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+:root[data-hud] [data-hud-transcript] [data-component="markdown"] :is(h4, h5, h6) {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+/* The block a heading introduces sits above it here, so its own bottom margin would double the
+   heading's top gap. */
+:root[data-hud] [data-hud-transcript] [data-component="markdown"]
+  :is(h1, h2, h3, h4, h5, h6)
+  + :is(p, ul, ol, blockquote, [data-component]) {
+  margin-bottom: 0;
 }
 
 /* A HUD shows one session; docked panels belong to the full shell. */

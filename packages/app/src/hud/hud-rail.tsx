@@ -8,11 +8,11 @@ import { useServer } from "@/runtime/server/current"
 import type { Project } from "@/runtime/server/types"
 import { sessionHref } from "@/shell/routes/session"
 import { ProjectIcon } from "@/shell/layout/project-icon"
-import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
+import { sessionStatus } from "@/shell/layout/project-avatar-state"
 import { sessionLabel } from "@/session/title"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useLanguage } from "@/runtime/i18n/language"
-import { useSettings } from "@/settings/model"
+import { projectSettingsKey, useSettings } from "@/settings/model"
 import { HudRailDev } from "./hud-rail-dev"
 
 const SESSION_LIMIT = 24
@@ -39,6 +39,7 @@ function HudRailReverse() {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
   const tabs = useTabs()
+  const settings = useSettings()
 
   const sessionId = () => params.id ?? ""
 
@@ -48,14 +49,33 @@ function HudRailReverse() {
     return info ? server.ctx.projects.forSession(info) : undefined
   })
 
-  // The same avatar state the main window's tab rail uses: a pulsing ring while the
-  // session works, a warning ring while it waits on the user.
-  const avatar = useSessionTabAvatarState(
-    () => server.key,
-    sessionId,
-    () => true,
-  )
-  const status = () => (avatar.attention() ? "attention" : avatar.loading() ? "busy" : undefined)
+  // A row stands for a project, not one session, so it reports the strongest state among that
+  // project's sessions with the same order the main window's compact tab rail uses: waiting on
+  // the user, then working, then a finished run you have not read, then a failed one. The open
+  // session alone would hide work happening in a sibling session of the same project.
+  const rank = { input: 4, running: 3, unread: 2, failed: 1 } as const
+  const projectStatus = (project: Project) => {
+    const ctx = server.ctx
+    const autoApprove = settings.permissions.autoApproves(projectSettingsKey(ctx.sdk.scope, project.id))
+    let best: { status: keyof typeof rank; rank: number } | undefined
+
+    for (const session of ctx.data.session.list()) {
+      if (session.projectID !== project.id) continue
+
+      const status = sessionStatus(ctx, session.id, { root: false, autoApprove, snapshot: session })
+      if (status === "idle") continue
+
+      const value = rank[status]
+      if (!best || value > best.rank) best = { status, rank: value }
+    }
+
+    return best?.status
+  }
+  const status = (project: Project) => {
+    const value = projectStatus(project)
+
+    return value === "input" ? "attention" : value === "running" ? "busy" : value
+  }
 
   // The rail keeps its last populated list while the server reloads, so navigation never
   // collapses the bar to nothing mid-session.
@@ -176,7 +196,7 @@ function HudRailReverse() {
                     type="button"
                     data-hud-project
                     data-active={active() ? "" : undefined}
-                    data-status={active() ? status() : undefined}
+                    data-status={status(project)}
                     data-pending={switching() === project.id ? "" : undefined}
                     aria-label={displayName(project)}
                     title={displayName(project)}
@@ -193,15 +213,23 @@ function HudRailReverse() {
                         <Show when={sessions()}>
                           {(list) => (
                             <For each={list()}>
-                              {(session) => (
-                                <Menu.Item
-                                  data-slot="hud-project-session"
-                                  data-active={session.id === params.id ? "" : undefined}
-                                  onSelect={() => open(session)}
-                                >
-                                  <span class="min-w-0 flex-1 truncate">{sessionLabel(session)}</span>
-                                </Menu.Item>
-                              )}
+                              {(session) => {
+                                const unread = () => server.ctx.notification.session.unread(session.id, session)
+
+                                return (
+                                  <Menu.Item
+                                    data-slot="hud-project-session"
+                                    data-active={session.id === params.id ? "" : undefined}
+                                    data-status={unread() ? "unread" : undefined}
+                                    onSelect={() => open(session)}
+                                  >
+                                    <span class="min-w-0 flex-1 truncate">{sessionLabel(session)}</span>
+                                    <Show when={unread()}>
+                                      <span data-slot="hud-project-session-dot" aria-hidden="true" />
+                                    </Show>
+                                  </Menu.Item>
+                                )
+                              }}
                             </For>
                           )}
                         </Show>

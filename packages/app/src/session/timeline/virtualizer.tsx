@@ -17,7 +17,6 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  For,
   on,
   onCleanup,
   onMount,
@@ -27,6 +26,7 @@ import {
   type JSX,
 } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
+import { Key } from "@solid-primitives/keyed"
 import { createMediaQuery } from "@solid-primitives/media"
 import type { createTimelineProjection } from "./projection"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
@@ -84,6 +84,9 @@ const pointerDownEvent = { type: "pointer.down" } as const
 
 const pointerUpEvent = { type: "pointer.up" } as const
 
+/** A row on screen: its key, the row it draws and where TanStack places it. */
+type MountedRow = { key: string; row: TimelineRow.TimelineRow; item: VirtualItem }
+
 const cache = new Map<
   string,
   {
@@ -111,11 +114,14 @@ type Input = {
   follow: TimelineFollow
   scroll: Accessor<{ overflow: boolean; jump: boolean }>
   onResumeScroll: (behavior?: ScrollBehavior) => void
+  focusComposer?: () => void
   setScrollRef: (element: HTMLDivElement | undefined) => void
   /** The rows' content changed height. */
   onContentResize: () => void
   /** Height of the composer region floating over the timeline's bottom edge, where the timeline fades out. */
   bottomInset?: Accessor<number>
+  /** Room the status line needs past the 36px lane, so it keeps its gap to the activity pill. */
+  tailExtra?: Accessor<number>
   setVisibleRef?: (element: HTMLDivElement | undefined) => void
   onScheduleScrollState: (element: HTMLDivElement) => void
   onUserScroll: (target?: EventTarget | null) => void
@@ -141,6 +147,7 @@ export type TimelineRouteReveal = {
 
 type ViewProps = {
   header: JSX.Element
+  headerInset?: JSX.Element
   bottomSpacer?: JSX.Element
   deferred: (row: TimelineRow.TimelineRow) => boolean
   renderRow: (row: Accessor<TimelineRow.TimelineRow>, onSizeChange?: () => void) => JSX.Element
@@ -162,7 +169,7 @@ export function createTimelineVirtualizer(input: Input) {
   const touch = createMediaQuery("(hover: none)")
   // The reverse HUD pins the newest row to the content top with no tail lane; the dev skin keeps its
   // narrow HUD tail, and a normal window keeps room for the status row and composer pill.
-  const tailSize = () => (reverse() ? 0 : hud ? 12 : touch() ? 104 : 92)
+  const tailSize = () => (reverse() ? 0 : hud ? 12 : touch() ? 104 : 92) + (input.tailExtra?.() ?? 0)
   const ownerSessionKey = input.sessionKey()
   const entry = cache.get(ownerSessionKey)
   const cached = entry?.presentationKey === input.presentationKey?.() ? entry : undefined
@@ -753,11 +760,19 @@ export function createTimelineVirtualizer(input: Input) {
     virtualizer.scrollToIndex(index, { align: reverse() ? "end" : "start" })
   }
 
-  const virtualItemByKey = createMemo(
-    () => new Map(virtualizer.getVirtualItems().map((item) => [item.key, item] as const)),
-  )
+  // A row mounts with the row and the place it draws, so it never has to find either. TanStack lists the rows it last
+  // read, which one flush can replace before it reads them again; a listed key the projection dropped is not a row.
+  // One row mounts per key: a turn interrupted twice has two dividers under one key, and one measurement.
+  const mountedRows = createMemo(() => [
+    ...new Map(
+      virtualizer.getVirtualItems().flatMap((item): [string, MountedRow][] => {
+        const key = String(item.key)
+        const row = rowByKey().get(key)
 
-  const virtualRowKeys = createMemo(() => virtualizer.getVirtualItems().map((item) => String(item.key)))
+        return row ? [[key, { key, row, item }]] : []
+      }),
+    ).values(),
+  ])
 
   createEffect(() => {
     if (!active()) return
@@ -1214,13 +1229,13 @@ export function createTimelineVirtualizer(input: Input) {
   }
 
   function View(props: ViewProps) {
-    function VirtualRow(rowProps: { rowKey: string }) {
+    // `mounted` only ever holds this row's own key, up to the update that unmounts it.
+    function VirtualRow(rowProps: { mounted: Accessor<MountedRow> }) {
       let element: HTMLDivElement
-      const initialItem = virtualItemByKey().get(rowProps.rowKey)!
-      const initialRow = rowByKey().get(rowProps.rowKey)!
-      const item = createMemo(() => virtualItemByKey().get(rowProps.rowKey) ?? initialItem)
-      const row = createMemo(() => rowByKey().get(rowProps.rowKey) ?? rows()[item().index] ?? initialRow)
-      const [ready, setReady] = createSignal(initialItem.size <= fallbackItemSize || !props.deferred(initialRow))
+      const initial = rowProps.mounted()
+      const item = createMemo(() => rowProps.mounted().item)
+      const row = createMemo(() => rowProps.mounted().row)
+      const [ready, setReady] = createSignal(initial.item.size <= fallbackItemSize || !props.deferred(initial.row))
       let contentMeasureFrame: number | undefined
 
       onMount(() => virtualizer.measureElement(element))
@@ -1233,7 +1248,7 @@ export function createTimelineVirtualizer(input: Input) {
 
       return (
         <div
-          data-timeline-key={rowProps.rowKey}
+          data-timeline-key={initial.key}
           style={{
             position: "absolute",
             top: `${rowTop(item().start, item().size)}px`,
@@ -1241,7 +1256,8 @@ export function createTimelineVirtualizer(input: Input) {
             width: "100%",
             height: `${item().size}px`,
             overflow: "clip",
-            "overflow-clip-margin": Predicate.isTagged(row(), "TurnGap") ? undefined : "0.5px",
+            // Room for paint rounding, card shadows and a focus ring (2px at a 2px offset) on a control at the row edge.
+            "overflow-clip-margin": Predicate.isTagged(row(), "TurnGap") ? undefined : "5px",
           }}
         >
           <div
@@ -1250,7 +1266,7 @@ export function createTimelineVirtualizer(input: Input) {
 
               if (
                 !Predicate.isTagged(row(), "UserMessage") ||
-                !addedKeys.has(rowProps.rowKey) ||
+                !addedKeys.has(initial.key) ||
                 !input.follow.following() ||
                 coldHidden()
               )
@@ -1268,7 +1284,7 @@ export function createTimelineVirtualizer(input: Input) {
               })
             }}
             data-index={item().index}
-            style={{ "min-height": ready() ? undefined : `${initialItem.size}px` }}
+            style={{ "min-height": ready() ? undefined : `${initial.item.size}px` }}
           >
             {props.renderRow(row, () => {
               setReady(true)
@@ -1302,12 +1318,17 @@ export function createTimelineVirtualizer(input: Input) {
           <button
             type="button"
             aria-label={language.t("session.messages.jumpToLatest")}
-            class="pointer-events-auto flex items-center justify-center w-8 h-7 px-2 py-1.5 rounded-lg border-none cursor-pointer text-v2-text-text-base backdrop-blur-[2px] outline-none hover:bg-[linear-gradient(var(--v2-overlay-simple-overlay-hover),var(--v2-overlay-simple-overlay-hover))] active:bg-[linear-gradient(var(--v2-overlay-simple-overlay-pressed),var(--v2-overlay-simple-overlay-pressed))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-border-border-focus"
+            class="pointer-events-auto flex items-center justify-center w-8 h-7 px-2 py-1.5 rounded-lg border-none cursor-pointer text-v2-text-text-base backdrop-blur-[2px] hover:bg-[linear-gradient(var(--v2-overlay-simple-overlay-hover),var(--v2-overlay-simple-overlay-hover))] active:bg-[linear-gradient(var(--v2-overlay-simple-overlay-pressed),var(--v2-overlay-simple-overlay-pressed))]"
             style={{
               "background-color": "color-mix(in srgb, var(--v2-background-bg-base) 92%, transparent)",
               "box-shadow": "var(--v2-elevation-raised), 0px 2px 8px var(--v2-background-bg-base)",
             }}
-            onClick={() => input.onResumeScroll(prefersReducedMotion() ? "auto" : "smooth")}
+            onClick={(event) => {
+              input.onResumeScroll(prefersReducedMotion() ? "auto" : "smooth")
+
+              // From the keyboard, the button hides under its own focus; the prompt is where the session continues.
+              if (event.detail === 0) input.focusComposer?.()
+            }}
           >
             <svg
               width="16"
@@ -1325,11 +1346,13 @@ export function createTimelineVirtualizer(input: Input) {
             </svg>
           </button>
         </div>
-        {/* The reverse HUD keeps the title block (with the composer) outside the scrolling
-            viewport, so the band's fade never hides the composer. The dev skin scrolls it away. */}
-        <Show when={hud && reverse() && input.showHeader()}>{props.header}</Show>
+        <Show when={input.showHeader()}>
+          {/* The scroll viewport's fade masks anything outside the chat, including the review toggle when open. */}
+          <div class="pointer-events-none absolute inset-x-0 top-0 z-30">{props.header}</div>
+        </Show>
         <ScrollView
           data-slot="session-timeline-scroll"
+          data-focus-scope
           viewportRef={bindListRoot}
           thumbContainer={visibleArea()}
           thumbHoverTarget={viewRoot()}
@@ -1346,15 +1369,19 @@ export function createTimelineVirtualizer(input: Input) {
           class="relative min-w-0 w-full h-full"
           style={{ "--sticky-accordion-top": input.showHeader() ? "var(--session-header-height, 48px)" : "0px" }}
         >
-          <Show when={!hud || !reverse()}>
-            <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
-              {props.header}
+          <Show
+            when={hud && reverse()}
+            fallback={
+              <Show when={input.showHeader()} fallback={<div aria-hidden="true" class="h-4 md:hidden" />}>
+                {props.headerInset}
+              </Show>
+            }
+          >
+            {/* The overlaid HUD header is not in flow; this spacer gives the newest row the same
+                leading space, and scrollMargin tells the virtualizer about it. */}
+            <Show when={overlayGap() > 0}>
+              <div aria-hidden="true" style={{ height: `${overlayGap()}px` }} />
             </Show>
-          </Show>
-          {/* The overlaid HUD header is not in flow; this spacer gives the newest row the same
-              leading space, and scrollMargin tells the virtualizer about it. */}
-          <Show when={hud && reverse() && overlayGap() > 0}>
-            <div aria-hidden="true" style={{ height: `${overlayGap()}px` }} />
           </Show>
           <div
             data-timeline-virtual-content
@@ -1376,7 +1403,9 @@ export function createTimelineVirtualizer(input: Input) {
                 width: "var(--panel-hold-width, 100%)",
               }}
             >
-              <For each={virtualRowKeys()}>{(rowKey) => <VirtualRow rowKey={rowKey} />}</For>
+              <Key each={mountedRows()} by={(mounted) => mounted.key}>
+                {(mounted) => <VirtualRow mounted={mounted} />}
+              </Key>
             </div>
             <div
               data-timeline-row="bottom-spacer"

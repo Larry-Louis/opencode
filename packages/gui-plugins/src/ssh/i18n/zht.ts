@@ -33,4 +33,5 @@ export default {
   "form.add": "新增伺服器",
   "menu.delete": "刪除",
 
-  "error.unavailable": "SSH 無法使用",}
+  "error.unavailable": "SSH 無法使用",
+}
