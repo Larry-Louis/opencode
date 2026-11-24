@@ -235,6 +235,8 @@ export function OpenInAppMenuItemsV2(props: {
   reveal?: boolean
   selection?: boolean
   copyPath?: boolean
+  /** Opens the file in opencode's own file panel, before the external-app options. */
+  onOpenInApp?: () => void
   close?: () => void
 }) {
   const ctx = usePlugin()
@@ -242,6 +244,18 @@ export function OpenInAppMenuItemsV2(props: {
 
   return (
     <>
+      <Show when={props.onOpenInApp}>
+        <Menu.Item
+          onSelect={() => {
+            props.close?.()
+            props.onOpenInApp?.()
+          }}
+        >
+          <Icon name="code-slash" size="small" class="text-icon-weak" />
+          {ctx.t("command.open")}
+        </Menu.Item>
+        <Menu.Separator />
+      </Show>
       <Menu.Group>
         <Menu.GroupLabel>{ctx.t("open.in")}</Menu.GroupLabel>
         <Show
@@ -311,12 +325,14 @@ export function OpenInAppMenuItemsV2(props: {
 export function OpenInAppContextMenuV2(
   props: ParentProps<{
     state?: OpenInAppState
+    session: MountedSession
     resolvePath: (event: MouseEvent) => string | undefined
     /** Keeps the trigger within its container, for content that clips its own rows rather than scrolling sideways. */
     fit?: boolean
   }>,
 ) {
   const state = props.state
+  const shared = useShared()
 
   if (!state) return props.children
   const [open, setOpen] = createSignal(false)
@@ -385,7 +401,14 @@ export function OpenInAppContextMenuV2(
         </Menu.Context.Trigger>
         <Menu.Context.Portal>
           <Menu.Context.Content class="open-in-app-v2-menu">
-            <OpenInAppMenuItemsV2 state={state} path={path} reveal selection={false} close={closeMenu} />
+            <OpenInAppMenuItemsV2
+              state={state}
+              path={path}
+              reveal
+              selection={false}
+              onOpenInApp={() => shared.open(props.session, path())}
+              close={closeMenu}
+            />
           </Menu.Context.Content>
         </Menu.Context.Portal>
       </Menu.Context>

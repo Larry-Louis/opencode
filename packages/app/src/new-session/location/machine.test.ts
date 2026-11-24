@@ -163,6 +163,19 @@ describe("location dialog steps", () => {
     ).toMatchObject({ effects: [{ type: "project.add" }] })
   })
 
+  test("choosing No project selects the shared folder on the current server", () => {
+    const state = createLocationDialogState()
+
+    expect(
+      transitionLocationDialog(state, {
+        type: "chosen",
+        entry: { id: "no-project", type: "no-project", directory: "/home/dax/opencode-no-project" },
+        active: "no-project",
+        choosesServer: false,
+      }),
+    ).toMatchObject({ state, effects: [{ type: "no-project.select", directory: "/home/dax/opencode-no-project" }] })
+  })
+
   test("the base-branch row opens the branch list and keeps the chosen branch for New worktree", () => {
     const start = createLocationDialogState(opencode)
     const base: LocationEntry = { id: "base", type: "base", project: opencode, directory: opencode.worktree }

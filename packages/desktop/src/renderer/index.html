@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' oc: data: blob: filesystem:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' oc: http://localhost:* https://localhost:*; style-src 'self' 'unsafe-inline' oc: http://localhost:* https://localhost:*; font-src 'self' data: oc: http://localhost:* https://localhost:*; img-src 'self' data: blob: oc: http://localhost:* https://localhost:* https:; connect-src 'self' oc: data: blob: ws://localhost:* wss://localhost:* ws://127.0.0.1:* wss://127.0.0.1:* http://localhost:* http://127.0.0.1:* https: wss: https:; worker-src 'self' blob: data:; child-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self' oc: data: blob: filesystem:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' oc: http://localhost:* https://localhost:*; style-src 'self' 'unsafe-inline' oc: http://localhost:* https://localhost:*; font-src 'self' data: oc: http://localhost:* https://localhost:*; img-src 'self' data: blob: oc: http://localhost:* http://127.0.0.1:* https://localhost:* https:; media-src 'self' data: blob: oc: http://localhost:* http://127.0.0.1:* https:; connect-src 'self' oc: data: blob: ws://localhost:* wss://localhost:* ws://127.0.0.1:* wss://127.0.0.1:* http://localhost:* http://127.0.0.1:* https: wss: https:; worker-src 'self' blob: data:; child-src 'self' blob: data: oc: http://localhost:* http://127.0.0.1:* https:; object-src 'none'; base-uri 'self'; form-action 'self'"
     />
     <!-- data-sm lets the MetaProvider replace this pre-load title with the app's <Title> tags. -->
     <title data-sm>OpenCode</title>

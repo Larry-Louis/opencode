@@ -17,6 +17,25 @@ test("index.html references local resources by relative path and has no web mani
   expect(content).not.toContain('rel="manifest"')
 })
 
+// The bundled sidecar listens on 127.0.0.1, so media streamed from its ranged file reads must be allowed there;
+// otherwise <img>/<video>/<iframe> get blocked and the file view falls back to the binary placeholder.
+test("the CSP allows local media from the sidecar on 127.0.0.1", async () => {
+  const content = await Bun.file(join(import.meta.dirname, "index.html")).text()
+  const csp = content.match(/http-equiv="Content-Security-Policy"\s+content="([^"]+)"/)?.[1]
+
+  expect(csp).toBeDefined()
+  if (!csp) return
+
+  const directives = csp.split(";").map((item) => item.trim())
+
+  for (const name of ["img-src", "media-src", "child-src"]) {
+    const directive = directives.find((item) => item.startsWith(`${name} `))
+
+    expect(directive).toBeDefined()
+    expect(directive).toContain("http://127.0.0.1:*")
+  }
+})
+
 // Telemetry must not delay first paint: nothing awaits before render, and the Sentry SDK loads lazily.
 test("the renderer entry renders while optional telemetry is still loading", async () => {
   const entry = await Bun.file(join(import.meta.dirname, "index.tsx")).text()

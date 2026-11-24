@@ -1,6 +1,7 @@
 import {
   createEffect,
   createMemo,
+  createSignal,
   ErrorBoundary,
   For,
   getOwner,
@@ -35,6 +36,8 @@ import {
 } from "@opencode/plugin/gui"
 import { BuiltinSlot, type BuiltinSlotMap } from "@opencode/plugin/gui/builtin"
 import { PluginContext } from "@opencode/plugin/gui/host"
+import type { MarkdownLocalFileMenuTarget } from "@opencode/session-ui/context/markdown"
+import { LocalFileMenu } from "@/session/local-file-menu"
 import { usePluginHost, type Item } from "./host"
 import { createLinkCheck } from "./link-check"
 
@@ -154,6 +157,7 @@ export function PluginThemes(props: { loaded: () => boolean }) {
 export function PluginLinks(props: ParentProps<{ session: MountedSession; active?: boolean }>) {
   const host = usePluginHost()
   const markdown = useMarkdown()
+  const [fileMenu, setFileMenu] = createSignal<MarkdownLocalFileMenuTarget>()
 
   // Checks untracked: markdown calls this inside its render effect, which must not follow the routed session.
   const localFileExists = createLinkCheck(
@@ -165,6 +169,7 @@ export function PluginLinks(props: ParentProps<{ session: MountedSession; active
     <MarkdownProvider
       readImage={markdown?.readImage}
       openLocalFile={(href) => void host.links.open({ href, session: props.session })}
+      localFileMenu={(target) => setFileMenu(target)}
       localFileExists={localFileExists}
       codeBlocks={inner.codeBlocks}
     >
@@ -175,15 +180,22 @@ export function PluginLinks(props: ParentProps<{ session: MountedSession; active
   const codeBlocks = createCodeBlocks(() => props.session, Links)
 
   return (
-    <Links codeBlocks={codeBlocks}>
-      <SourcesProvider
-        enabled={sourcesExperiment.enabled}
-        icons={sourcesExperiment.icons}
-        onOpen={(from) => void host.links.open({ href: from, origin: "sources", session: props.session })}
-      >
-        {props.children}
-      </SourcesProvider>
-    </Links>
+    <>
+      <Links codeBlocks={codeBlocks}>
+        <SourcesProvider
+          enabled={sourcesExperiment.enabled}
+          icons={sourcesExperiment.icons}
+          onOpen={(from) => void host.links.open({ href: from, origin: "sources", session: props.session })}
+        >
+          {props.children}
+        </SourcesProvider>
+      </Links>
+      <LocalFileMenu
+        target={fileMenu()}
+        onOpen={(path) => void host.links.open({ href: path, session: props.session })}
+        onClose={() => setFileMenu(undefined)}
+      />
+    </>
   )
 }
 

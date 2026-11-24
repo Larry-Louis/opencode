@@ -66,6 +66,7 @@ import {
   type OpenMarkdownLocalFile,
   type ReadMarkdownImage,
   type MarkdownLocalFileExists,
+  type MarkdownLocalFileMenu,
 } from "../context/markdown"
 import { createMarkdownImages } from "./markdown-image"
 import { createImagePreview } from "./image-preview"
@@ -648,7 +649,11 @@ function localLinkTarget(target: EventTarget | null) {
   if (code instanceof HTMLElement && !code.closest("a")) return code.textContent?.trim() || undefined
 }
 
-function setupLocalLinks(root: HTMLDivElement, open: () => OpenMarkdownLocalFile | undefined) {
+function setupLocalLinks(
+  root: HTMLDivElement,
+  open: () => OpenMarkdownLocalFile | undefined,
+  menu?: () => MarkdownLocalFileMenu | undefined,
+) {
   const handleClick = (event: MouseEvent) => {
     if (event.defaultPrevented || event.button !== 0) return
     const path = localLinkTarget(event.target)
@@ -661,7 +666,35 @@ function setupLocalLinks(root: HTMLDivElement, open: () => OpenMarkdownLocalFile
     handler(path)
   }
 
+  const handleContextMenu = (event: MouseEvent) => {
+    if (event.defaultPrevented) return
+    const path = localLinkTarget(event.target)
+
+    if (!path) return
+    const handler = menu?.()
+
+    if (!handler) return
+    event.preventDefault()
+    event.stopPropagation()
+    handler({ path, x: event.clientX, y: event.clientY })
+  }
+
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) {
+      const target = event.target
+      const path = localLinkTarget(target)
+
+      if (!path || event.defaultPrevented) return
+      const handler = menu?.()
+
+      if (!handler) return
+      event.preventDefault()
+      const bounds = target instanceof Element ? target.getBoundingClientRect() : undefined
+      handler({ path, x: bounds?.left ?? 0, y: bounds?.bottom ?? 0 })
+
+      return
+    }
+
     if (event.key !== "Enter" || event.defaultPrevented) return
 
     if (!(event.target instanceof HTMLElement) || !event.target.matches("a[data-local-link]")) return
@@ -674,10 +707,12 @@ function setupLocalLinks(root: HTMLDivElement, open: () => OpenMarkdownLocalFile
   }
 
   root.addEventListener("click", handleClick)
+  root.addEventListener("contextmenu", handleContextMenu)
   root.addEventListener("keydown", handleKeyDown)
 
   return () => {
     root.removeEventListener("click", handleClick)
+    root.removeEventListener("contextmenu", handleContextMenu)
     root.removeEventListener("keydown", handleKeyDown)
   }
 }
@@ -1159,7 +1194,7 @@ export function Markdown(
 
     if (!copyCleanup) copyCleanup = setupCodeCopy(container)
 
-    if (!linkCleanup) linkCleanup = setupLocalLinks(container, () => markdown?.openLocalFile)
+    if (!linkCleanup) linkCleanup = setupLocalLinks(container, () => markdown?.openLocalFile, () => markdown?.localFileMenu)
 
     if (!diagramCleanup) diagramCleanup = previewDiagrams(container)
 

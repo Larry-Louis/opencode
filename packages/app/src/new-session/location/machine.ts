@@ -2,6 +2,7 @@ import type { PromptProject, PromptServer } from "@/new-session/project/selector
 
 export type LocationEntry =
   | { readonly id: string; readonly type: "project"; readonly project: PromptProject }
+  | { readonly id: string; readonly type: "no-project"; readonly directory: string }
   | { readonly id: string; readonly type: "add" }
   | { readonly id: string; readonly type: "other" }
   | { readonly id: string; readonly type: "server"; readonly server: PromptServer }
@@ -84,6 +85,7 @@ export type LocationDialogEvent =
 
 export type LocationDialogEffect =
   | { readonly type: "focus"; readonly active: string | undefined }
+  | { readonly type: "no-project.select"; readonly directory: string }
   | { readonly type: "project.add"; readonly server?: string }
   | { readonly type: "project.select"; readonly project: PromptProject }
   | {
@@ -155,6 +157,8 @@ function choose(
   event: Extract<LocationDialogEvent, { type: "chosen" }>,
 ): LocationDialogTransition {
   const entry = event.entry
+
+  if (entry.type === "no-project") return to(state, [{ type: "no-project.select", directory: entry.directory }])
 
   if (entry.type === "add" && !event.choosesServer) return to(state, [{ type: "project.add" }])
 

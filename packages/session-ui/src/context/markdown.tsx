@@ -13,6 +13,16 @@ export type OpenMarkdownLocalFile = (path: string) => void
  */
 export type MarkdownLocalFileExists = (path: string) => boolean | Promise<boolean>
 
+/** Where a local file path was right-clicked, in viewport coordinates for a context menu. */
+export type MarkdownLocalFileMenuTarget = {
+  readonly path: string
+  readonly x: number
+  readonly y: number
+}
+
+/** Offers actions for a local file path linked from markdown. */
+export type MarkdownLocalFileMenu = (target: MarkdownLocalFileMenuTarget) => void
+
 /** A complete fenced code block, as `MarkdownCodeBlocks` receives it. */
 export type MarkdownCodeBlock = {
   /** The source between the fences, without the final line break. */
@@ -58,6 +68,7 @@ export type MarkdownCodeBlocks = {
 const context = createContext<{
   readonly readImage?: ReadMarkdownImage
   readonly openLocalFile?: OpenMarkdownLocalFile
+  readonly localFileMenu?: MarkdownLocalFileMenu
   readonly localFileExists?: MarkdownLocalFileExists
   readonly openSession?: (sessionID: string) => void
   readonly sessionTitle?: (sessionID: string) => string | undefined
@@ -69,6 +80,7 @@ export function MarkdownProvider(
   props: ParentProps<{
     readImage?: ReadMarkdownImage
     openLocalFile?: OpenMarkdownLocalFile
+    localFileMenu?: MarkdownLocalFileMenu
     localFileExists?: MarkdownLocalFileExists
     openSession?: (id: string) => void
     sessionTitle?: (id: string) => string | undefined
@@ -87,6 +99,9 @@ export function MarkdownProvider(
         },
         get openLocalFile() {
           return props.openLocalFile
+        },
+        get localFileMenu() {
+          return props.localFileMenu ?? parent?.localFileMenu
         },
         get localFileExists() {
           return props.localFileExists ?? parent?.localFileExists

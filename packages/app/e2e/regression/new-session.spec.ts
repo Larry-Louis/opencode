@@ -440,7 +440,9 @@ test("the checkout branch opens the current project's worktree step", async ({ p
   const projects = dialog.getByRole("combobox", { name: "Search projects", exact: true })
   await expect(projects).toBeFocused()
   await expect(back).toHaveCount(0)
-  await expect(options.filter({ hasText: "BranchWorktrees" })).toHaveAttribute("aria-selected", "true")
+  await expect(
+    options.filter({ has: page.locator(".command-palette-title", { hasText: /^BranchWorktrees$/ }) }),
+  ).toHaveAttribute("aria-selected", "true")
   await projects.press("ArrowRight")
   await expect(search).toBeFocused()
   await search.press("Escape")
@@ -1129,26 +1131,36 @@ test("the location dialog separates added projects from server projects and tags
   await expect(search).toBeFocused()
   const options = dialog.getByRole("option")
   const add = options.filter({ hasText: "Add project" })
+  const none = options.filter({ hasText: "No project" })
   await expect(add.locator('[data-component="keybind-v2"]')).toContainText("O")
   const rows = options.filter({ has: page.locator(".new-session-location-name") })
   const names = options.locator(".new-session-location-name")
   const paths = options.locator(".command-palette-description")
   const back = dialog.getByRole("button", { name: "Back to projects", exact: true })
   // Only the projects added to this client open expanded; other ready-server projects remain discoverable.
-  await expect(names).toHaveText(["opencodeapollo", "opencode"])
-  await expect(paths).toHaveText(["/home/dax/opencode", "C:/work/opencode"])
+  await expect(names).toHaveText(["No project", "opencodeapollo", "opencode"])
+  await expect(paths).toHaveText(["C:/work/opencode/opencode-no-project", "/home/dax/opencode", "C:/work/opencode"])
   const others = options.filter({ hasText: "Other projects" })
   await expect(others).toBeVisible()
   await expect(others.locator(".new-session-location-count")).toHaveText("2")
   await expect(dialog.locator(".command-palette-group-title")).toHaveCount(0)
   await expect(options.locator(".command-palette-title")).toHaveText([
+    "No project",
     "opencode",
     "opencode",
     "Other projects",
     "Add project",
   ])
-  // It opens on the first row, not on the draft's current project (the second row).
-  await expect(options.nth(0)).toHaveAttribute("aria-selected", "true")
+  // It opens on the first project, not on the draft's current project (the next row) or No project.
+  await expect(none).toHaveAttribute("aria-selected", "false")
+  await expect(options.nth(1)).toHaveAttribute("aria-selected", "true")
+
+  // Hovering No project moves the highlight onto it instead of leaving it on the project above.
+  await none.hover()
+  await expect(none).toHaveAttribute("aria-selected", "true")
+  await expect(options.nth(1)).toHaveAttribute("aria-selected", "false")
+  await options.nth(1).hover()
+  await expect(options.nth(1)).toHaveAttribute("aria-selected", "true")
 
   // The picker shares the palette's full-width search, compact rows, and single-line titles.
   await expect(options.nth(0)).toHaveCSS("height", "28px")
@@ -1158,15 +1170,15 @@ test("the location dialog separates added projects from server projects and tags
   await expect(options.nth(0)).toHaveCSS("display", "flex")
   await expect(names.nth(0).locator(".command-palette-title")).toHaveCSS("font-size", "13px")
   await expect(names.nth(0).locator(".command-palette-title")).toHaveCSS("white-space", "nowrap")
-  await expect(rows.nth(0)).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+  await expect(rows.nth(1)).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
   // "Add project" shares the project rows' width and icon column.
   await expect
     .poll(async () => {
       const field = await dialog.locator('[data-component="text-input-v2"]').boundingBox()
-      const row = await rows.nth(0).boundingBox()
+      const row = await rows.nth(1).boundingBox()
       const first = await add.boundingBox()
       const icon = await add.locator(".command-palette-row-icon").boundingBox()
-      const avatar = await rows.nth(0).locator('[data-component="project-avatar-v2"]').boundingBox()
+      const avatar = await rows.nth(1).locator('[data-component="project-avatar-v2"]').boundingBox()
 
       return field && row && first && icon && avatar
         ? Math.max(Math.abs(field.width - row.width), Math.abs(first.width - row.width), Math.abs(icon.x - avatar.x))
@@ -1183,17 +1195,17 @@ test("the location dialog separates added projects from server projects and tags
   await search.fill("")
   await expect(names).toHaveText(["console", "sstapollo"])
   await search.press("ArrowLeft")
-  await expect(names).toHaveText(["opencodeapollo", "opencode"])
+  await expect(names).toHaveText(["No project", "opencodeapollo", "opencode"])
   await search.press("ArrowRight")
   await expect(names).toHaveText(["console", "sstapollo"])
   await search.press("Backspace")
   await search.press("Enter")
   await expect(names).toHaveText(["console", "sstapollo"])
   await search.press("Escape")
-  await expect(names).toHaveText(["opencodeapollo", "opencode"])
+  await expect(names).toHaveText(["No project", "opencodeapollo", "opencode"])
   await others.click()
   await back.click()
-  await expect(names).toHaveText(["opencodeapollo", "opencode"])
+  await expect(names).toHaveText(["No project", "opencodeapollo", "opencode"])
 
   await search.fill("apollo")
   await expect(names).toHaveText(["opencodeapollo", "sstapollo"])
@@ -1245,9 +1257,9 @@ test("the location dialog separates added projects from server projects and tags
 
   // Adding a project picks one of the ready servers first, then browses that server.
   await search.fill("")
-  await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true")
+  await expect(rows.nth(1)).toHaveAttribute("aria-selected", "true")
   await page.keyboard.press("ArrowUp")
-  await expect(options.nth(3)).toHaveAttribute("aria-selected", "true")
+  await expect(none).toHaveAttribute("aria-selected", "true")
   await page.keyboard.press(open)
   await expect(back).toHaveText("Servers")
   // The server the app runs beside shows its hostname and "This computer" instead of its address.

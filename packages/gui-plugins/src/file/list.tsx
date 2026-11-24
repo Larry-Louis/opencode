@@ -137,7 +137,7 @@ export default function SessionFileList(props: {
   }
 
   return (
-    <OpenInAppContextMenuV2 state={openIn} resolvePath={resolveContextPath}>
+    <OpenInAppContextMenuV2 state={openIn} session={props.session} resolvePath={resolveContextPath}>
       <div
         ref={setRoot}
         id={props.id}

@@ -36,7 +36,6 @@ import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
 import { useCommand } from "@/shell/commands/command"
 import { workspaceSelectionDirectories } from "@/workspaces/paths"
-import { pathKey } from "@/workspaces/path-key"
 import { noProjectDirectory, loadNoProjectDirectory } from "@/workspaces/no-project"
 import {
   BRANCH_PRELOAD_TIMEOUT_MS,
@@ -125,12 +124,6 @@ function NewSessionLocationDialog(props: {
   })
 
   const scratch = () => noProjectDirectory()
-
-  const scratchSelected = () => {
-    const directory = scratch()
-
-    return !!directory && pathKey(props.project.selected()?.worktree ?? "") === pathKey(directory)
-  }
 
   const connection = (project: PromptProject) =>
     project.server ? servers.list.find((item) => ServerConnection.key(item) === project.server!.key) : serverSDK.server
@@ -368,6 +361,22 @@ function NewSessionLocationDialog(props: {
     return projectEntries()
   }
 
+  // "No project" is a row of the projects step. It goes last in the typeahead so the dialog still opens on the first
+  // project, while it renders first and the list wraps through it in visual order.
+  const scratchEntry = createMemo<Extract<LocationEntry, { type: "no-project" }> | undefined>(() => {
+    const directory = scratch()
+
+    if (!directory || step().type !== "projects" || !matches(language.t("session.new.project.none"))) return
+
+    return { id: "no-project", type: "no-project", directory }
+  })
+
+  const typeaheadEntries = () => {
+    const entry = scratchEntry()
+
+    return entry ? [...entries(), entry] : entries()
+  }
+
   const drillable = (project: PromptProject) => !!project.id && project.vcs === "git"
 
   const title = () => {
@@ -397,7 +406,7 @@ function NewSessionLocationDialog(props: {
 
   // Every step opens on its first row; the user's choice holds while it stays in the results.
   const typeahead = createTypeahead<LocationEntry>({
-    items: entries,
+    items: typeaheadEntries,
     key: (entry) => entry.id,
     onSelect: choose,
   })
@@ -436,6 +445,12 @@ function NewSessionLocationDialog(props: {
         return
       }
 
+      if (effect.type === "no-project.select") {
+        void selectNoProject(effect.directory)
+
+        return
+      }
+
       if (effect.type === "project.add") {
         dialog.close()
         props.project.add(effect.server)
@@ -468,6 +483,17 @@ function NewSessionLocationDialog(props: {
   function choose(entry: LocationEntry | undefined) {
     if (!entry) return
     dispatch({ type: "chosen", entry, active: activeEntry()?.id, choosesServer: choosesServer() })
+  }
+
+  async function selectNoProject(directory: string) {
+    const connection = serverSDK.server
+
+    // The server only serves locations it knows: registering the folder is what lets the composer load agents and
+    // models for it.
+    await global.serverCtx(ServerConnection.key(connection))?.projects.add(directory).catch(() => undefined)
+
+    props.project.select({ name: language.t("session.new.project.none"), worktree: directory })
+    dialog.close()
   }
 
   const drill = (project: PromptProject) => dispatch({ type: "drilled", project })
@@ -555,35 +581,28 @@ function NewSessionLocationDialog(props: {
                   </div>
                 }
               >
-                <Show when={scratch()}>
-                  {(directory) => (
+                <Show when={scratchEntry()}>
+                  {(entry) => (
                     <button
                       type="button"
+                      id={typeahead.optionID(entry())}
+                      role="option"
                       class="command-palette-row palette-menu-row"
                       data-size="compact"
-                      aria-selected={scratchSelected()}
-                      data-active={scratchSelected() ? "" : undefined}
-                      onClick={async () => {
-                        const connection = serverSDK.server
-                        const directory_ = directory()
-
-                        // The server only serves locations it knows: registering the folder is what lets the composer
-                        // load agents and models for it.
-                        await global
-                          .serverCtx(ServerConnection.key(connection))
-                          ?.projects.add(directory_)
-                          .catch(() => undefined)
-
-                        props.project.select({
-                          name: language.t("session.new.project.none"),
-                          worktree: directory_,
-                        })
-                        dialog.close()
+                      aria-selected={activeEntry()?.id === entry().id}
+                      data-active={activeEntry()?.id === entry().id ? "" : undefined}
+                      onMouseMove={(event) => {
+                        // Ignore hover from a static cursor when keyboard scrolling moves rows underneath it.
+                        if (event.movementX === 0 && event.movementY === 0) return
+                        typeahead.setActive(entry().id)
                       }}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onFocus={() => typeahead.setActive(entry().id)}
+                      onClick={() => choose(entry())}
                     >
                       <ProjectRow
-                        project={{ name: language.t("session.new.project.none"), worktree: directory() }}
-                        path={directory()}
+                        project={{ name: language.t("session.new.project.none"), worktree: entry().directory }}
+                        path={entry().directory}
                         drillLabel={language.t("session.new.location.worktrees")}
                       />
                     </button>
