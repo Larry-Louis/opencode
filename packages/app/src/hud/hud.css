@@ -187,15 +187,28 @@ html[data-hud][data-color-scheme="light"]:not([data-theme]) {
 
 /* The history dots live in the band's first 20px; shift the transcript rows past
    them so text never sits under the rail. */
-/* HUD: the activity lane hangs below the composer instead of over the title bar. */
-/* HUD: the activity lane hangs below the composer instead of over the title bar. The working
-   label tucks up against the composer's bottom edge. */
-:root[data-hud] [data-component="session-composer-lane"] {
+/* HUD: the background-activity capsule docks inside the composer at its end, beside the send
+   button, so it only shows while work is running and never covers the newest rows. Its popover is
+   aligned to that edge too (see activity-chips.tsx). */
+:root[data-hud] [data-component="session-composer-dock"] [data-component="session-composer-lane"] {
+  top: 50%;
   bottom: auto;
-  top: 100%;
-  align-items: flex-start;
-  padding-top: 0;
-  padding-bottom: 0;
+  left: auto;
+  right: 48px;
+  width: auto;
+  max-width: calc(100% - 96px);
+  align-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  /* The composer card follows the lane in DOM order and is positioned, so without a layer the card
+     paints over the capsule: it looked dimmed and let hover/clicks fall through to the editor. */
+  z-index: 2;
+}
+
+/* Keep typed text clear of the capsule while it is there. */
+:root[data-hud] [data-component="session-composer-dock"]:has([data-component="session-activity-chips"])
+  [data-slot="composer-content"] {
+  padding-inline-end: 116px;
 }
 
 :root[data-hud] [data-hud-transcript] [data-timeline-key] {

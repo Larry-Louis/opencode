@@ -120,6 +120,9 @@ export function SessionActivityChips(props: {
   const active = () => view().active
 
   const alignment = useComposerLaneAlignment()
+  // In the HUD the activity capsule lives at the composer's end, beside the send button, instead of
+  // in the free-floating lane above/below it. Its popover opens from that edge too.
+  const placementAlignment = () => (hud ? "end" : alignment())
 
   const row = (item: SessionActivityItem) => ({
     // A shell opens its own panel in place; a subagent opens where it runs; a script has nowhere to open.
@@ -199,7 +202,7 @@ export function SessionActivityChips(props: {
       <div data-component="session-activity-chips" class="flex min-w-0 shrink items-center">
         <Menu
           gutter={8}
-          placement={composerLanePlacement(alignment(), below())}
+          placement={composerLanePlacement(placementAlignment(), below())}
           open={view().open}
           onOpenChange={panel.toggle}
         >
