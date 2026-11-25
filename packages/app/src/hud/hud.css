@@ -337,6 +337,12 @@ html[data-hud][data-color-scheme="light"] [data-slot="turn-navigator-dot"]:not(:
   background: var(--hud-pill-bg);
 }
 
+/* The working label moves into the composer's empty placeholder in HUD mode; keep the transcript
+   clear of a second copy. The state itself still comes from the same working signal. */
+:root[data-hud] [data-component="session-working"] {
+  display: none !important;
+}
+
 /* Tool cards mix their surface with transparency in the shared timeline CSS; the
    HUD keeps every capsule at full opacity. */
 :root[data-hud] [data-component="task-tool-card"] {

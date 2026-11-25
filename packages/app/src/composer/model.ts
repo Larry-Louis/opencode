@@ -9,6 +9,7 @@ import { createComposerEditor, type ComposerEditorModel } from "./editor/interac
 import { selectionFromLines, type SelectedLineRange, useFile } from "@/workspaces/files/model"
 import { useComments } from "@/composer/comments"
 import { useCommand } from "@/shell/commands/command"
+import { useHudMode } from "@/hud/hud-context"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePluginHost } from "@/runtime/plugin/host"
 import { usePluginAttachment } from "@/runtime/plugin/host-apis"
@@ -62,6 +63,7 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
   const dialog = useDialog()
   const command = useCommand()
   const language = useLanguage()
+  const hud = useHudMode()
   const platform = usePlatform()
   const serverSDK = useServerSDK()
   const tabs = useTabs()
@@ -115,6 +117,10 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
 
   const placeholder = () => {
     if (mode() === "shell") return language.t("prompt.placeholder.shell", { example: "git status" })
+
+    // In the HUD the transcript's working tag is hidden, so the empty composer carries the state.
+    // The placeholder already shows only while the editor is empty and clears on the first key.
+    if (hud && adapter.working()) return language.t("session.timeline.working")
 
     if (adapter.working() || (options?.queue?.count() ?? 0) > 0)
       return language.t("ui.promptInput.placeholder.followUp", { slash: "/", at: "@" })
