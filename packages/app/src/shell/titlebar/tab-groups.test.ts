@@ -57,6 +57,7 @@ function meta(
 
 const labels = {
   other: "Other",
+  noProject: "No project",
 }
 
 /** Synthesizes realistic vertical sidebar geometry (26px headers, 28px tab rows, 3px outer gaps, 2px inner gaps). */

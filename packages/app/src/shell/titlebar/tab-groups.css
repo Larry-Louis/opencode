@@ -137,6 +137,15 @@
   letter-spacing: -0.04px;
 }
 
+/* The no-project bucket is a fallback, not a user project: a dashed, italic chip marks it apart from the
+   solid project pills and keeps it from reading as just another group at the top of the list. */
+[data-tab-group-header][data-orientation="vertical"] [data-tab-group-chip][data-no-project] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--v2-border-border-base);
+  color: var(--v2-text-text-muted);
+  font-style: italic;
+}
+
 [data-tab-group][data-orientation="vertical"] > [data-tab-group-items] {
   position: relative;
   display: flex;

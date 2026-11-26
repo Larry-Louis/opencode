@@ -75,7 +75,7 @@ export default function Layout(props: ParentProps) {
   const verticalTabs = () => preferences.appearance.tabLayout() !== "horizontal" && !mobile()
 
   // Dragging narrower than the usual minimum snaps the sidebar to an icon rail; there is no size in between.
-  const COMPACT_TABS_WIDTH = 44
+  const COMPACT_TABS_WIDTH = 52
   const MIN_TABS_WIDTH = 136
   const compactTabs = () => state.tabsWidth <= COMPACT_TABS_WIDTH
 

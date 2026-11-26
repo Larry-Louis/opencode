@@ -48,7 +48,10 @@ import {
 const DEFAULT_SIDEBAR_WIDTH = 344
 
 /** The vertical tab rail's default width: the icon rail, wide enough for a project avatar only. */
-const DEFAULT_TAB_RAIL_WIDTH = 44
+const DEFAULT_TAB_RAIL_WIDTH = 52
+
+/** The old icon-rail width; persisted values at or below it move up with the new default. */
+const PREVIOUS_TAB_RAIL_WIDTH = 48
 
 const DEFAULT_FILE_TREE_WIDTH = 200
 
@@ -565,7 +568,11 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       },
       /** The vertical tab rail's width in the main window, remembered across reloads. */
       tabRail: {
-        width: createMemo(() => store.tabRail?.width ?? DEFAULT_TAB_RAIL_WIDTH),
+        width: createMemo(() => {
+          const width = store.tabRail?.width ?? DEFAULT_TAB_RAIL_WIDTH
+
+          return width <= PREVIOUS_TAB_RAIL_WIDTH ? DEFAULT_TAB_RAIL_WIDTH : width
+        }),
         resize(width: number) {
           if (!Number.isFinite(width)) return
 
