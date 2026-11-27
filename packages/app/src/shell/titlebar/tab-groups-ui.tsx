@@ -207,6 +207,7 @@ export const { use: useTabGroups, provider: TabGroupsProvider } = createSimpleCo
         query: local.query,
         labels: {
           other: language.t("sidebar.view.other"),
+          noProject: language.t("sidebar.recent.group.project.none"),
         },
       }),
     )
@@ -1008,7 +1009,16 @@ export function TabGroupHeader(props: { group: ComputedTabGroup }) {
         onClick={() => tabGroups.toggleCollapsed(props.group.key)}
         class="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-[6px] text-start focus-visible:-outline-offset-2"
       >
-        <span data-tab-group-chip data-group-color={props.group.color} class="max-w-full min-w-0">
+        <span
+          data-tab-group-chip
+          data-group-color={props.group.color}
+          data-no-project={props.group.noProject ? "" : undefined}
+          class="max-w-full min-w-0"
+          classList={{ "gap-1.5": !!props.group.noProject }}
+        >
+          <Show when={props.group.noProject}>
+            <span class="size-1 shrink-0 rounded-full bg-current" aria-hidden="true" />
+          </Show>
           <span class="min-w-0 truncate" dir="auto">
             {props.group.name}
           </span>

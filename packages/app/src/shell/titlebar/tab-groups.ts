@@ -2,6 +2,7 @@ import { Effect, Option, Schema } from "effect"
 import { Persistence } from "@/runtime/persistence/schema"
 import type { ServerConnection } from "@/runtime/server/registry"
 import type { Tab } from "@/shell/tabs/tabs"
+import { isNoProjectDirectory } from "@/workspaces/no-project"
 
 export const TAB_GROUP_MODES = ["none", "server", "project"] as const
 
@@ -68,6 +69,8 @@ export type ComputedTabGroup = {
   manualId?: string
   server?: ServerConnection.Key
   directory?: string
+  /** Sessions that run in the shared no-project folder, kept last and marked apart from project groups. */
+  noProject?: boolean
   defaultName: string
   name: string
   hasCustomOverride: boolean
@@ -283,6 +286,7 @@ export function buildComputedTabGroups(input: {
   query: string
   labels: {
     other: string
+    noProject: string
   }
 }): ComputedTabGroup[] | undefined {
   const searching = input.query.trim().length > 0
@@ -348,7 +352,8 @@ export function buildComputedTabGroups(input: {
     return applySavedGroupOrder(groups, input.state.groupOrder)
   }
 
-  const projectSeedOf = (item: ResolvedTabMeta) => item.projectID ?? item.directory ?? "other"
+  const projectSeedOf = (item: ResolvedTabMeta) =>
+    item.projectID ?? (isNoProjectDirectory(item.directory) ? "other" : item.directory) ?? "other"
 
   const colorMap = assignStableGroupColors(input.items.map(projectSeedOf), "project:", input.state.overrides)
 
@@ -356,7 +361,8 @@ export function buildComputedTabGroups(input: {
 
   const groups = buckets.map(([projectKey, rows]): ComputedTabGroup => {
     const key = `project:${projectKey}`
-    const defaultName = rows[0]?.projectName ?? input.labels.other
+    const noProject = rows.some((row) => isNoProjectDirectory(row.directory))
+    const defaultName = noProject ? input.labels.noProject : rows[0]?.projectName ?? input.labels.other
     const override = input.state.overrides[key]
     const color = colorMap.get(projectKey) ?? "gray"
     const collapsed = searching ? false : !!input.state.collapsed[key]
@@ -367,6 +373,7 @@ export function buildComputedTabGroups(input: {
       kind: "project",
       server: rows[0]?.server,
       directory: rows[0]?.directory,
+      noProject,
       defaultName,
       name: override?.name?.trim() || defaultName,
       hasCustomOverride: !!(override?.name?.trim() || override?.color),
@@ -378,7 +385,10 @@ export function buildComputedTabGroups(input: {
     }
   })
 
-  return applySavedGroupOrder(groups, input.state.groupOrder)
+  // The no-project bucket is a fallback, not a project: keep it after real projects unless the user reordered groups.
+  const ordered = [...groups].toSorted((a, b) => Number(!!a.noProject) - Number(!!b.noProject))
+
+  return applySavedGroupOrder(ordered, input.state.groupOrder)
 }
 
 function buildManualGroups(

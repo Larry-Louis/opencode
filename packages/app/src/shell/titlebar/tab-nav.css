@@ -580,6 +580,28 @@
   display: none;
 }
 
+/* The filter field has no room for text in the icon rail: show only the magnifier, centered, instead of letting
+   the leading icon, grouping menu and clear button crowd one another. */
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-slot="text-input-v2-input"],
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-slot="text-input-v2-icon-button"],
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-slot="text-input-v2-trailing"] {
+  display: none;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-component="text-input-v2"] {
+  justify-content: center;
+  width: 100%;
+  padding-inline-end: 0;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-slot="text-input-v2-value"] {
+  flex: 0 0 auto;
+}
+
+[data-slot="vertical-tabs-sidebar"][data-compact] [data-slot="sidebar-search-input"] [data-slot="text-input-v2-leading-icon"] {
+  padding-inline-start: 0;
+}
+
 [data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] {
   justify-content: center;
   padding-inline: 0;
@@ -606,7 +628,7 @@
 }
 
 /* Hover, the active tab and any status tab fade the link's right edge to make room for the trailing controls. The rail
-   is about 30px wide, so that fade's opaque stop lands off the left edge and masks the avatar away: no trailing
+   is about 38px wide, so that fade's opaque stop lands off the left edge and masks the avatar away: no trailing
    controls are drawn here, so the rail keeps the whole link. */
 [data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab] [data-slot="tab-link"],
 [data-slot="vertical-tabs-sidebar"][data-compact] [data-titlebar-tab]:dir(rtl) [data-slot="tab-link"] {

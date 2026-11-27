@@ -562,6 +562,8 @@ export function SidebarCustomized(props: {
 
       const value = project()
 
+      if (!value && group().kind === "project") return language.t("sidebar.view.project.none")
+
       return value ? displayName(value) : language.t("sidebar.view.other")
     }
 
@@ -604,6 +606,7 @@ export function SidebarCustomized(props: {
               !section(),
             "text-[12px] font-medium text-v2-text-text-faint hover:text-v2-text-text-muted focus-visible:text-v2-text-text-muted":
               section(),
+            "text-v2-text-text-accent italic": group().kind === "project" && !project(),
           }}
           aria-expanded={!group().collapsed}
           onClick={() => setView("collapsed", group().key, !view.collapsed[group().key])}
