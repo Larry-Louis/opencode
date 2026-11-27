@@ -1,4 +1,5 @@
 import { ImagePreview } from "@opencode/ui/image-preview"
+import { prefersReducedMotion } from "@opencode/ui/motion"
 import { useDialog } from "@opencode/ui/context/dialog"
 import type { ReferenceInfo } from "@opencode/client/promise"
 import type { Links, MountedSession } from "@opencode/plugin/gui"
@@ -64,6 +65,18 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
   const command = useCommand()
   const language = useLanguage()
   const hud = useHudMode()
+  // The HUD carries the working state in its empty placeholder; a short dot cycle makes it read as
+  // live without a second tag in the transcript. Reduced motion keeps the plain label.
+  const [workingDots, setWorkingDots] = createSignal(0)
+  createEffect(() => {
+    if (!hud || !adapter.working() || prefersReducedMotion()) {
+      setWorkingDots(0)
+      return
+    }
+
+    const timer = setInterval(() => setWorkingDots((value) => (value + 1) % 7), 420)
+    onCleanup(() => clearInterval(timer))
+  })
   const platform = usePlatform()
   const serverSDK = useServerSDK()
   const tabs = useTabs()
@@ -120,7 +133,7 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
 
     // In the HUD the transcript's working tag is hidden, so the empty composer carries the state.
     // The placeholder already shows only while the editor is empty and clears on the first key.
-    if (hud && adapter.working()) return language.t("session.timeline.working")
+    if (hud && adapter.working()) return language.t("session.timeline.working") + ".".repeat(workingDots())
 
     if (adapter.working() || (options?.queue?.count() ?? 0) > 0)
       return language.t("ui.promptInput.placeholder.followUp", { slash: "/", at: "@" })

@@ -343,6 +343,17 @@ html[data-hud][data-color-scheme="light"] [data-slot="turn-navigator-dot"]:not(:
   display: none !important;
 }
 
+/* The move-to-background pill floats over the transcript; a white sheet at rest keeps it legible
+   against the glass, and hover brightens it further like the shared button overlays do. */
+:root[data-hud] [data-component="session-background-hint"] {
+  background: rgb(255 255 255 / 0.72);
+  color: #171a1f;
+}
+
+:root[data-hud] [data-component="session-background-hint"]:hover {
+  background: rgb(255 255 255 / 0.9);
+}
+
 /* Tool cards mix their surface with transparency in the shared timeline CSS; the
    HUD keeps every capsule at full opacity. */
 :root[data-hud] [data-component="task-tool-card"] {
